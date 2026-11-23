@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
@@ -106,7 +107,7 @@ class OutboundController extends BaseController
         } catch (DomainException) {
             $this->setRedirect($page, Text::_('COM_ALFA_OUTBOUND_GONE'), 'warning');
         } catch (Throwable $e) {
-            Log::add('Tools > Tasks (' . $this->getTask() . ') on consumer #' . $id . ' stopped with ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, OutboundFeed::LOG);
+            Log::add('Tools > Tasks (' . $this->getTask() . ') on consumer #' . $id . ' stopped with ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
             $this->setRedirect($page, Text::_('COM_ALFA_TASKS_ACTION_ERROR'), 'error');
         }
     }

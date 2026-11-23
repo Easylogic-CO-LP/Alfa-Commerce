@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Media\MediaFetch;
@@ -173,7 +174,7 @@ final class MediaFetchJob implements JobHandler
         try {
             $fetched = ($this->fetch ?? new MediaFetch())->fetch(url: $url, allowedMimes: $allowed);
         } catch (MediaFetchRefused $e) {
-            return ['reason' => $e->getMessage()] + $entry;
+            return ['reason' => ErrorText::of($e)] + $entry;
         }
 
         $db = TransactionState::driver(Factory::getContainer()->get('DatabaseDriver'));
@@ -191,7 +192,7 @@ final class MediaFetchJob implements JobHandler
             TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
-            Log::add('[MediaFetchJob] The image fetched from ' . $url . ' could not be stored: ' . $e::class . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            Log::add('[MediaFetchJob] The image fetched from ' . $url . ' could not be stored: ' . $e::class . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
 
             return ['reason' => 'the image was fetched and could not be stored'] + $entry;
         }

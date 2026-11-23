@@ -15,6 +15,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 use Alfa\Component\Alfa\Administrator\Event\Api\ApiRequestEvent;
 use Alfa\Component\Alfa\Administrator\Event\Api\ApiRoutesEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Panel\PanelDispatcher;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -195,7 +196,7 @@ final class ApiRouteRegistrar
         try {
             $plugin = $plugins->bootSingle($id);
         } catch (PluginUnavailable $e) {
-            self::unavailable($router, $element, $e->reason, $e->getMessage());
+            self::unavailable($router, $element, $e->reason, ErrorText::of($e));
 
             return;
         }
@@ -208,7 +209,7 @@ final class ApiRouteRegistrar
             $own = new ApiRouter(Factory::getApplication());
             $plugins->dispatchTo($plugin, new ApiRoutesEvent($own, $element));
         } catch (Throwable $e) {
-            self::unavailable($router, $element, PluginUnavailable::UNLOADABLE, 'it threw while it declared its routes, ' . $e::class . ': ' . $e->getMessage());
+            self::unavailable($router, $element, PluginUnavailable::UNLOADABLE, 'it threw while it declared its routes, ' . $e::class . ': ' . ErrorText::of($e));
 
             return;
         }
@@ -266,7 +267,7 @@ final class ApiRouteRegistrar
                 $own = new ApiRouter(Factory::getApplication());
                 $plugins->dispatchTo($plugin, new ApiRoutesEvent($own, $id->element));
             } catch (Throwable $e) {
-                Log::add('Tools: the extension ' . $id . ' threw while it declared its routes (' . $e::class . ': ' . $e->getMessage() . ').', Log::ERROR, self::LOG);
+                Log::add('Tools: the extension ' . $id . ' threw while it declared its routes (' . $e::class . ': ' . ErrorText::of($e) . ').', Log::ERROR, self::LOG);
                 $listing[] = ['unavailable' => PluginUnavailable::UNLOADABLE] + $entry;
 
                 continue;

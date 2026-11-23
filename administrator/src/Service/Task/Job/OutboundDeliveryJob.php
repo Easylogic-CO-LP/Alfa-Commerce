@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task\Job;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundDelivery;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\EnqueueResult;
@@ -74,7 +75,7 @@ final class OutboundDeliveryJob implements JobHandler
             try {
                 self::enqueueFor(consumerId: (int) $consumerId);
             } catch (Throwable $e) {
-                Tasks::log(entry: 'Runner: the delivery of consumer #' . (int) $consumerId . ' could not be queued: ' . $e::class . ': ' . $e->getMessage(), priority: Log::WARNING);
+                Tasks::log(entry: 'Runner: the delivery of consumer #' . (int) $consumerId . ' could not be queued: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
             }
         }
     }

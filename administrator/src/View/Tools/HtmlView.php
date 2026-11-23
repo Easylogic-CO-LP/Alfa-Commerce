@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Tools;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -332,7 +333,7 @@ class HtmlView extends BaseHtmlView
         try {
             $listing = ApiAddressListing::read();
         } catch (Throwable $e) {
-            Log::add('Tools: the REST API addresses could not be read: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+            Log::add('Tools: the REST API addresses could not be read: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, ApiRouteRegistrar::LOG);
 
             return ['unreadable' => true] + $empty;
         }
@@ -390,7 +391,7 @@ class HtmlView extends BaseHtmlView
             $form = Factory::getContainer()->get(FormFactoryInterface::class)->createForm('com_alfa.tools.apiroutes.filter', ['control' => '']);
             $form->loadFile(JPATH_ADMINISTRATOR . '/components/com_alfa/forms/filter_apiroutes.xml');
         } catch (Throwable $e) {
-            Log::add('Tools: the filters of the REST API addresses could not be built: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+            Log::add('Tools: the filters of the REST API addresses could not be built: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, ApiRouteRegistrar::LOG);
 
             return null;
         }
@@ -437,7 +438,7 @@ class HtmlView extends BaseHtmlView
         try {
             return ['rows' => OutboundConsumers::cardRows(), 'unreadable' => false];
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+            Tasks::log(entry: 'Tools: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
             return ['rows' => [], 'unreadable' => true];
         }

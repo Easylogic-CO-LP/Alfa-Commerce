@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -145,7 +146,7 @@ final class InformationNotices
             try {
                 $follow();
             } catch (Throwable $e) {
-                Log::add('The notice ' . $key . ' could not be brought up to date: ' . $e::class . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa.setup');
+                Log::add('The notice ' . $key . ' could not be brought up to date: ' . $e::class . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa.setup');
             }
         }
     }

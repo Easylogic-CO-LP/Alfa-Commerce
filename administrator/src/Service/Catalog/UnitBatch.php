@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel;
@@ -128,7 +129,7 @@ final class UnitBatch
             try {
                 (new ProjectionManager())->syncItems(itemIds: array_values($priced));
             } catch (Throwable $e) {
-                Log::add('The catalogue of products ' . implode(', ', $priced) . ' was not rebuilt after their prices were written: ' . $e->getMessage(), Log::ERROR, 'com_alfa.catalog');
+                Log::add('The catalogue of products ' . implode(', ', $priced) . ' was not rebuilt after their prices were written: ' . ErrorText::of($e), Log::ERROR, 'com_alfa.catalog');
                 ProjectionManager::owe(itemIds: array_values($priced));
             }
         }
@@ -339,14 +340,14 @@ final class UnitBatch
             TransactionState::rollBackLevel(db: $this->db, failure: $e);
 
             return match (true) {
-                $e instanceof UnitBatchRefusal => $refused($at, $e->status, $e->getMessage()),
+                $e instanceof UnitBatchRefusal => $refused($at, $e->status, ErrorText::of($e)),
                 $e instanceof PricesStateChanged => $refused($pointer . '/prices_state', 409, 'the unit\'s prices changed since you read them (prices_state). Read them again.'),
                 $e instanceof InventoryReservedFloorException, $e instanceof InventoryIntegrityException => $refused($at, 409, $e->operatorMessage()),
                 $e instanceof InventoryUnitException => $refused($at, 422, $combinationId > 0 ? 'this combination does not track stock.' : 'this product does not track stock.'),
                 $e instanceof InventoryProjectionMismatchException => $refused($at, 409, 'the unit\'s stock figures disagree with its stock records; the shop repairs them first.'),
                 // The services' own refusals (a place deleted since, a location that takes no stock); never the database's.
                 $e instanceof RuntimeException && !str_starts_with($e::class, 'Joomla\\Database\\') && !TransactionState::endedBy(db: $this->db, failure: $e)
-                    => $refused($at, 422, $e->getMessage()),
+                    => $refused($at, 422, ErrorText::of($e)),
                 default => $this->failed(at: $at, itemId: $itemId, combinationId: $combinationId, failure: $e),
             };
         }
@@ -520,7 +521,7 @@ final class UnitBatch
      */
     private function failed(string $at, int $itemId, int $combinationId, Throwable $failure): array
     {
-        Log::add('The batch write of unit ' . $itemId . ':' . $combinationId . ' failed: ' . $failure::class . ': ' . $failure->getMessage(), Log::ERROR, 'com_alfa.catalog');
+        Log::add('The batch write of unit ' . $itemId . ':' . $combinationId . ' failed: ' . $failure::class . ': ' . ErrorText::of($failure), Log::ERROR, 'com_alfa.catalog');
 
         return self::refused($at, 500, 'the unit could not be written; nothing of it was saved. The shop\'s log names the reason.', $itemId, $combinationId);
     }

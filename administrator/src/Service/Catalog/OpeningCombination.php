@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
@@ -150,7 +151,7 @@ final class OpeningCombination
                 ProjectionManager::markAllForRebuild();
                 CatalogueRebuildJob::enqueue();
             } catch (Throwable $e) {
-                Log::add('[OpeningCombination] The opening combinations of the catalogue could not be owed after a location changed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+                Log::add('[OpeningCombination] The opening combinations of the catalogue could not be owed after a location changed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.inventory');
             }
 
             return;
@@ -173,13 +174,13 @@ final class OpeningCombination
             try {
                 self::refresh(itemIds: $granted);
             } catch (Throwable $e) {
-                Log::add('[OpeningCombination] The opening combination of item(s) ' . implode(', ', $granted) . ' was not decided again and is owed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+                Log::add('[OpeningCombination] The opening combination of item(s) ' . implode(', ', $granted) . ' was not decided again and is owed: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.inventory');
                 $owed = $itemIds;
             }
 
             ProjectionManager::owe(itemIds: $owed);
         } catch (Throwable $e) {
-            Log::add('[OpeningCombination] The opening combination of item(s) ' . implode(', ', $itemIds) . ' could not be decided again: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');
+            Log::add('[OpeningCombination] The opening combination of item(s) ' . implode(', ', $itemIds) . ' could not be decided again: ' . ErrorText::of($e), Log::WARNING, 'com_alfa.inventory');
             ProjectionManager::owe(itemIds: $itemIds);
         } finally {
             $lock->release(itemIds: $granted);

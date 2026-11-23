@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Outbound\OutboundTopicsEvent;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
@@ -324,7 +325,7 @@ final class OutboundConsumers
                 ],
             );
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the notice of consumer #' . $consumerId . ' could not be brought up to date: ' . $e->getMessage(), Log::WARNING, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the notice of consumer #' . $consumerId . ' could not be brought up to date: ' . ErrorText::of($e), Log::WARNING, OutboundFeed::LOG);
         }
     }
 
@@ -425,7 +426,7 @@ final class OutboundConsumers
                 self::follow(db: $db, plugin: PluginId::from(group: 'alfa', element: (string) $plugin->element), name: (string) $plugin->name, enabled: (int) $plugin->enabled === 1);
             }
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the consumers of the saved plugins could not be kept in step: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the consumers of the saved plugins could not be kept in step: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
         }
     }
 
@@ -451,7 +452,7 @@ final class OutboundConsumers
                 $db->setQuery('DELETE FROM ' . $db->quoteName(OutboundFeed::CONSUMERS) . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', array_map('intval', $gone)) . ')')->execute();
             }
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the consumers of removed plugins could not be removed: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the consumers of removed plugins could not be removed: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
         }
     }
 
@@ -545,9 +546,9 @@ final class OutboundConsumers
 
             return $event->getTopics();
         } catch (PluginUnavailable $e) {
-            Log::add('Outgoing notifications: the plugin ' . $plugin . ' could not be asked its topics: ' . $e->getMessage(), Log::WARNING, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the plugin ' . $plugin . ' could not be asked its topics: ' . ErrorText::of($e), Log::WARNING, OutboundFeed::LOG);
         } catch (Throwable $e) {
-            Log::add('Outgoing notifications: the plugin ' . $plugin . ' failed when asked its topics: ' . $e::class . ': ' . $e->getMessage(), Log::ERROR, OutboundFeed::LOG);
+            Log::add('Outgoing notifications: the plugin ' . $plugin . ' failed when asked its topics: ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
         }
 
         return null;

@@ -10,6 +10,7 @@
 
 namespace Alfa\Plugin\WebServices\Alfa\Extension;
 
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiRouteRegistrar;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Joomla\CMS\Access\Exception\AuthenticationFailed;
@@ -232,10 +233,10 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
         // itself (no HTTP code, or a 5xx raised outside the extension's handler) is logged now, its class and message.
         if (!$http || ($code >= 500 && !$error instanceof Save)) {
             AlfaLog::register();
-            Log::add('An extension\'s address (' . rtrim($path, '/') . ') failed outside its handler: ' . $error::class . ': ' . $error->getMessage(), Log::ERROR, ApiRouteRegistrar::LOG);
+            Log::add('An extension\'s address (' . rtrim($path, '/') . ') failed outside its handler: ' . $error::class . ': ' . ErrorText::of($error), Log::ERROR, ApiRouteRegistrar::LOG);
         }
 
-        [$code, $title] = $http ? [$code, $error->getMessage()] : [500, Text::_('JERROR_AN_ERROR_HAS_OCCURRED')];
+        [$code, $title] = $http ? [$code, ErrorText::of($error)] : [500, Text::_('JERROR_AN_ERROR_HAS_OCCURRED')];
         $body = (string) json_encode(['errors' => [['code' => $code, 'title' => $title]]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 
         $app->setHeader('status', (string) $code, true);
