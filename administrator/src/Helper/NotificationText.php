@@ -38,6 +38,10 @@ use ValueError;
  *
  *   NotificationHelper::push('stock-low:item:7', NotificationText::of('COM_ALFA_NOTIFY_LOW_STOCK_TITLE', $name), [...]);
  *
+ * @api READ ONLY: the text a plugin gives NotificationHelper::push(): from() with its own language file's key, and
+ *      key(), plural(), date(), number(), content() and join() for the parameters. of() and sentences() are core's own
+ *      texts.
+ *
  * @since  2.1.4
  */
 final class NotificationText implements JsonSerializable
