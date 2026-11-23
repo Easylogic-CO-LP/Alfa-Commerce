@@ -391,6 +391,14 @@ final class CombinationService
             try {
                 if ($combinationId === 0) {
                     $combinationId = $this->make(db: $db);
+
+                    // A new combination whose stock is already tracked (its product tracks stock, and the save does not
+                    // switch it on) takes its opening figures as its first stock, converged after the save.
+                    if ($this->opening !== [] && $this->plan(combinationId: $combinationId)['transition'] !== 'on') {
+                        $this->stock = $this->stock !== [] ? $this->stock : $this->opening;
+                        $this->stockBaseline = array_fill_keys(array_keys($this->stock), '0');
+                        $this->opening = [];
+                    }
                 }
 
                 $plan = $this->plan(combinationId: $combinationId);
@@ -427,12 +435,6 @@ final class CombinationService
                 TransactionState::rollBackLevel(db: $db, failure: $e);
 
                 throw $e;
-            }
-
-            // A new combination its product already tracks stock for takes its opening figures as its first stock.
-            if (!$opening && $this->combinationId === 0 && $this->stock === [] && $this->opening !== []) {
-                $this->stock = $this->opening;
-                $this->stockBaseline = array_fill_keys(array_keys($this->opening), '0');
             }
 
             // Changed tracked figures converge after the save, as the window converges them: a refusal is not a failed
