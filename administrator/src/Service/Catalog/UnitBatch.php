@@ -12,11 +12,11 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
-use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryCommands;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryProjectionMismatchException;
@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryReservedFloorEx
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Administrator\Service\Refusal;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
@@ -38,10 +39,10 @@ use Throwable;
  * Each unit is written in a transaction of its own, whole or not at all, and answered on its own: a unit that is
  * refused is named by its JSON pointer in the request (/units/3, /units/3/prices_state) with its status and the
  * reason, and the other units are written. A unit's prices replace its own price rows as the item write and the
- * combination's price editor write them (rows kept by id, rows not sent removed), refused 409 when the unit's
- * prices_state was sent and its prices changed since; its stock is an absolute figure, as the item write takes it
- * (stock at the one location the unit is stocked at, or inventory_stock by location), converged by the inventory
- * service as every stock editor does.
+ * combination's price editor write them (rows kept by id, rows not sent removed; a combination's through
+ * CombinationService), refused 409 when the unit's prices_state was sent and its prices changed since; its stock is an
+ * absolute figure, as the item write takes it (stock at the one location the unit is stocked at, or inventory_stock by
+ * location), set through InventoryCommands as every stock editor sets it.
  *
  * The products whose prices were written are marked owed a rebuild in each unit's transaction, and their catalogue (the
  * price index through PriceIndexSyncService, with the other catalogue projections) is rebuilt once for all of them
@@ -316,22 +317,24 @@ final class UnitBatch
                     ? $this->plainTarget(itemId: $itemId, combinationId: $combinationId, figure: (string) $unit['stock'], inventory: $inventory)
                     : array_map(static fn (mixed $figure): string => trim((string) $figure), (array) $unit['inventory_stock']);
 
-                foreach ($targets as $locationId => $figure) {
-                    $applied = $inventory->adjustTo(
-                        itemId: $itemId,
-                        combinationId: $combinationId > 0 ? $combinationId : null,
-                        locationId: (int) $locationId,
-                        target: (float) $figure,
-                        sourceType: 'catalog_edit',
-                        sourceId: $itemId,
-                        context: InventoryContext::ambient(),
-                    );
+                // The figures go through the one way stock records are set (InventoryCommands), judged as the stock
+                // editors judge them and applied together; its refusal is the unit's.
+                $adjustment = InventoryCommands::adjust()->source(type: 'catalog_edit', id: $itemId)->by(context: InventoryContext::ambient());
 
-                    if ($applied === null) {
-                        throw new UnitBatchRefusal(422, $combinationId > 0
-                            ? 'this combination does not track stock.'
-                            : 'this product does not keep stock of its own: it does not track stock, or its stock is kept on its combinations.');
+                foreach ($targets as $locationId => $figure) {
+                    $adjustment->set(itemId: $itemId, combinationId: $combinationId, locationId: (int) $locationId, quantity: (float) $figure);
+                }
+
+                $applied = $adjustment->apply();
+
+                if (!$applied->applied) {
+                    if ($applied->failure !== null) {
+                        throw $applied->failure;
                     }
+
+                    $refusal = $applied->refusals[0] ?? null;
+
+                    throw new UnitBatchRefusal($refusal->status ?? 422, (string) ($refusal->sentence ?? 'the stock was not set.'));
                 }
             }
 
@@ -380,14 +383,21 @@ final class UnitBatch
         ProjectionManager::mark(itemIds: [$itemId]);
 
         if ($combinationId > 0) {
-            $written = ItemFieldsAdminHelper::replaceCombinationPrices(
-                itemId: $itemId,
-                combinationId: $combinationId,
-                rows: array_map(static fn (array $row): array => ['_mode' => $row['mode'] ?? 'price'] + $row, $rows),
-            );
+            // The combination's prices go through the one way a combination is written (CombinationService), which
+            // leaves the catalogue's rebuild to this batch inside its transaction.
+            $written = CombinationService::change(itemId: $itemId, combinationId: $combinationId)
+                ->prices(rows: array_map(static fn (array $row): array => ['_mode' => $row['mode'] ?? 'price'] + $row, $rows))
+                ->from(origin: 'api')
+                ->save();
 
-            if (!$written) {
-                throw new UnitBatchRefusal(404, 'the product has no current combination with this id.');
+            if (!$written->saved) {
+                $refusal = $written->refusals[0] ?? null;
+                $status = $refusal->status ?? 422;
+
+                throw new UnitBatchRefusal(
+                    $status,
+                    $status === Refusal::NOT_FOUND ? 'the product has no current combination with this id.' : (string) ($refusal->sentence ?? ''),
+                );
             }
         } else {
             $widened = PriceRowPlaces::widenedFromDeleted(itemId: $itemId, combinationId: null, rows: $rows);
