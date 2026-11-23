@@ -439,7 +439,8 @@ final class InventoryService
         $context ??= new InventoryContext();
 
         // BEFORE event: packages may amend the lines or veto by throwing;
-        // pre-transaction, a veto touches nothing.
+        // before this command writes anything, inside the caller's transaction
+        // (and the order's row lock) where the caller holds one.
         $before = new InventoryBeforeReserveEvent('onInventoryBeforeReserve', [
             'lines' => $lines,
             'sourceType' => $sourceType,
@@ -2037,7 +2038,8 @@ final class InventoryService
         $context ??= new InventoryContext();
 
         // BEFORE event: packages may replace the request or veto by
-        // throwing; pre-transaction, nothing was deducted yet.
+        // throwing; nothing was deducted yet, inside the caller's transaction
+        // (and the order's row lock) where the caller holds one.
         $before = new InventoryBeforeCommitEvent('onInventoryBeforeCommit', ['request' => $request]);
         $this->dispatch($before);
         $request = $before->getRequest();
