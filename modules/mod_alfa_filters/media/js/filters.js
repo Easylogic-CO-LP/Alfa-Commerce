@@ -7,6 +7,15 @@
  * - Responsive layout switching
  * - Price range slider
  * - Category/subcategory checkbox toggling
+ * - Option groups: their search box, opener and Show more
+ *
+ * The panel opens from anywhere on the page: any element carrying
+ * data-alfa-filters-open="<module id>" opens it when pressed, data-alfa-filters-toggle
+ * opens or closes it, data-alfa-filters-close closes it. Each opener carries
+ * aria-expanded while the panel is open, and the focus returns to the one that opened it
+ * when it closes. A script does the same through window.AlfaFilters.open(id),
+ * .close(id) and .toggle(id). Where the panel sits in the page as a column (a screen
+ * wider than the module's breakpoint), opening it brings it into view.
  *
  * @package    Alfa
  * @subpackage mod_alfa_filters
@@ -700,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     htmlElement.classList.add('alfa-filters-noscroll');
                 }
 
-                self.toggler.setAttribute('aria-expanded', 'true');
+                self.tellOpeners(true);
                 self.isVisible = true;
             };
 
@@ -712,7 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'alfa-filters-offcanvas--visible'
                     );
                     htmlElement.classList.remove('alfa-filters-noscroll');
-                    self.toggler.setAttribute('aria-expanded', 'false');
+                    self.tellOpeners(false);
                 } else {
                     self.offCanvas.classList.add('alfa-filters-offcanvas--animatable');
                     self.offCanvas.classList.remove('alfa-filters-offcanvas--visible-inner');
@@ -722,7 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         self.offCanvas.classList.remove('alfa-filters-offcanvas--visible');
                         htmlElement.classList.remove('alfa-filters-noscroll');
-                        self.toggler.setAttribute('aria-expanded', 'false');
+                        self.tellOpeners(false);
 
                         innerWrapper.removeEventListener('transitionend', handleTransitionEnd);
                     };
@@ -733,23 +742,112 @@ document.addEventListener('DOMContentLoaded', () => {
                 self.isVisible = false;
             };
 
-            this.toggle = (options = {}) => {
-                self.isVisible ? self.close(options) : self.open(options);
-            };
-
             this.offCanvas.addEventListener('transitionend', (event) => {
                 if (event.target === innerWrapper) {
                     self.offCanvas.classList.remove('alfa-filters-offcanvas--animatable');
                 }
             });
 
-            this.offCanvas.addEventListener('click', () => this.toggle());
+            // The backdrop, the close button and Escape close the panel and give the focus
+            // back to what opened it; the module's own button opens and closes it.
+            this.offCanvas.addEventListener('click', () => this.hide());
             innerWrapper.addEventListener('click', (event) => event.stopPropagation());
-            this.toggler.addEventListener('click', () => this.toggle());
+            this.toggler.addEventListener('click', () => this.act('toggle', this.toggler));
 
             if (closeBtn) {
-                closeBtn.addEventListener('click', () => this.toggle());
+                closeBtn.addEventListener('click', () => this.hide());
             }
+
+            // Escape belongs to an open dropdown or to a search box that still holds text
+            // first; otherwise it closes the panel.
+            this.offCanvas.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape' || !this.isVisible || !this.isOverlay()) {
+                    return;
+                }
+
+                if ((event.target.matches?.('[data-af-search]') && event.target.value !== '')
+                    || (this._facetSelects || []).some((instance) => instance.dropdown.isActive)) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.hide();
+            });
+        }
+
+        /**
+         * Whether the panel lies over the page (the module's button, or a screen narrower
+         * than its breakpoint) rather than in the page as a column.
+         */
+        isOverlay() {
+            return this.currentMode !== 'desktop';
+        }
+
+        /**
+         * Say on the module's own button and on every opener of this module on the page
+         * whether the panel is open.
+         *
+         * @param {boolean} open
+         */
+        tellOpeners(open) {
+            const id = this.moduleId;
+
+            this.toggler?.setAttribute('aria-expanded', open ? 'true' : 'false');
+            document.querySelectorAll(`[data-alfa-filters-open="${id}"], [data-alfa-filters-toggle="${id}"]`).forEach((element) => {
+                element.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        }
+
+        /**
+         * What an opener asks: open, toggle or close. Where the panel is a column in the
+         * page, opening brings it into view and puts the focus in it.
+         *
+         * @param {string} action 'open', 'toggle' or 'close'.
+         * @param {Element|null} from The element pressed, to give the focus back to.
+         */
+        act(action, from = null) {
+            if (!this.open) {
+                return;
+            }
+
+            if (action === 'close' || (action === 'toggle' && this.isVisible && this.isOverlay())) {
+                this.hide();
+
+                return;
+            }
+
+            if (!this.isOverlay()) {
+                const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                this.wrapper.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'start' });
+                qs('.af-group-toggle, input, select, button', this.filterForm)?.focus({ preventScroll: true });
+
+                return;
+            }
+
+            if (this.isVisible) {
+                return;
+            }
+
+            this.opener = from instanceof Element ? from : this.toggler;
+            this.open();
+            qs('.alfa-filters-close-btn', this.offCanvas)?.focus({ preventScroll: true });
+        }
+
+        /**
+         * Close the panel that lies over the page, and give the focus back to what opened it.
+         */
+        hide() {
+            if (!this.isVisible || !this.isOverlay()) {
+                return;
+            }
+
+            this.close();
+
+            const back = this.opener && document.contains(this.opener) ? this.opener : this.toggler;
+
+            this.opener = null;
+            back?.focus({ preventScroll: true });
         }
 
         /*
@@ -1309,4 +1407,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const moduleId = wrapper.dataset.moduleId;
         window.alfaFiltersInstances[moduleId] = new AlfaFiltersInstance(wrapper);
     });
+
+    // Free and Pro ship this same script: the page gets one listener and one API, whichever
+    // copy runs first, serving every module of both on the page.
+    if (window.AlfaFilters) {
+        return;
+    }
+
+    // Openers placed anywhere on the page, found when pressed: one listener for them all,
+    // so one added later works too. In the capture phase, because the panel keeps clicks
+    // inside it from bubbling (its backdrop closes it) and a close control may sit there.
+    document.addEventListener('click', (event) => {
+        const element = event.target.closest?.('[data-alfa-filters-open], [data-alfa-filters-toggle], [data-alfa-filters-close]');
+
+        if (!element) {
+            return;
+        }
+
+        const action = element.hasAttribute('data-alfa-filters-open') ? 'open'
+            : (element.hasAttribute('data-alfa-filters-toggle') ? 'toggle' : 'close');
+        const instance = window.alfaFiltersInstances[element.getAttribute(`data-alfa-filters-${action}`)];
+
+        if (instance) {
+            event.preventDefault();
+            instance.act(action, element);
+        }
+    }, true);
+
+    window.AlfaFilters = {
+        open: (id) => window.alfaFiltersInstances[String(id)]?.act('open'),
+        close: (id) => window.alfaFiltersInstances[String(id)]?.act('close'),
+        toggle: (id) => window.alfaFiltersInstances[String(id)]?.act('toggle'),
+    };
 });

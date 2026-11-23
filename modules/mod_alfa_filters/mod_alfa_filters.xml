@@ -212,6 +212,15 @@
                     <option value="%">MOD_ALFAFILTERS_PERCENTAGE_UNIT</option>
                 </field>
 
+                <!-- The attribute a merchant puts on a button or link of their own to open these filters. -->
+                <field
+                        name="opener"
+                        type="FiltersOpener"
+                        addfieldprefix="Alfa\Module\AlfaFilters\Site\Field"
+                        label="MOD_ALFAFILTERS_OPENER_LBL"
+                        description="MOD_ALFAFILTERS_OPENER_DESC"
+                />
+
                 <field type="note" name="sub_count_note"
                        label="MOD_ALFAFILTERS_SUBCATEGORY_PRODCOUNT_NOTE"
                        class="alert alert-info" />
