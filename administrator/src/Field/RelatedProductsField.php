@@ -64,6 +64,9 @@ class RelatedProductsField extends SubformField
         $element['formsource'] = self::ROW_FORM;
         $element['layout'] = 'form.field.relatedproducts';
         $element['buttons'] = 'add,remove,move';
+        // The layout is com_alfa's, whichever component the page that draws the form is.
+        $element['component'] = 'com_alfa';
+        $element['client'] = 'administrator';
 
         if (!parent::setup($element, $value, $group)) {
             return false;

@@ -84,6 +84,23 @@ class RelatedVariantField extends FormField
     }
 
     /**
+     * The renderer of com_alfa's layout, whichever component the page that draws the form is: the template's
+     * html/layouts/com_alfa first, then the component's layouts.
+     *
+     * @param string $layoutId The layout.
+     *
+     * @since  2.3.0
+     */
+    protected function getRenderer($layoutId = 'default')
+    {
+        $renderer = parent::getRenderer($layoutId);
+        $renderer->setComponent('com_alfa');
+        $renderer->setClient('administrator');
+
+        return $renderer;
+    }
+
+    /**
      * The layout's data: the row's product, what it offers ({@see RelatedItems::choices()}) and the cell's value.
      *
      * @since  2.3.0
