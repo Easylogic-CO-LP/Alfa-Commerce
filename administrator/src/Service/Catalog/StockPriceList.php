@@ -26,8 +26,9 @@ use stdClass;
  * A row is a unit an integrator keeps in step: the product itself (combination 0) when it has no combination that is
  * published or unpublished, else each such combination. Its price is the one the shop's product list reads for a guest
  * at no place in the shop's currency: the price index's row of the combination when it has price rows of its own, else
- * the product's own row, which is the price of every combination without them. A unit the index holds no valid price
- * for (unpublished, or no price row applies) has no price. A price of 0 is a price.
+ * the product's own row, which is the price of every combination without them. The index holds rows for published
+ * units only: an unpublished combination of a published product reads the product's own row, and an unpublished
+ * product, or a unit no price row applies to, has no price. A price of 0 is a price.
  *
  * One statement a page, whatever the page's size: the units are read in key order (item_id, then combination_id) from
  * the products and the combinations by their keys, each side limited to the page, and their prices joined by the index's
