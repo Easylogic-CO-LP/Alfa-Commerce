@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasFormDerivedFiltersTrait;
 use Joomla\CMS\MVC\Model\ListModel;
@@ -109,11 +110,8 @@ class ToolsmediaModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        $id .= ':' . $this->getState('filter.source');
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.status');
-
-        return parent::getStoreId($id);
+        // Every filter of the state goes into the identity, nested ones as JSON.
+        return parent::getStoreId(AlfaHelper::listStoreId($id, $this->getState()->toArray()));
     }
 
     /**

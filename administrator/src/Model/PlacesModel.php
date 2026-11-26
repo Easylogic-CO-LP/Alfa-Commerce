@@ -90,11 +90,8 @@ class PlacesModel extends AlfaListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
-
-        return parent::getStoreId($id);
+        // Every filter of the state goes into the identity, nested ones as JSON.
+        return parent::getStoreId(AlfaHelper::listStoreId($id, $this->getState()->toArray()));
     }
 
     /**
