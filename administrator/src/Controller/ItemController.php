@@ -38,6 +38,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityExcept
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryReservedFloorException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\StockHeldRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
@@ -964,6 +965,9 @@ class ItemController extends FormController
             echo new \Joomla\CMS\Response\JsonResponse(['created' => $created, 'reordered' => $reordered]);
         } catch (ExecutionFailureException | ConnectionFailureException $e) {
             echo $this->databaseRefused(endpoint: 'generateCombinations', itemId: $itemId, failure: $e);
+        } catch (StockHeldRefusedException $e) {
+            // The product's stock still holds: the refusal as markup, its order lines linked, for the dialog.
+            echo new \Joomla\CMS\Response\JsonResponse(['markup' => true], $e->markup, true);
         } catch (RuntimeException $e) {
             // Depth lock and friends: surfaced verbatim in the generator UI.
             echo new \Joomla\CMS\Response\JsonResponse($e);

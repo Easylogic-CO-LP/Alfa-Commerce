@@ -15,8 +15,11 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Multilanguage;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -159,9 +162,37 @@ class HtmlView extends FormView
             ToolbarHelper::custom('item.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
         }
 
-        // Button for version control
+        // Preview: the product's storefront page in a new tab. A product not published yet renders there for
+        // whoever may edit products, so a draft is seen as the shopper will see it.
+        if (!$isNew) {
+            $this->getDocument()->getToolbar()->linkButton('preview', 'JGLOBAL_PREVIEW')
+                ->url($this->previewUrl())
+                ->icon('icon-eye')
+                ->target('_blank');
+        }
 
         ToolbarHelper::cancel('item.cancel', 'JTOOLBAR_CLOSE');
+    }
+
+    /**
+     * The product's storefront address: its page under its default category (its first category when none is
+     * marked default), in the site's default language when the shop is multilingual.
+     *
+     *
+     * @since  2.3.0
+     */
+    private function previewUrl(): string
+    {
+        $categories = array_values((array) ($this->item->categories ?? []));
+        $categoryId = (int) ($this->item->id_category_default ?? 0) ?: (int) ($categories[0] ?? 0);
+        $url = 'index.php?option=com_alfa&view=item&id=' . (int) $this->item->id
+            . ($categoryId > 0 ? '&category_id=' . $categoryId : '');
+
+        if (Multilanguage::isEnabled()) {
+            $url .= '&lang=' . ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
+        }
+
+        return Route::link(client: 'site', url: $url, xhtml: false, absolute: true);
     }
 
     /**

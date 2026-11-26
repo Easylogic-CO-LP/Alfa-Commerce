@@ -32,6 +32,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryTrackingException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitRetirementException;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\StockHeldRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\LocationPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\ItemFields\ItemFieldDisplayResolver;
@@ -1186,10 +1187,11 @@ class ItemFieldsAdminHelper
         } catch (InventoryUnitRetirementException $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
-            // The generator shows its refusal as plain text, not markup.
-            throw new RuntimeException(
+            // The refusal in both forms: plain for an API answer, markup with its order lines linked for the
+            // generator's dialog.
+            throw new StockHeldRefusedException(
                 self::stockHeldText(itemId: $itemId, key: 'COM_ALFA_COMBI_GENERATE_PARENT_STOCK', blockers: $e->blockers, markup: false),
-                0,
+                self::stockHeldText(itemId: $itemId, key: 'COM_ALFA_COMBI_GENERATE_PARENT_STOCK', blockers: $e->blockers, markup: true),
                 $e,
             );
         } catch (InventoryProjectionMismatchException $e) {
@@ -3724,7 +3726,7 @@ class ItemFieldsAdminHelper
      * it holds any, followed by the sentence naming every open order line that
      * still has stock to deduct from it. When only such lines hold it, that
      * sentence stands alone. For a screen that shows it as markup, the names
-     * that sentence carries are escaped.
+     * that sentence carries are escaped and its order lines link to their orders.
      *
      * @param int $itemId The product.
      * @param string $key COM_ALFA_COMBI_GENERATE_PARENT_STOCK or COM_ALFA_COMBI_CHANGE_PARENT_STOCK.
@@ -3759,11 +3761,7 @@ class ItemFieldsAdminHelper
             $activeReservations,
             $pendingEffects,
         );
-        $openLinesText = InventoryUnitRetirementException::openLinesText(itemId: $itemId, blockers: $held);
-
-        if ($openLinesText !== null && $markup) {
-            $openLinesText = self::escapedText(text: $openLinesText);
-        }
+        $openLinesText = InventoryUnitRetirementException::openLinesText(itemId: $itemId, blockers: $held, markup: $markup);
 
         return match (true) {
             $openLinesText === null => $stockText,
@@ -3823,12 +3821,12 @@ class ItemFieldsAdminHelper
                 (int) ($blocker['active_reservations'] ?? 0),
                 (int) ($blocker['pending_effects'] ?? 0),
             );
-            $openLinesText = InventoryUnitRetirementException::openLinesText(itemId: $itemId, blockers: [$blocker]);
+            $openLinesText = InventoryUnitRetirementException::openLinesText(itemId: $itemId, blockers: [$blocker], markup: true);
 
             $texts[] = match (true) {
                 $openLinesText === null => $stockText,
-                self::holdsStock(blocker: $blocker) => $stockText . ' ' . self::escapedText(text: $openLinesText),
-                default => self::escapedText(text: $openLinesText),
+                self::holdsStock(blocker: $blocker) => $stockText . ' ' . $openLinesText,
+                default => $openLinesText,
             };
         }
 

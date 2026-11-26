@@ -675,3 +675,23 @@ body:has(.alfa-studio) {
   line-height: 1.5;
   color: var(--body-color, #212529);
 }
+
+/* The dialogs the Studio scripts open (Joomla's dialog element, the body from a template of the page). A list in
+   one may be long, so it scrolls inside the dialog instead of growing it past the screen. */
+
+.alfa-dialog-body {
+  padding: 1rem 1.25rem;
+}
+
+.alfa-dialog-body ul {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+  max-block-size: 40vh;
+  overflow: auto;
+}
+
+.alfa-dialog-refusal {
+  max-block-size: 70vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}

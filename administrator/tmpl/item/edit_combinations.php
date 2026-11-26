@@ -64,10 +64,17 @@ $wa->useStyle('com_alfa.combinations')
     ->useStyle('com_alfa.showon-builder')
     ->useScript('com_alfa.showon-builder')
     // Drag-to-reorder handles for the option + variation lists (vendored).
-    ->useScript('com_alfa.sortable');
+    ->useScript('com_alfa.sortable')
+    // The dialogs of this screen (the unsaved-changes guard, a refusal): Joomla's own dialog element.
+    ->useScript('joomla.dialog');
 
-Text::script('COM_ALFA_COMBINATION_DIRTY_GUARD');
+Text::script('COM_ALFA_COMBINATION_DIRTY_TITLE');
+Text::script('COM_ALFA_COMBINATION_DIRTY_SAVE_NOW');
 Text::script('COM_ALFA_COMBINATION_NAV_DIRTY');
+Text::script('COM_ALFA_COMBI_REFUSED_TITLE');
+Text::script('JCLOSE');
+Text::script('COM_ALFA_TAB_ITEM_COMBINATIONS');
+Text::script('JCANCEL');
 Text::script('COM_ALFA_COMBI_GENERATE_NONE');
 Text::script('COM_ALFA_COMBI_BULK_STOCK_PROMPT');
 Text::script('COM_ALFA_COMBI_BULK_DELETE_CONFIRM');
@@ -955,14 +962,16 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                 // ONE shared Studio dialog for every variant: core bootstrap
                 // modal, exactly like the order-edit popups (native
                 // modal-header carries the variant title, set on open). A
-                // single lazy iframe means zero per-variant page weight.
+                // single lazy iframe means zero per-variant page weight. The
+                // dialog takes most of the viewport, so the editor's tabs and
+                // field grids render as on a full screen, not stacked as on a phone.
                 echo HTMLHelper::_(
                     'bootstrap.renderModal',
                     'combinationStudioModal',
                     [
                         'title' => Text::_('COM_ALFA_TITLE_COMBINATION_EDIT'),
-                        'width' => '80%',
-                        'bodyHeight' => '70vh',
+                        'modalWidth' => 90,
+                        'bodyHeight' => 70,
                     ],
                     '<iframe id="combination-frame" src="about:blank" title="" loading="lazy"'
                     . ' style="width:100%;height:70vh;border:0;display:block"></iframe>',
@@ -990,6 +999,20 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                 );
                 ?>
             <?php endif; ?>
+
+            <?php // The body of the guard dialog: the product has unsaved changes, so an editor that saves
+                  // directly cannot open yet. The script lists the changed fields in it. ?>
+            <template id="alfa-dialog-save-first">
+                <div class="alfa-dialog-body">
+                    <p><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_GUARD'); ?></p>
+                    <p class="mb-1"><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_CHANGED'); ?></p>
+                    <ul data-changed-fields></ul>
+                </div>
+            </template>
+            <?php // The body of a refusal: the endpoint's words, a long list of order lines scrolling inside it. ?>
+            <template id="alfa-dialog-refused">
+                <div class="alfa-dialog-body alfa-dialog-refusal" data-refusal-text></div>
+            </template>
         </fieldset>
     </div>
 </div>
