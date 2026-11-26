@@ -1598,8 +1598,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * A server error of the request (an uncaught throwable that is not a 4xx; on the REST API one answered 500): one
      * line in Alfa Commerce's error log ({@see ErrorRecorder}), the reference in a response header, and the error the
-     * page shows replaced by a sentence with that reference, the original chained to it as its cause. The status stays
-     * the error's own 5xx (500 for any other code). A REST API answer Joomla's JSON:API handlers give keeps its own
+     * page shows replaced by a sentence with that reference, the original chained to it as its cause; a Super User
+     * reads the failure's own text under the reference (cleaned by {@see ErrorText}), because the person who can fix
+     * the shop should not have to open the log for the reason, while a visitor is told nothing of the inside. The
+     * status stays the error's own 5xx (500 for any other code). A REST API answer Joomla's JSON:API handlers give keeps its own
      * sentence and status, with the header ({@see ErrorRecorder::keepsAnswer()}). A 4xx is Joomla's own and is left as
      * it is. Nothing is retried and nothing is held back from the log; a failure here never changes the page.
      *
@@ -1630,11 +1632,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             $this->loadLanguage();
 
-            $event->setError(new RuntimeException(
-                Text::sprintf('PLG_SYSTEM_ALFASYNC_ERROR_REFERENCE', $reference),
-                ErrorRecorder::status(error: $error),
-                $error,
-            ));
+            $identity = $app->getIdentity();
+            $sentence = $identity !== null && $identity->authorise('core.admin')
+                ? Text::sprintf('PLG_SYSTEM_ALFASYNC_ERROR_REFERENCE_REASON', $reference, ErrorText::of($error))
+                : Text::sprintf('PLG_SYSTEM_ALFASYNC_ERROR_REFERENCE', $reference);
+
+            $event->setError(new RuntimeException($sentence, ErrorRecorder::status(error: $error), $error));
         } catch (Throwable) {
             // The error page is Joomla's own, as if this listener were not there.
         }
