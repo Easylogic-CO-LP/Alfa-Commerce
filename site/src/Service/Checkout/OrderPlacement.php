@@ -1746,7 +1746,7 @@ class OrderPlacement
     /**
      * The #__languages.lang_id of the language this order is being placed in.
      *
-     * The column is read by EmailService::resolveLangTag() and by
+     * The column is read by OrderLanguage::tagOf() and by
      * HasOrderContextTrait::orderLanguage(), both of which define it as the
      * order's OWN language: the one the buyer is addressed in later, from a
      * webhook, a carrier callback or a cron retry, where no customer session

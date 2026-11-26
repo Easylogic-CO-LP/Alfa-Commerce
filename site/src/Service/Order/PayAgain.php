@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\PaymentToken;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderLanguage;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -159,7 +160,7 @@ final class PayAgain
      * The address that takes the order's buyer back to its payment step, absolute, for the confirmation page and the
      * order e-mail.
      *
-     * @param object $order The order's row (its id and secure_key).
+     * @param object $order The order's row (its id, secure_key and id_language: the page opens in the order's language).
      *
      * @return string '' when the order carries no key.
      *
@@ -176,7 +177,7 @@ final class PayAgain
 
         return Route::link(
             client:   'site',
-            url:      'index.php?option=com_alfa&task=cart.pay&id_order=' . $orderId . '&token=' . PaymentToken::for($orderId, $key),
+            url:      'index.php?option=com_alfa&task=cart.pay&id_order=' . $orderId . '&token=' . PaymentToken::for($orderId, $key) . OrderLanguage::linkSuffix(order: $order),
             xhtml:    false,
             absolute: true,
         );

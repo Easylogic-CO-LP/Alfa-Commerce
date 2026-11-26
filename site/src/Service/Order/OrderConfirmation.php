@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderLanguage;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Summary\SummaryRow;
 use Joomla\CMS\Factory;
@@ -190,9 +191,12 @@ final class OrderConfirmation
     /**
      * The address of an order's page for its customer, absolute, for the customer's e-mails: an account's order opens
      * its page in the account (the customer logs in; no key travels); a guest's order opens the keyed page, its id and
-     * key, as the guest's download links carry the key. The order is the one page a guest reaches.
+     * key, as the guest's download links carry the key. The order is the one page a guest reaches. The address names
+     * the order's language, so the page is the one under that language's menu item wherever the e-mail is sent from:
+     * built elsewhere, the router would take the menu item of one language under the prefix of another, which is no
+     * page at all.
      *
-     * @param object $order The order's row (id, id_user, secure_key).
+     * @param object $order The order's row (id, id_user, secure_key, id_language).
      *
      * @return string '' for a guest's order that carries no key.
      *
@@ -215,7 +219,7 @@ final class OrderConfirmation
             return '';
         }
 
-        return Route::link(client: 'site', url: $url, xhtml: false, absolute: true);
+        return Route::link(client: 'site', url: $url . OrderLanguage::linkSuffix(order: $order), xhtml: false, absolute: true);
     }
 
     /**
