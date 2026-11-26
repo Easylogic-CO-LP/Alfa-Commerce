@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
@@ -133,31 +134,8 @@ class ItemsModel extends AlfaListModel
      */
     protected function getStoreId($id = '')
     {
-        // Serialise EVERY filter into the cache identity, including filters a plugin
-        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
-        // silently omit (stale cache + the contract's list phases skipping re-runs).
-        // Same discipline as the orders grid.
-        $filters = [];
-
-        // toArray(), NOT (array): the model State keeps LITERAL dotted keys
-        // ('filter.category'), and an object cast hands back the protected
-        // properties instead, so this loop used to match nothing at all and every
-        // filter combination shared one store id.
-        foreach ($this->getState()->toArray() as $key => $value) {
-            if (str_starts_with((string) $key, 'filter.')) {
-                // filter.fields is nested ([fieldId => [valueIds]]), so a flat implode
-                // would stringify "Array" and collide two different selections.
-                $filters[$key] = \is_array($value) ? json_encode($value) : (string) $value;
-            }
-        }
-
-        ksort($filters);
-
-        foreach ($filters as $key => $value) {
-            $id .= ':' . $key . '=' . $value;
-        }
-
-        return parent::getStoreId($id);
+        // Every filter of the state goes into the identity, nested ones as JSON.
+        return parent::getStoreId(AlfaHelper::listStoreId($id, $this->getState()->toArray()));
     }
 
     /**

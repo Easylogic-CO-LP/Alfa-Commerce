@@ -342,7 +342,7 @@ final class ClearDataExtensions
                 : ['status' => 'unsupported', 'message' => Text::_('COM_ALFA_EXTENSIONS_UNSUPPORTED')];
         } catch (Throwable $e) {
             $this->logFailure(run: 'clear-data', entry: $entry, error: $e);
-            $support = ['status' => 'failed', 'message' => Text::_('COM_ALFA_EXTENSIONS_LOAD_FAILED')];
+            $support = ['status' => 'failed', 'message' => Text::sprintf('COM_ALFA_EXTENSIONS_LOAD_FAILED', ErrorText::of($e))];
         }
 
         ClearDataStatus::loading(key: $key, loading: false);
@@ -491,7 +491,7 @@ final class ClearDataExtensions
             ClearDataStatus::loading(key: $key, loading: false);
             $this->logFailure(run: $run, entry: $row, error: $e);
 
-            return $this->outcome(key: $key, status: 'failed', message: Text::_('COM_ALFA_EXTENSIONS_LOAD_FAILED'), source: $source);
+            return $this->outcome(key: $key, status: 'failed', message: Text::sprintf('COM_ALFA_EXTENSIONS_LOAD_FAILED', ErrorText::of($e)), source: $source);
         }
 
         ClearDataStatus::loading(key: $key, loading: false);

@@ -105,7 +105,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 					); ?>
                 </p>
 
-                <table class="table table-striped table-bordered">
+                <table class="table table-striped table-bordered alfa-fold">
                     <thead>
                     <tr>
                         <th><?php echo Text::_('COM_ALFA_DOCUMENTS_MODAL_PRODUCT'); ?></th>
@@ -119,10 +119,10 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 					<?php foreach ($preview->lines as $line) : ?>
                         <tr>
                             <td><?php echo $this->escape((string) $line->name); ?></td>
-                            <td class="text-center"><?php echo $this->escape((string) $line->quantity); ?></td>
-                            <td class="text-end"><?php echo $money($line->total_tax_excl); ?></td>
-                            <td class="text-end"><?php echo $money($line->tax_amount); ?></td>
-                            <td class="text-end"><?php echo $money($line->total_tax_incl); ?></td>
+                            <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_DOCUMENTS_MODAL_QTY')); ?>"><?php echo $this->escape((string) $line->quantity); ?></td>
+                            <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_COST_TAX_EXCL')); ?>"><?php echo $money($line->total_tax_excl); ?></td>
+                            <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_TAX_AMOUNT')); ?>"><?php echo $money($line->tax_amount); ?></td>
+                            <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_COST_TAX_INCL')); ?>"><?php echo $money($line->total_tax_incl); ?></td>
                         </tr>
 					<?php endforeach; ?>
                     </tbody>

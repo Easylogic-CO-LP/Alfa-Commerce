@@ -16,6 +16,8 @@
   --price-line-soft: var(--border-color-translucent, #eceef1);
   --price-gold: #b3873a;
   --price-canvas: var(--tertiary-bg, #fafbfc);
+  /* The admin's own corner (Atum's token) on the card and every joined control. */
+  --price-radius: var(--border-radius, 0.25rem);
 
   container-type: inline-size;
 }
@@ -24,7 +26,7 @@
   position: relative;
   background: var(--price-canvas);
   border: 1px solid var(--price-line);
-  border-radius: 8px;
+  border-radius: var(--price-radius);
   padding: 0.85rem 1rem 0.9rem;
   margin-bottom: 0.6rem;
 }
@@ -46,7 +48,7 @@
   padding: 0.45rem 1rem;
   background: var(--price-line-soft);
   border-bottom: 1px solid var(--price-line);
-  border-radius: 7px 7px 0 0;
+  border-radius: calc(var(--price-radius) - 1px) calc(var(--price-radius) - 1px) 0 0;
 }
 
 /* Combination header: mode + pipeline chips on the left, the controls (Enabled /
@@ -261,7 +263,7 @@
 .alfa-combinations .seg-group {
   display: inline-flex;
   border: 1px solid var(--price-line, var(--alfa-line));
-  border-radius: 6px;
+  border-radius: var(--price-radius, var(--border-radius, 0.25rem));
   overflow: hidden;
   background: var(--card-bg, #fff);
 }
@@ -331,7 +333,7 @@
   border: 1px solid var(--price-ink, var(--alfa-ink));
   background: var(--price-ink, var(--alfa-ink));
   color: var(--body-bg, #fff);
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--price-radius, var(--border-radius, 0.25rem)) 0 0 var(--price-radius, var(--border-radius, 0.25rem));
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
@@ -350,7 +352,7 @@
    enough for the word: the outer-grid look brought into the Studio editor. */
 .alfa-prices .mode-cycle button {
   min-width: 4.4rem;
-  border-radius: 4px;
+  border-radius: var(--price-radius);
 }
 
 /* The amount joins the cycler as one control. */

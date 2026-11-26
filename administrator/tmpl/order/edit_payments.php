@@ -130,7 +130,7 @@ $conditionalColumns = [
 $statusBadges = [
 	'completed'  => 'bg-success',
 	'pending'    => 'bg-warning text-dark',
-	'authorized' => 'bg-info text-dark',
+	'authorized' => 'text-bg-info',
 	'failed'     => 'bg-danger',
 	'cancelled'  => 'bg-secondary',
 	'refunded'   => 'bg-purple',
@@ -139,7 +139,7 @@ $statusBadges = [
 $typeBadges = [
 	'payment'       => 'bg-primary',
 	'refund'        => 'bg-danger',
-	'authorization' => 'bg-info text-dark',
+	'authorization' => 'text-bg-info',
 	'reversal'      => 'bg-success',
 	'chargeback'    => 'bg-dark',
 ];

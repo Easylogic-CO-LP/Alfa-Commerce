@@ -93,5 +93,6 @@ if ($failed) {
     <?php else : ?>
         <p class="mb-2"><?php echo $text; ?></p>
     <?php endif; ?>
-    <a class="btn btn-sm btn-secondary" href="<?php echo htmlspecialchars($checkAgain, ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_DOWNLOADS_PROTECTION_CHECK_AGAIN'); ?></a>
+    <?php // The action reads in the alert's own colour, on the light and the dark admin alike. ?>
+    <a class="alert-link fw-semibold" href="<?php echo htmlspecialchars($checkAgain, ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_DOWNLOADS_PROTECTION_CHECK_AGAIN'); ?> &rarr;</a>
 </div>

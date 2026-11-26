@@ -77,7 +77,7 @@ $item = $this->currentItem;
                         <?php endif; ?>
 
                         <?php if ($hasReturn) : ?>
-                            <span class="badge bg-info text-dark ms-1" style="font-size:0.7em">
+                            <span class="badge text-bg-info ms-1" style="font-size:0.7em">
                                 <?php echo Text::_('COM_ALFA_RETURNED'); ?> ×<?php echo (int) $oi->quantity_returned; ?>
                             </span>
                         <?php endif; ?>

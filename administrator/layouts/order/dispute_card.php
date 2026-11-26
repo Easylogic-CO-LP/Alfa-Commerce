@@ -43,7 +43,7 @@ $state = (string) $dispute->state;
 $badge = match ($state) {
     DisputeLedger::STATE_INQUIRY => 'bg-warning text-dark',
     DisputeLedger::STATE_OPEN, DisputeLedger::STATE_LOST => 'bg-danger',
-    DisputeLedger::STATE_UNDER_REVIEW => 'bg-info text-dark',
+    DisputeLedger::STATE_UNDER_REVIEW => 'text-bg-info',
     DisputeLedger::STATE_WON => 'bg-success',
     default => 'bg-secondary',
 };

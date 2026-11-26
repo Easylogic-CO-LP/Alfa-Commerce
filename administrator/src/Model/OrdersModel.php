@@ -451,6 +451,44 @@ class OrdersModel extends AlfaListModel
      *
      * @since  1.0.0
      */
+    /**
+     * The filter form, without the dispute filter while the shop has recorded no card dispute: a filter that
+     * can match nothing only puzzles the reader.
+     *
+     * @param array $data The data expected for the form.
+     * @param bool $loadData Whether the form's data is loaded.
+     *
+     * @return \Joomla\CMS\Form\Form|null
+     *
+     * @since  2.3.0
+     */
+    public function getFilterForm($data = [], $loadData = true)
+    {
+        $form = parent::getFilterForm($data, $loadData);
+
+        if ($form !== null && !$this->anyDisputeRecorded()) {
+            $form->removeField('dispute', 'filter');
+        }
+
+        return $form;
+    }
+
+    /**
+     * Whether any card dispute was ever recorded on an order of this shop.
+     *
+     * @since  2.3.0
+     */
+    private function anyDisputeRecorded(): bool
+    {
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName('#__alfa_order_disputes'))
+            ->setLimit(1);
+
+        return (int) $db->setQuery($query)->loadResult() === 1;
+    }
+
     protected function getStoreId($id = '')
     {
         // toArray(), not getProperties(): the API app injects a plain Registry

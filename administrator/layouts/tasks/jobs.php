@@ -56,7 +56,7 @@ $state  = static function (string $code) use ($e): string {
     return Text::_($key) === $key ? $e($code) : Text::_($key);
 };
 $badge  = [
-    Tasks::STATE_RUNNING => 'bg-info text-dark',
+    Tasks::STATE_RUNNING => 'text-bg-info',
     Tasks::STATE_PENDING => 'bg-secondary',
     Tasks::STATE_FAILED  => 'bg-danger',
     Tasks::STATE_DONE    => 'bg-success',

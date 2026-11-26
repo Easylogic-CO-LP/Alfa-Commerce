@@ -88,7 +88,7 @@
 		->text($dropdownText)
 		->toggleSplit(false)
 		->icon('icon-images')
-		->buttonClass('btn btn-success toggle-options-button');
+		->buttonClass('btn btn-success');
 
 	$childBar = $dropdown->getChildToolbar();
 

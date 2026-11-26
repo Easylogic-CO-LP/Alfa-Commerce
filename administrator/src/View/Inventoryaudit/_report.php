@@ -206,7 +206,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
         ?>
         <section class="card mb-4" data-audit-category="<?php echo $this->escape(var: $category); ?>">
             <div class="card-header">
-                <h2 class="h4 mb-1"><?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'bg-info text-dark' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span></h2>
+                <h2 class="h4 mb-1"><?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span></h2>
                 <p class="small text-muted mb-0"><?php echo Text::_($langKey . '_DESC'); ?></p>
             </div>
             <div class="card-body p-0">
