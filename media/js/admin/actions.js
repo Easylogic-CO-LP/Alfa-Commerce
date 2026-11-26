@@ -256,6 +256,23 @@ Alfa.openActionFrame = function (url, title, fields) {
                 frameLoader.hidden = true;
             }
 
+            // A form inside the frame that navigates away from itself (Save & Close, Close, the
+            // Options page back to the dashboard) is finished: the modal closes, as the customer
+            // account popup closes, and the page behind refreshes what the frame may have changed.
+            var form = /[?&](layout=edit|option=com_config)(&|$)/;
+            var finished = href !== 'about:blank' && form.test(frame.dataset.alfaLastHref || '') && !form.test(href);
+            frame.dataset.alfaLastHref = href;
+
+            if (finished) {
+                var opened = bootstrap.Modal.getInstance(modalEl);
+
+                if (opened) {
+                    opened.hide();
+                }
+
+                return;
+            }
+
             Alfa.dressActionFrame(frame);
         });
     }
@@ -327,6 +344,7 @@ Alfa.openActionFrame = function (url, title, fields) {
         return;
     }
 
+    frame.dataset.alfaLastHref = '';
     frame.src = url;
 
     (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
