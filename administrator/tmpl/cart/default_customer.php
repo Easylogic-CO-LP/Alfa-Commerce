@@ -89,11 +89,12 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                     </div>
 
                     <?php // The User screen opens only with users edit, the same decision
-                          // the address buttons use; the task opens it through the edit session. ?>
-                    <?php if ($this->canEditAddresses) : ?>
+                          // the address buttons use; the task opens it through the edit session,
+                          // by the customer's profile row (an account without one has no screen). ?>
+                    <?php if ($this->canEditAddresses && (int) $customer->profileId > 0) : ?>
                         <div class="mt-3">
                             <a class="btn btn-sm btn-outline-secondary"
-                               href="<?php echo Route::_('index.php?option=com_alfa&task=user.edit&id=' . (int) $customer->customerId); ?>"
+                               href="<?php echo Route::_('index.php?option=com_alfa&task=user.edit&id=' . (int) $customer->profileId); ?>"
                                target="_blank" rel="noopener">
                                 <span class="icon-user" aria-hidden="true"></span>
                                 <?php echo Text::_('COM_ALFA_CART_BUILDER_CUSTOMER_OPEN'); ?>
