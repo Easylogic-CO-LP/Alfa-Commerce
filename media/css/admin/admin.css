@@ -639,6 +639,7 @@ tr.alfa-row-refund > * {
 }
 
 .com-alfa-inventory-audit > details > summary {
+    display: block;
     cursor: pointer;
     list-style: none;
     border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
