@@ -449,21 +449,9 @@ class OrdersModel extends AlfaListModel
      */
     protected function getStoreId($id = '')
     {
-        $filters = [];
-
         // toArray(), not getProperties(): the API app injects a plain Registry
         // as model state (ApiController) and only toArray() exists on both.
-        foreach ($this->getState()->toArray() as $key => $value) {
-            if (str_starts_with((string) $key, 'filter.')) {
-                $filters[$key] = $value;
-            }
-        }
-
-        ksort($filters);
-
-        $id .= ':' . serialize($filters);
-
-        return parent::getStoreId($id);
+        return parent::getStoreId(AlfaHelper::listStoreId($id, $this->getState()->toArray()));
     }
 
     /**

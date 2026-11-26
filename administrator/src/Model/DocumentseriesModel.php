@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 
 /**
@@ -67,27 +68,8 @@ class DocumentseriesModel extends AlfaListModel
      */
     protected function getStoreId($id = '')
     {
-        // Serialise EVERY filter into the cache identity, including filters a plugin
-        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
-        // silently omit (stale cache + the contract's list phases skipping re-runs).
-        // Same discipline as the orders grid.
-        $filters = [];
-
-        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
-        // object cast returns its protected properties and matches nothing.
-        foreach ($this->getState()->toArray() as $key => $value) {
-            if (str_starts_with((string) $key, 'filter.')) {
-                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
-            }
-        }
-
-        ksort($filters);
-
-        foreach ($filters as $key => $value) {
-            $id .= ':' . $key . '=' . $value;
-        }
-
-        return parent::getStoreId($id);
+        // Every filter of the state goes into the identity, nested ones as JSON.
+        return parent::getStoreId(AlfaHelper::listStoreId($id, $this->getState()->toArray()));
     }
 
     /**

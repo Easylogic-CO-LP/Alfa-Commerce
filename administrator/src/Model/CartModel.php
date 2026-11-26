@@ -500,6 +500,8 @@ class CartModel extends ItemModel
         $context->email = $customerId > 0 ? (string) $customer->email : '';
         $context->username = $customerId > 0 ? (string) $customer->username : '';
         $context->groups = [];
+        // The customer's profile row (the User screen opens by it, never by the account id).
+        $context->profileId = $customerId > 0 ? $this->profileIdOf($customerId) : 0;
 
         // The groups the cart is priced and decided by: the customer's own and
         // every group above them, and the guest group's where the cart has no
@@ -535,6 +537,29 @@ class CartModel extends ItemModel
         }
 
         return $context;
+    }
+
+
+    /**
+     * The id of the customer profile row that belongs to a Joomla user, 0 when the
+     * account has none yet (a guest's account, or one that never reached the shop).
+     *
+     * @param int $userId The Joomla user id
+     *
+     * @return int
+     *
+     * @since  2.3.0
+     */
+    private function profileIdOf(int $userId): int
+    {
+        $db = $this->getDatabase();
+        $query = $db->createQuery()
+            ->select($db->quoteName('id'))
+            ->from($db->quoteName('#__alfa_users'))
+            ->where($db->quoteName('id_user') . ' = :userId')
+            ->bind(':userId', $userId, \Joomla\Database\ParameterType::INTEGER);
+
+        return (int) $db->setQuery($query)->loadResult();
     }
 
     /**
