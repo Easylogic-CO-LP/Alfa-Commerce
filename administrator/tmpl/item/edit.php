@@ -160,6 +160,14 @@
     <?php echo $this->loadTemplate('downloads'); ?>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'related', Text::_('COM_ALFA_TAB_ITEM_RELATED', true)); ?>
+    <div class="row">
+        <div class="col-lg-12">
+            <?php echo $this->form->renderFieldset('related'); ?>
+        </div>
+    </div>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
     <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('JGLOBAL_FIELDSET_PUBLISHING')); ?>
     <div class="row">
         <div class="col-12">
@@ -206,7 +214,7 @@
     // form's loading raises too (Form XML with a new <fieldset>), gets a
     // tab here with zero template changes. Same convention as the itemfield,
     // formfield, payment and shipment edit screens.
-    $coreFieldsets = ['general', 'identity', 'inventory', 'prices', 'Images', 'publish', 'meta'];
+    $coreFieldsets = ['general', 'identity', 'inventory', 'prices', 'Images', 'publish', 'meta', 'related'];
 
     foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
         if (in_array($fieldsetName, $coreFieldsets, true)) {
