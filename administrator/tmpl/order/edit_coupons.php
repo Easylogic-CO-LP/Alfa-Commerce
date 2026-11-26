@@ -53,7 +53,7 @@ $action    = static fn (string $task): string => Route::_('index.php?option=com_
             <?php if ($held->coupons === []) : ?>
                 <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_ORDER_COUPONS_NONE'); ?></p>
             <?php else : ?>
-                <table class="table table-sm mb-3">
+                <table class="table table-sm mb-3 alfa-fold">
                     <tbody>
                     <?php foreach ($held->coupons as $coupon) : ?>
                         <tr>
@@ -69,7 +69,7 @@ $action    = static fn (string $task): string => Route::_('index.php?option=com_
                                 <?php endif; ?>
                             </td>
                             <?php if ($canChange) : ?>
-                                <td class="text-end pe-0">
+                                <td class="text-end pe-0 alfa-fold-line">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" form="alfa-order-coupon-form" formnovalidate
                                             formaction="<?php echo $this->escape($action('order.removeCoupon') . '&id_order_cart_rule=' . (int) $coupon->id_order_cart_rule); ?>">
                                         <?php echo Text::_('COM_ALFA_ORDER_COUPON_REMOVE'); ?>

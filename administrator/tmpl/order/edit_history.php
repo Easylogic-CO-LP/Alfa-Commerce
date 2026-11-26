@@ -170,7 +170,7 @@ $actionColors = [
 									?>
 									<?php if ($isDiff) : ?>
                                         <!-- Changes diff table -->
-                                        <table class="table table-sm table-bordered mb-0 mt-2" style="font-size:.85em;">
+                                        <table class="table table-sm table-bordered mb-0 mt-2 alfa-fold" style="font-size:.85em;">
                                             <thead>
                                             <tr><th><?php echo Text::_('COM_ALFA_FIELD'); ?></th><th><?php echo Text::_('COM_ALFA_BEFORE'); ?></th><th><?php echo Text::_('COM_ALFA_AFTER'); ?></th></tr>
                                             </thead>
@@ -184,8 +184,8 @@ $actionColors = [
 												?>
                                                 <tr>
                                                     <td class="fw-bold"><?php echo $this->escape(OrderHistoryHelper::fieldLabel(name: (string) $field)); ?></td>
-                                                    <td class="text-danger"><?php echo $this->escape($fromDisplay); ?></td>
-                                                    <td class="text-success"><?php echo $this->escape($toDisplay); ?></td>
+                                                    <td class="text-danger" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_BEFORE')); ?>"><?php echo $this->escape($fromDisplay); ?></td>
+                                                    <td class="text-success" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_AFTER')); ?>"><?php echo $this->escape($toDisplay); ?></td>
                                                 </tr>
 											<?php endforeach; ?>
                                             </tbody>
@@ -196,7 +196,7 @@ $actionColors = [
 										$money = DocumentMoney::formatter((object) ['currency_scale' => (int) $context['scale']]);
 										?>
                                         <!-- A credit's shipping and fee choices -->
-                                        <table class="table table-sm table-bordered mb-0 mt-2 alfa-credit-charges" style="font-size:.85em;">
+                                        <table class="table table-sm table-bordered mb-0 mt-2 alfa-credit-charges alfa-fold" style="font-size:.85em;">
                                             <caption class="caption-top pb-1">
 												<?php echo Text::sprintf('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CURRENCY', $this->escape((string) ($context['currency'] ?? ''))); ?>
                                             </caption>
@@ -229,12 +229,12 @@ $actionColors = [
                                                             </div>
 														<?php endforeach; ?>
                                                     </td>
-                                                    <td class="text-end"><?php echo $this->escape($money((float) ($row['original'] ?? 0))); ?></td>
-                                                    <td class="text-end"><?php echo $this->escape($money((float) ($row['credited_before'] ?? 0))); ?></td>
-                                                    <td class="text-end"><?php echo $this->escape($money((float) ($row['remaining_before'] ?? 0))); ?></td>
-                                                    <td><?php echo $this->escape(Text::_($chosen ? 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_SELECTED' : 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_EXCLUDED')); ?></td>
-                                                    <td class="text-end"><?php echo $this->escape($money((float) ($row['credited_now'] ?? 0))); ?></td>
-                                                    <td class="text-end"><?php echo $this->escape($money((float) ($row['remaining_after'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_ORIGINAL')); ?>"><?php echo $this->escape($money((float) ($row['original'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CREDITED_BEFORE')); ?>"><?php echo $this->escape($money((float) ($row['credited_before'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_AVAILABLE_BEFORE')); ?>"><?php echo $this->escape($money((float) ($row['remaining_before'] ?? 0))); ?></td>
+                                                    <td data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_DECISION')); ?>"><?php echo $this->escape(Text::_($chosen ? 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_SELECTED' : 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_EXCLUDED')); ?></td>
+                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CREDITED_NOW')); ?>"><?php echo $this->escape($money((float) ($row['credited_now'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_REMAINING_AFTER')); ?>"><?php echo $this->escape($money((float) ($row['remaining_after'] ?? 0))); ?></td>
                                                 </tr>
 											<?php endforeach; ?>
                                             </tbody>

@@ -148,7 +148,8 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                           // ids together, so both are posted together and neither
                           // can be left behind by the other. ?>
                     <form action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
-                        <table class="table align-middle mb-3">
+                        <?php // Below 480 px the row folds (alfa-fold): the two choices and the action wrap under the address. ?>
+                        <table class="table align-middle mb-3 alfa-fold">
                             <thead>
                                 <tr>
                                     <th><?php echo Text::_('COM_ALFA_CART_BUILDER_ADDRESS'); ?></th>
@@ -173,19 +174,19 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                                         <?php endif; ?>
                                     </td>
 
-                                    <td class="text-center">
+                                    <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_DELIVERY')); ?>">
                                         <input class="form-check-input" type="radio" name="delivery_id"
                                                value="<?php echo $addressId; ?>"
                                                <?php echo $addressId === (int) $customer->deliveryId ? 'checked' : ''; ?>>
                                     </td>
 
-                                    <td class="text-center">
+                                    <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_INVOICE')); ?>">
                                         <input class="form-check-input" type="radio" name="invoice_id"
                                                value="<?php echo $addressId; ?>"
                                                <?php echo $addressId === (int) $customer->invoiceId ? 'checked' : ''; ?>>
                                     </td>
 
-                                    <td class="text-end">
+                                    <td class="text-end alfa-fold-line">
                                         <?php if ($this->canEditAddresses) : ?>
                                             <a href="#<?php echo $modalId; ?>" data-bs-toggle="modal"
                                                class="btn btn-sm btn-outline-secondary">

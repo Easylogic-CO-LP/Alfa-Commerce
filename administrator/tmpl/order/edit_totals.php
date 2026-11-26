@@ -99,7 +99,7 @@ if ($hasMoney) {
 			<!-- Totals table -->
 			<div class="card-body p-0">
 				<?php if ($hasMoney) : ?>
-					<table class="table table-sm mb-0">
+					<table class="table table-sm mb-0 alfa-fold">
 						<tbody>
 
 						<!-- Products subtotal -->
