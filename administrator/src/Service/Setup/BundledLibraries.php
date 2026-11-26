@@ -49,7 +49,7 @@ final class BundledLibraries
     ];
 
     /**
-     * The library a phone number is checked and stored with (the phone field, Alfa Fields - Phone, and the
+     * The library a phone number is checked and stored with (the phone field plugin, and the
      * administrator's telephone fields): libphonenumber, by its library name with the class they use. The locale data
      * installed beside it (giggsey/locale) is read only by its carrier and place names, which Alfa Commerce does not
      * use, so it is not asked for.
