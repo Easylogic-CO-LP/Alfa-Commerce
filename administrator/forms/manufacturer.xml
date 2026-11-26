@@ -6,7 +6,7 @@
                maxlength="400" filter="safehtml" required="true" translateLabel="true"
                label="COM_ALFA_FORM_LBL_MANUFACTURER_NAME" description="COM_ALFA_FORM_DESC_MANUFACTURER_NAME" hint="COM_ALFA_FORM_LBL_MANUFACTURER_NAME"/>
 
-        <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+        <field name="id" type="text" label="JGLOBAL_FIELD_ID_LABEL" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
         <field name="alias" type="MultilingualText"
                multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"

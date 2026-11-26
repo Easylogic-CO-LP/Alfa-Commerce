@@ -349,7 +349,7 @@
                 validate="UserId"
         />
 
-        <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+        <field name="id" type="text" label="JGLOBAL_FIELD_ID_LABEL" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
     </fieldset>
 

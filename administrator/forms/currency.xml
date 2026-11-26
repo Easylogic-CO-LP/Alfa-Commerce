@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
   <fieldset>
-    <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+    <field name="id" type="text" label="JGLOBAL_FIELD_ID_LABEL" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
     <field name="code" filter="safehtml" type="text" label="COM_ALFA_FORM_LBL_CURRENCY_CODE" description="COM_ALFA_FORM_DESC_CURRENCY_CODE" hint="COM_ALFA_FORM_LBL_CURRENCY_CODE"/>
     <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_CURRENCY_NAME" description="COM_ALFA_FORM_DESC_CURRENCY_NAME" hint="COM_ALFA_FORM_LBL_CURRENCY_NAME"/>
