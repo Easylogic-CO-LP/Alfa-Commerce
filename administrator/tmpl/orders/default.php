@@ -76,7 +76,7 @@ $columnsByAnchor = Columns::prepare(
 );
 // The core columns: checkbox, attention, order (with its Quick view), customer,
 // amount, date, payment, shipment and status.
-$colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRowActions ?? []);
+$colspan = 8 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRowActions ?? []);
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=orders'
@@ -136,9 +136,6 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                     <thead>
                     <tr>
                         <th style="width:1%"  class="text-center alfa-fold-keep"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
-                        <th style="width:1%"  class="text-center" title="<?php echo Text::_('COM_ALFA_LIST_ATTENTION'); ?>">
-							<span class="icon-info-circle" aria-hidden="true"></span>
-                        </th>
                         <th style="width:4%"  class="text-center"><?php echo HTMLHelper::_('searchtools.sort', 'ID', 'a.id', $listDirn, $listOrder); ?></th>
                         <?php echo Columns::heads($columnsByAnchor, 'id'); ?>
                         <th><?php echo Text::_('COM_ALFA_CUSTOMER'); ?></th>
@@ -195,31 +192,6 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
 									<?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
                                 </td>
 
-                                <!-- Attention
-                                     DERIVED AND REASON-BEARING. One dot, but it
-                                     names every reason behind it, because
-                                     "something is up with this order" is not an
-                                     answer an operator can act on. A defect
-                                     (reconciliation, an order that names no
-                                     currency) reads red; work (overpaid, an
-                                     unsettled credit note) reads amber, and
-                                     the two never merge. -->
-                                <td class="text-center"<?php echo !empty($item->needs_attention) ? ' data-alfa-label="' . $this->escape(Text::_('COM_ALFA_LIST_ATTENTION')) . '"' : ''; ?>>
-									<?php if (!empty($item->needs_attention)) : ?>
-										<?php
-											$reasons = array_map(
-												static fn (string $r): string => Text::_('COM_ALFA_ATTENTION_' . strtoupper($r)),
-												$item->attention_reasons ?? [],
-											);
-										?>
-                                        <span class="badge <?php echo !empty($item->needs_reconciliation) || ($item->currency_notice ?? '') !== '' ? 'bg-danger' : 'bg-warning text-dark'; ?>"
-                                              data-alfa-attention="<?php echo htmlspecialchars(implode(',', $item->attention_reasons ?? []), ENT_QUOTES, 'UTF-8'); ?>"
-                                              title="<?php echo htmlspecialchars(implode(' - ', $reasons), ENT_QUOTES, 'UTF-8'); ?>">
-											<?php echo \count($reasons); ?>
-                                        </span>
-									<?php endif; ?>
-                                </td>
-
                                 <!-- Order ID + reference + Quick view -->
                                 <td class="text-center">
 									<?php if (isset($item->checked_out) && $item->checked_out && ($canEdit || $canChange)) : ?>
@@ -235,6 +207,23 @@ $colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                         </a>
 									<?php else : ?>
                                         <span class="badge bg-secondary">#<?php echo (int) $item->id; ?></span>
+									<?php endif; ?>
+									<?php if (!empty($item->needs_attention)) : ?>
+										<?php
+											// The attention mark sits by the order number: one badge that names every
+											// reason behind it in its title, red for a defect (reconciliation, an order
+											// that names no currency), amber for work (overpaid, an unsettled credit note).
+											$reasons = array_map(
+												static fn (string $r): string => Text::_('COM_ALFA_ATTENTION_' . strtoupper($r)),
+												$item->attention_reasons ?? [],
+											);
+										?>
+                                        <span class="badge <?php echo !empty($item->needs_reconciliation) || ($item->currency_notice ?? '') !== '' ? 'bg-danger' : 'bg-warning text-dark'; ?> ms-1"
+                                              data-alfa-attention="<?php echo htmlspecialchars(implode(',', $item->attention_reasons ?? []), ENT_QUOTES, 'UTF-8'); ?>"
+                                              title="<?php echo htmlspecialchars(implode(' - ', $reasons), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <span class="visually-hidden"><?php echo Text::_('COM_ALFA_LIST_ATTENTION'); ?>:</span>
+											<?php echo \count($reasons); ?>
+                                        </span>
 									<?php endif; ?>
 
 									<?php if (!empty($item->reference)) : ?>
