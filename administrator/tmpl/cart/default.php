@@ -109,7 +109,7 @@ $statusKey = ['active' => 'COM_ALFA_CARTS_STATUS_ACTIVE', 'abandoned' => 'COM_AL
                         <div class="card-header"><?php echo Text::_('COM_ALFA_CART_COUPON_LABEL'); ?></div>
                         <div class="card-body">
                             <?php foreach ($cart->codes as $code) : ?>
-                                <span class="badge bg-info text-dark me-1"><?php echo $this->escape((string) $code); ?></span>
+                                <span class="badge text-bg-info me-1"><?php echo $this->escape((string) $code); ?></span>
                             <?php endforeach; ?>
                         </div>
                     </div>

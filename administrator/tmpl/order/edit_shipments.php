@@ -86,7 +86,7 @@ $mergeMap = [
 // Badge class lookups for shipment status values
 $statusBadges = [
 	'pending'   => 'bg-warning text-dark',
-	'shipped'   => 'bg-info text-dark',
+	'shipped'   => 'text-bg-info',
 	'delivered' => 'bg-success',
 	'cancelled' => 'bg-danger',
 ];

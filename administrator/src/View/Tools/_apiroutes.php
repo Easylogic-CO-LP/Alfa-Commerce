@@ -191,7 +191,7 @@ $endpoints = function (array $addresses, string $id, string $source) use ($permi
             </div>
 
             <div class="mt-2">
-                <?php $open('alfaApiInternals', $this->escape(Text::_('COM_ALFA_TOOLS_API_ROUTES_INTERNALS')) . '<span class="badge bg-info text-dark ms-2">' . Text::_('COM_ALFA_TOOLS_API_ROUTES_INTERNALS_BADGE') . '</span>', false); ?>
+                <?php $open('alfaApiInternals', $this->escape(Text::_('COM_ALFA_TOOLS_API_ROUTES_INTERNALS')) . '<span class="badge text-bg-info ms-2">' . Text::_('COM_ALFA_TOOLS_API_ROUTES_INTERNALS_BADGE') . '</span>', false); ?>
                 <h3 class="h6"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TOKEN_TITLE'); ?></h3>
                 <p id="alfaApiTokenGroups">
                     <?php if ($routes['tokenGroups']['every']) : ?>

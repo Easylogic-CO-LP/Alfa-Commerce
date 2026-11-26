@@ -213,7 +213,7 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
                             <?php if ($rule->code === null) : ?>
                                 <span class="badge bg-light text-dark border"><?php echo Text::_('COM_ALFA_CART_BUILDER_RULE_AUTOMATIC'); ?></span>
                             <?php else : ?>
-                                <span class="badge bg-info text-dark"><?php echo $this->escape($rule->code); ?></span>
+                                <span class="badge text-bg-info"><?php echo $this->escape($rule->code); ?></span>
 
                                 <?php if ($this->canOperate) : ?>
                                 <form action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post" class="d-inline">

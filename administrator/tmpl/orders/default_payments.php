@@ -63,7 +63,7 @@ $item = $this->currentItem;
         $statusBadge = match ($txnStatus) {
             'completed'  => 'bg-success',
             'pending'    => 'bg-warning text-dark',
-            'authorized' => 'bg-info text-dark',
+            'authorized' => 'text-bg-info',
             'failed'     => 'bg-danger',
             'cancelled'  => 'bg-secondary',
             'refunded'   => 'bg-purple',
@@ -72,7 +72,7 @@ $item = $this->currentItem;
 
         $typeBadge = match ($opType) {
             'refund'        => 'bg-danger',
-            'authorization' => 'bg-info text-dark',
+            'authorization' => 'text-bg-info',
             'reversal'      => 'bg-success',
             'chargeback'    => 'bg-dark',
             default         => 'bg-primary',

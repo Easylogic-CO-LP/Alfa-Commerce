@@ -67,7 +67,7 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                     <?php // A guest's cart is priced and decided by the guest group
                           // and the groups above it. ?>
                     <?php foreach ($customer->groups as $groupTitle) : ?>
-                        <span class="badge bg-info text-dark"><?php echo $this->escape($groupTitle); ?></span>
+                        <span class="badge text-bg-info"><?php echo $this->escape($groupTitle); ?></span>
                     <?php endforeach; ?>
                 <?php else : ?>
                     <div class="fs-5 fw-semibold"><?php echo $this->escape($customer->name); ?></div>
@@ -84,7 +84,7 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                         <?php // The groups are the PRICING axis, so they are worth
                               // seeing beside the cart they priced. ?>
                         <?php foreach ($customer->groups as $groupTitle) : ?>
-                            <span class="badge bg-info text-dark"><?php echo $this->escape($groupTitle); ?></span>
+                            <span class="badge text-bg-info"><?php echo $this->escape($groupTitle); ?></span>
                         <?php endforeach; ?>
                     </div>
 
