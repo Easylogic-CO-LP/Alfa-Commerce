@@ -34,7 +34,7 @@
  * and hear the region's name, the pagination's count. After the filters module's swap the focus stays on the control
  * the shopper is on (a ticked option, in the panel or in the column beside the results); the module tells a screen
  * reader the new count through its own status line. The header's height is the template's --alfa-scroll-offset when
- * the template sets it; when it does not, it is measured (headerOffset()) before the scroll and again where the scroll
+ * the template sets it; when it does not, it is measured (Alfa.headerOffset(), header-offset.js) before the scroll and again where the scroll
  * ends, and the place corrected once. It runs once for each new result set: after the filters module's swap
  * (`alfa:results:updated`), and on a page the server marked (`data-results-reveal`: a later page reached by its link,
  * a submitted filter), once its layout is final (the window's load), unless the shopper came back to that page by a
@@ -138,58 +138,6 @@
     }
 
     /**
-     * The height the page's sticky header covers at the viewport's top: the template's --alfa-scroll-offset (the
-     * region's scroll-margin-top) when the template sets it; otherwise measured now, from the boxes of the page's
-     * elements outside the region: those whose position is sticky or fixed, that reach into the viewport's top 8 px,
-     * that are no taller than half the viewport (a cookie wall's backdrop or an open off-canvas menu is a layer, not a
-     * header) and that are on screen (visible, and not moved wholly out of the viewport sideways, as a closed side
-     * menu often is): the lowest bottom among them. The boxes, not a hit test at the top edge: right after a smooth scroll a
-     * hit test there can find nothing but the page itself.
-     *
-     * @param {Element} region The results region.
-     *
-     * @return {number} Pixels from the viewport's top.
-     */
-    function headerOffset(region) {
-        var style = window.getComputedStyle(region);
-
-        if (style.getPropertyValue('--alfa-scroll-offset').trim() !== '') {
-            return parseFloat(style.scrollMarginTop) || 0;
-        }
-
-        var band = 8;
-        var half = window.innerHeight / 2;
-        var bottom = 0;
-        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
-            acceptNode: function (node) {
-                return node === region ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
-            },
-        });
-
-        for (var node = walker.nextNode(); node; node = walker.nextNode()) {
-            if (node.contains(region)) {
-                continue;
-            }
-
-            var box = node.getBoundingClientRect();
-
-            if (box.top > band || box.bottom <= bottom || box.height > half || box.width === 0) {
-                continue;
-            }
-
-            var computed = window.getComputedStyle(node);
-
-            if ((computed.position === 'sticky' || computed.position === 'fixed')
-                && computed.visibility !== 'hidden' && computed.visibility !== 'collapse'
-                && box.right > 0 && box.left < window.innerWidth) {
-                bottom = box.bottom;
-            }
-        }
-
-        return bottom;
-    }
-
-    /**
      * Call back once the page's scroll has come to rest: at the scroll's end, or soon after when no scroll happens
      * (already in place) or the browser has no scrollend event; whichever comes first, once, the other then dropped.
      * Not at all when the shopper takes over meanwhile (a wheel, a touch or a key): the place is theirs from then on.
@@ -235,14 +183,14 @@
 
         var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
 
-        window.scrollTo({ top: window.scrollY + region.getBoundingClientRect().top - headerOffset(region), behavior: behavior });
+        window.scrollTo({ top: window.scrollY + region.getBoundingClientRect().top - window.Alfa.headerOffset(region), behavior: behavior });
 
         if (focus) {
             region.focus({ preventScroll: true });
         }
 
         whenScrollEnds(function () {
-            var gap = region.getBoundingClientRect().top - headerOffset(region);
+            var gap = region.getBoundingClientRect().top - window.Alfa.headerOffset(region);
 
             if (Math.abs(gap) > 1) {
                 window.scrollTo({ top: window.scrollY + gap, behavior: 'instant' });

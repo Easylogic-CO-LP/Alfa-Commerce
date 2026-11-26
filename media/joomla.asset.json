@@ -178,9 +178,20 @@
       "uri": "com_alfa/site/list.min.css"
     },
     {
+      "name": "com_alfa.site.header-offset",
+      "type": "script",
+      "uri": "com_alfa/site/header-offset.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.list",
       "type": "script",
       "uri": "com_alfa/site/list-form.min.js",
+      "dependencies": [
+        "com_alfa.site.header-offset"
+      ],
       "attributes": {
         "defer": true
       }
@@ -426,7 +437,8 @@
       "type": "script",
       "uri": "com_alfa/site/cart/form-state.min.js",
       "dependencies": [
-        "core"
+        "core",
+        "com_alfa.site.header-offset"
       ],
       "attributes": {
         "defer": true

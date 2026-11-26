@@ -178,8 +178,10 @@
     gap: 0.5rem;
 }
 
+/* The picker's box after its redirect: brought under the page's sticky header, whose height a template sets as
+   --alfa-scroll-offset (Alfa.headerOffset measures the header when it is not set), with a little room. */
 .cart-user-info {
-    scroll-margin-top: 1rem;
+    scroll-margin-top: calc(var(--alfa-scroll-offset, 0px) + 1rem);
 }
 
 /* Coupon remove: a token-protected POST rendered as a plain x affordance. */
