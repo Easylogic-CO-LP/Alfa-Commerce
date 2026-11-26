@@ -11,6 +11,8 @@
     --aso-accent: #2f6f4f;
     --aso-or: #b4762a;
     --aso-danger: #b23b3b;
+    /* The admin's own corner: Atum's token, the same on every box, control and chip of the builder. */
+    --aso-radius: var(--border-radius, 0.25rem);
     font-size: 14px;
     color: var(--aso-ink);
 }
@@ -31,7 +33,7 @@
 .aso-group {
     background: var(--aso-bg);
     border: 1px solid var(--aso-line);
-    border-radius: 8px;
+    border-radius: var(--aso-radius);
     padding: 12px;
 }
 
@@ -55,7 +57,7 @@
     font-weight: 600;
     letter-spacing: .03em;
     padding: 4px 14px;
-    border-radius: 999px;
+    border-radius: var(--aso-radius);
 }
 
 .aso-match[data-match="any"] {
@@ -100,7 +102,7 @@
     padding: 8px;
     background: var(--card-bg, #fff);
     border: 1px solid var(--aso-line);
-    border-radius: 6px;
+    border-radius: var(--aso-radius);
 }
 
 .aso-select,
@@ -108,7 +110,7 @@
     height: 34px;
     padding: 4px 8px;
     border: 1px solid var(--aso-line);
-    border-radius: 5px;
+    border-radius: var(--aso-radius);
     background: var(--card-bg, #fff);
     color: var(--aso-ink);
     font: inherit;
@@ -136,7 +138,7 @@
     outline-offset: -1px;
 }
 
-/* nested group: a remove handle plus an accent-edged sub-tree */
+/* nested group: a remove handle over its sub-tree */
 .aso-item--group {
     position: relative;
 }
@@ -146,10 +148,6 @@
     top: 8px;
     right: 8px;
     z-index: 1;
-}
-
-.aso-item--group > .aso-group {
-    border-left: 3px solid var(--aso-accent);
 }
 
 /* add bar */
@@ -165,7 +163,7 @@
     background: var(--card-bg, #fff);
     color: var(--aso-ink);
     padding: 6px 12px;
-    border-radius: 5px;
+    border-radius: var(--aso-radius);
     font: inherit;
 }
 
@@ -181,7 +179,7 @@
     line-height: 1;
     border: 1px solid var(--aso-line);
     background: var(--card-bg, #fff);
-    border-radius: 5px;
+    border-radius: var(--aso-radius);
     color: var(--aso-mut);
     font-size: 16px;
 }
@@ -200,7 +198,7 @@
  * a state badge + the human-readable rule summary + an edit link. Colour + badge
  * visibility are driven by [data-showon-state], so the JS save only sets text. */
 .showon-control { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; }
-.showon-badge { font-size: .7rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.showon-badge { font-size: .7rem; font-weight: 600; padding: 1px 8px; border-radius: var(--border-radius-sm, 0.2rem); white-space: nowrap; }
 .showon-control[data-showon-state="none"] .showon-badge { display: none; }
 .showon-control[data-showon-state="set"] .showon-badge { background: var(--success-bg-subtle, #d1e7dd); color: var(--success-text-emphasis, #0a3622); }
 .showon-control[data-showon-state="inherited"] .showon-badge { background: var(--secondary-bg, #e2e3e5); color: var(--body-color, #41464b); }
@@ -213,4 +211,4 @@
 .showon-edit { text-decoration: none; white-space: nowrap; }
 
 /* Nudge toward a global rule when authoring per-item visibility. */
-.aso-tip { margin: 0 0 12px; padding: 8px 10px; font-size: .8rem; line-height: 1.4; color: var(--body-color, #41464b); background: var(--tertiary-bg, #f1f3f5); border-left: 3px solid var(--border-color, #adb5bd); border-radius: 4px; }
+.aso-tip { margin: 0 0 12px; padding: 8px 10px; font-size: .8rem; line-height: 1.4; color: var(--body-color, #41464b); background: var(--tertiary-bg, #f1f3f5); border-left: 3px solid var(--border-color, #adb5bd); border-radius: var(--border-radius, 0.25rem); }
