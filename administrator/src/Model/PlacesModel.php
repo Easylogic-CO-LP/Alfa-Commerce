@@ -180,10 +180,11 @@ class PlacesModel extends AlfaListModel
     {
         $items = parent::getItems();
 
-        // Hierarchy enrichment drops rows whose ancestors fall outside the
-        // current page, fatal to API pagination; admin grids page from root.
+        // Depth and path for the grid's indent come from the whole tree, so every
+        // row of the page shows whatever page its ancestors sit on. The API
+        // returns the rows as they are.
         if (!empty($items) && !Factory::getApplication()->isClient('api')) {
-            $items = AlfaHelper::addHierarchyData($items);
+            $items = AlfaHelper::stampTreeRows($items, '#__alfa_places', 'name');
         }
 
         return $items;

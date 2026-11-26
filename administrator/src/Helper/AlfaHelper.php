@@ -107,7 +107,9 @@ class AlfaHelper
     /**
      * Flatten a flat parent_id list into a depth-first ordered list, stamping
      * each row with its 'depth' and a breadcrumb 'path' by recursively walking
-     * children of the given parent.
+     * children of the given parent. For a WHOLE set only (a form field's choices,
+     * for example): a row whose ancestors are not in the list is left out, so one
+     * page of a paginated list goes through stampTreeRows() instead.
      *
      * @param array $items Flat list of rows with id/parent_id
      * @param string|null $pathField Row property used to build the path, or null
@@ -143,6 +145,136 @@ class AlfaHelper
             }
         }
         return $hierarchyData;
+    }
+
+    /**
+     * Stamp the rows of one page of a tree list with their depth and path, read from
+     * the whole table. A page holds whatever rows its sort and offset give it, so a
+     * row's ancestors sit on other pages as often as not: depth and path must come
+     * from the table, never from the page (a tree rebuilt from the page alone drops
+     * every row whose parent is elsewhere, which empties every page after the first).
+     *
+     * Two statements per page, whatever the page size: the id and parent of every
+     * row of the table (the trees this serves, categories and places, are small by
+     * nature), then the names of the ancestors the page needs. Names come through the
+     * per-language table when one is named, as the list itself reads them.
+     *
+     * @param array<int, object> $items        The page's rows, each with id, parent_id and the name field
+     * @param string             $table        The tree table, with the #__ prefix
+     * @param string             $nameField    The row property and column holding the display name
+     * @param string|null        $langTable    The per-language table base (#__ prefix) when names are translated, else null
+     * @param string|null        $langPrimary  The per-language table's column pointing at the tree row
+     *
+     * @return array<int, object> The same rows, in the same order, each with depth (0 for a root) and path (names from the root, joined by " / ")
+     *
+     * @since  2.3.0
+     */
+    /**
+     * The cache identity of a list, carrying every filter of its state, including the
+     * filters a plugin declares through onAlfaAdminListFilters: a hand-written list of
+     * keys would miss them and serve a stale page. A filter that holds a list or a
+     * nested structure is written as JSON, so it never turns into the text "Array".
+     *
+     * @param string               $id     The id the model starts from
+     * @param array<string, mixed> $state  The model's state as toArray() gives it (literal dotted keys)
+     *
+     * @return string The id with every filter appended, in key order
+     *
+     * @since  2.3.0
+     */
+    public static function listStoreId(string $id, array $state): string
+    {
+        $filters = [];
+
+        foreach ($state as $key => $value) {
+            if (!str_starts_with((string) $key, 'filter.')) {
+                continue;
+            }
+
+            $filters[$key] = \is_scalar($value) || $value === null
+                ? (string) $value
+                : (string) json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
+
+        return $id;
+    }
+
+    public static function stampTreeRows(array $items, string $table, string $nameField = 'name', ?string $langTable = null, ?string $langPrimary = null): array
+    {
+        if ($items === []) {
+            return $items;
+        }
+
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+
+        // The whole tree's shape: id => parent id.
+        $shape = $db->setQuery(
+            $db->createQuery()
+                ->select([$db->quoteName('id'), $db->quoteName('parent_id')])
+                ->from($db->quoteName($table)),
+        )->loadAssocList('id', 'parent_id');
+
+        // Each page row's ancestors, nearest first; a cycle or a dangling parent ends the walk.
+        $chains = [];
+        $ancestorIds = [];
+
+        foreach ($items as $item) {
+            $chain = [];
+            $seen = [(int) $item->id => true];
+            $parent = (int) ($shape[(int) $item->id] ?? 0);
+
+            while ($parent > 0 && !isset($seen[$parent]) && \array_key_exists($parent, $shape)) {
+                $chain[] = $parent;
+                $seen[$parent] = true;
+                $ancestorIds[$parent] = true;
+                $parent = (int) $shape[$parent];
+            }
+
+            $chains[(int) $item->id] = $chain;
+        }
+
+        // The ancestors' names, once, in the language the list reads.
+        $names = [];
+
+        if ($ancestorIds !== []) {
+            $query = $db->createQuery()
+                ->select($db->quoteName('a.id'))
+                ->from($db->quoteName($table, 'a'))
+                ->whereIn($db->quoteName('a.id'), array_keys($ancestorIds));
+
+            if ($langTable !== null && $langPrimary !== null) {
+                MultilingualHelper::addMultilingualJoinToQuery(
+                    query:             $query,
+                    mainAlias:         'a',
+                    mainPrimaryColumn: 'id',
+                    langTableBase:     $langTable,
+                    langPrimaryColumn: $langPrimary,
+                    fields:            [$nameField],
+                );
+            } else {
+                $query->select($db->quoteName('a.' . $nameField, $nameField));
+            }
+
+            foreach ($db->setQuery($query)->loadObjectList() as $row) {
+                $names[(int) $row->id] = (string) ($row->{$nameField} ?? '');
+            }
+        }
+
+        foreach ($items as $item) {
+            $chain = $chains[(int) $item->id];
+            $item->depth = \count($chain);
+            $segments = array_map(static fn (int $id): string => $names[$id] ?? '', array_reverse($chain));
+            $segments[] = (string) ($item->{$nameField} ?? '');
+            $item->path = implode(' / ', $segments);
+        }
+
+        return $items;
     }
 
     /**
