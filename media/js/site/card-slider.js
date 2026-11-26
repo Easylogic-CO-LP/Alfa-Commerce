@@ -13,6 +13,10 @@
  *
  * The motion is the stylesheet's: scrollTo() with no behaviour follows the track's scroll-behavior, smooth only where
  * the visitor has not asked for reduced motion, so the script never animates by itself.
+ * A mouse drag moves the track too: a touch swipe and a trackpad swipe are the browser's own scroll, but a mouse has no
+ * gesture of its own on a scrolling row, so while its button is down the track follows the pointer and snaps to the
+ * nearest image where it is let go. A drag never opens the product (the click that ends it is dropped) and never
+ * starts the browser's own drag of the image or its link.
  */
 (function () {
     'use strict';
@@ -20,6 +24,10 @@
     var SLIDER = '[data-card-slider]';
     var TRACK = '[data-card-slider-track]';
     var READY = 'data-card-slider-ready';
+    var DRAGGING = 'data-card-slider-dragging';
+
+    /** The mouse drag under way: its track, where it began, the track's scroll then, and whether it has moved yet. */
+    var drag = null;
 
     /** The image in view: the track's scroll in widths of the track (negative in a right-to-left page). */
     function shown(track) {
@@ -127,6 +135,88 @@
             show(track, shown(track) + 1);
         } else if (action === 'card-slider-dot') {
             show(track, parseInt(control.getAttribute('data-index'), 10) || 0);
+        }
+    });
+
+    document.addEventListener('pointerdown', function (event) {
+        var track = event.target instanceof Element ? event.target.closest(TRACK) : null;
+
+        if (!track || event.pointerType === 'touch' || event.button !== 0 || slideCount(track) < 2) {
+            return;
+        }
+
+        drag = { track: track, id: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
+
+        try {
+            track.setPointerCapture(event.pointerId);
+        } catch (e) {
+            // A pointer gone before the capture: the drag ends with its next event.
+        }
+    });
+
+    document.addEventListener('pointermove', function (event) {
+        if (!drag || event.pointerId !== drag.id) {
+            return;
+        }
+
+        var dx = event.clientX - drag.x;
+
+        // The first few pixels are a click settling, not a drag.
+        if (!drag.moved && Math.abs(dx) < 4) {
+            return;
+        }
+
+        if (!drag.moved) {
+            drag.moved = true;
+            drag.track.setAttribute(DRAGGING, '');
+        }
+
+        drag.track.scrollLeft = drag.left - dx;
+        event.preventDefault();
+    });
+
+    /** The drag ends: the track snaps to the image nearest to where it is, and the click that follows a move is dropped. */
+    function endDrag(event) {
+        if (!drag || event.pointerId !== drag.id) {
+            return;
+        }
+
+        var track = drag.track;
+        var moved = drag.moved;
+
+        drag = null;
+
+        try {
+            track.releasePointerCapture(event.pointerId);
+        } catch (e) {
+            // Already released.
+        }
+
+        if (!moved) {
+            return;
+        }
+
+        track.removeAttribute(DRAGGING);
+        show(track, shown(track));
+
+        var swallow = function (click) {
+            click.preventDefault();
+            click.stopPropagation();
+        };
+
+        track.addEventListener('click', swallow, { capture: true, once: true });
+        window.setTimeout(function () {
+            track.removeEventListener('click', swallow, { capture: true });
+        }, 0);
+    }
+
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+
+    // The browser's own drag of an image or a link inside the track never starts: the mouse is moving the track.
+    document.addEventListener('dragstart', function (event) {
+        if (event.target instanceof Element && event.target.closest(TRACK)) {
+            event.preventDefault();
         }
     });
 

@@ -380,6 +380,9 @@
       "name": "com_alfa.item",
       "type": "script",
       "uri": "com_alfa/site/item/item.min.js",
+      "dependencies": [
+        "core"
+      ],
       "attributes": {
         "defer": true
       }

@@ -39,9 +39,10 @@
 
 /* THE CARD'S IMAGE SLIDER (default_card_images-slider.php). The track is a row of the card's images that scrolls
    sideways and stops on each one: a swipe or a sideways scroll moves it with no script, and card-slider.js lets the
-   arrows and the dots move it one image at a time. Its scroll bar is hidden, the dots say where it is. The arrows and
-   the dots sit over the image, so a slider card is as tall as a card of one image and the arrows centre on the image.
-   The move is smooth only for a visitor who has not asked for reduced motion. */
+   arrows and the dots move it one image at a time and a mouse drag it. Its scroll bar is hidden, the dots say where it
+   is. The arrows (the shop's one slider arrow, general.css) and the dots sit over the image, so a slider card is as
+   tall as a card of one image and the arrows centre on the image. The move is smooth only for a visitor who has not
+   asked for reduced motion. */
 
 .card-slider {
     position: relative;
@@ -67,6 +68,15 @@
     }
 }
 
+/* While a mouse drags the track it follows the pointer freely, with nothing selected on the way, and snaps where the
+   drag ends. */
+.card-slider-track[data-card-slider-dragging] {
+    scroll-snap-type: none;
+    scroll-behavior: auto;
+    cursor: grabbing;
+    user-select: none;
+}
+
 /* The track is as tall as its tallest image; an image less tall stands in the middle of its slide, on the arrows'
    line. */
 .card-slider-slide {
@@ -81,45 +91,6 @@
     display: block;
 }
 
-.card-slider-arrow {
-    position: absolute;
-    top: 50%;
-    translate: 0 -50%;
-    display: grid;
-    place-items: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    padding: 0;
-    border: 1px solid var(--alfa-hairline);
-    border-radius: var(--alfa-radius);
-    background: var(--alfa-surface);
-    color: var(--alfa-surface-color, inherit);
-    cursor: pointer;
-}
-
-.card-slider-prev {
-    inset-inline-start: 0.25rem;
-}
-
-.card-slider-next {
-    inset-inline-end: 0.25rem;
-}
-
-.card-slider-arrow svg {
-    width: 1.25rem;
-    height: 1.25rem;
-}
-
-.card-slider-arrow svg:dir(rtl) {
-    scale: -1 1;
-}
-
-.card-slider-arrow[aria-disabled="true"] {
-    opacity: 0.4;
-    cursor: default;
-}
-
-.card-slider-arrow:focus-visible,
 .card-slider-dot:focus-visible {
     outline: 2px solid var(--alfa-selected);
     outline-offset: 2px;

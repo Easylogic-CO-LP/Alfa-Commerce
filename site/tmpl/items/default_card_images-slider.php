@@ -13,10 +13,11 @@
  * every image), side by side in a track that scrolls sideways and stops on each image.
  *
  * The sliding is the browser's own (list.css): a swipe or a sideways scroll moves the track, and a swipe never opens
- * the product, while a click on an image does, as on the default card. The arrows and the dots are drawn here, as
- * buttons, and card-slider.js only makes them move the track and follow it; nothing is drawn by the script. The arrows
- * are in the tab order, the dots are not (the arrows reach every image). A product with one image is drawn as the
- * default card draws it, with no controls.
+ * the product, while a click on an image does, as on the default card; a mouse drag is the script's (card-slider.js),
+ * and never opens the product either. The arrows (the shop's one slider arrow, general.css) and the dots are drawn
+ * here, as buttons, and card-slider.js only makes them move the track and follow it; nothing is drawn by the script.
+ * The arrows are in the tab order, the dots are not (the arrows reach every image). A product with one image is drawn
+ * as the default card draws it, with no controls.
  *
  * Each image is the generated thumbnail, never the stored image, at its file's versioned address. The first image
  * loads as the default card's image does at the card's place on the page ($this->cardImageLoading(): the first four
@@ -60,11 +61,11 @@ $count = \count($slides);
             <?php endforeach; ?>
         </div>
 
-        <button type="button" class="card-slider-arrow card-slider-prev" data-action="card-slider-prev"
+        <button type="button" class="alfa-slider-arrow alfa-slider-arrow--prev" data-action="card-slider-prev"
                 aria-label="<?php echo $this->escape(Text::_('COM_ALFA_CARD_IMAGES_PREVIOUS')); ?>" aria-disabled="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <button type="button" class="card-slider-arrow card-slider-next" data-action="card-slider-next"
+        <button type="button" class="alfa-slider-arrow alfa-slider-arrow--next" data-action="card-slider-next"
                 aria-label="<?php echo $this->escape(Text::_('COM_ALFA_CARD_IMAGES_NEXT')); ?>" aria-disabled="false">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg>
         </button>

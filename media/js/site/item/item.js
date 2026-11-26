@@ -59,7 +59,7 @@ function itemMediasIntoSlider(){
             loop: false,
             selector: '.item-image'
         },
-        [navigation]
+        [navigation, wheelSwipe]
     )
     itemMainSlider = slider;
 
@@ -155,17 +155,26 @@ function navigation(slider) {
         return div
     }
 
+    // The shop's one slider arrow (general.css), the button the listing card's slider draws: a chevron, named for
+    // a screen reader, in the tab order, dimmed at the track's end.
+    function arrowButton(side) {
+        var button = document.createElement("button")
+        button.type = "button"
+        button.className = "alfa-slider-arrow alfa-slider-arrow--" + side
+        button.setAttribute("aria-label", Joomla.Text._(side === "prev" ? "COM_ALFA_CARD_IMAGES_PREVIOUS" : "COM_ALFA_CARD_IMAGES_NEXT"))
+        button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="' + (side === "prev" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6") + '"/></svg>'
+        return button
+    }
+
     function arrowMarkup(remove) {
         if (remove) {
             removeElement(arrowLeft)
             removeElement(arrowRight)
             return
         }
-        arrowLeft = createDiv("arrow arrow--left")
-        arrowLeft.appendChild(createDiv("arrow--left-img"));
+        arrowLeft = arrowButton("prev")
         arrowLeft.addEventListener("click", () => slider.prev())
-        arrowRight = createDiv("arrow arrow--right");
-        arrowRight.appendChild(createDiv("arrow--right-img"));
+        arrowRight = arrowButton("next")
         arrowRight.addEventListener("click", () => slider.next())
 
         wrapper.appendChild(arrowLeft)
@@ -202,12 +211,8 @@ function navigation(slider) {
 
     function updateClasses() {
         var slide = slider.track.details.rel
-        slide === 0
-            ? arrowLeft.classList.add("arrow--disabled")
-            : arrowLeft.classList.remove("arrow--disabled")
-        slide === slider.track.details.slides.length - 1
-            ? arrowRight.classList.add("arrow--disabled")
-            : arrowRight.classList.remove("arrow--disabled")
+        arrowLeft.setAttribute("aria-disabled", slide === 0 ? "true" : "false")
+        arrowRight.setAttribute("aria-disabled", slide === slider.track.details.slides.length - 1 ? "true" : "false")
         Array.from(dots.children).forEach(function (dot, idx) {
             idx === slide
                 ? dot.classList.add("dot--active")
@@ -229,6 +234,51 @@ function navigation(slider) {
     })
     slider.on("destroyed", () => {
         markup(true)
+    })
+}
+
+// A trackpad swipe (and a mouse wheel turned sideways) moves the slider as a drag does: the slider reads only a
+// mouse and a touch by itself, and a sideways wheel over it would scroll nothing. The wheel's sideways travel is fed
+// to the slider as a drag, from its first event to a pause of 50 ms after its last; a wheel that mostly moves up or
+// down is left to the page, which scrolls as always.
+function wheelSwipe(slider) {
+    var timer = 0
+    var active = false
+    var position = { x: 0, y: 0 }
+
+    function send(name, event) {
+        position.x -= event.deltaX
+        position.y -= event.deltaY
+        slider.container.dispatchEvent(new CustomEvent(name, { detail: { x: position.x, y: position.y } }))
+    }
+
+    function onWheel(event) {
+        if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+            return
+        }
+
+        event.preventDefault()
+
+        if (!active) {
+            active = true
+            // The drag's start: a point of its own, never the origin, which the slider reads as no point.
+            position = { x: 100000, y: 100000 }
+            send("ksDragStart", event)
+        }
+
+        send("ksDrag", event)
+        clearTimeout(timer)
+        timer = setTimeout(function () {
+            active = false
+            send("ksDragEnd", event)
+        }, 50)
+    }
+
+    slider.on("created", function () {
+        slider.container.addEventListener("wheel", onWheel, { passive: false })
+    })
+    slider.on("destroyed", function () {
+        slider.container.removeEventListener("wheel", onWheel)
     })
 }
 

@@ -33,6 +33,11 @@
     // (joomla.html.image): HTMLHelper::image() loses an address with a query and no fragment.
 ?>
 
+<?php
+    // The slider's arrows are drawn by the script (item.js), named for a screen reader.
+    Text::script('COM_ALFA_CARD_IMAGES_PREVIOUS');
+    Text::script('COM_ALFA_CARD_IMAGES_NEXT');
+?>
 <div class="main-images navigation-controls">
     <?php foreach ($medias as $index => $media):
         $isFirst = $index === 0;
