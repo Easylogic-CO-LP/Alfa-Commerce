@@ -71,6 +71,8 @@ $wa->useStyle('com_alfa.combinations')
 Text::script('COM_ALFA_COMBINATION_DIRTY_TITLE');
 Text::script('COM_ALFA_COMBINATION_DIRTY_SAVE_NOW');
 Text::script('COM_ALFA_COMBINATION_NAV_DIRTY');
+Text::script('COM_ALFA_COMBI_REFUSED_TITLE');
+Text::script('JCLOSE');
 Text::script('COM_ALFA_TAB_ITEM_COMBINATIONS');
 Text::script('JCANCEL');
 Text::script('COM_ALFA_COMBI_GENERATE_NONE');
@@ -1004,6 +1006,10 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                     <p class="mb-1"><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_CHANGED'); ?></p>
                     <ul data-changed-fields></ul>
                 </div>
+            </template>
+            <?php // The body of a refusal: the endpoint's words, a long list of order lines scrolling inside it. ?>
+            <template id="alfa-dialog-refused">
+                <div class="alfa-dialog-body alfa-dialog-refusal" data-refusal-text></div>
             </template>
         </fieldset>
     </div>

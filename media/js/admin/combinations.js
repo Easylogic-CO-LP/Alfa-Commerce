@@ -236,6 +236,29 @@
         });
     };
 
+    // A refusal from one of this screen's endpoints, in its own words: shown as markup when the answer says so
+    // (data.markup: the names escaped, the order lines linked), as text otherwise. The second script of this
+    // file reaches it as Alfa.refused.
+    const refusedDialog = (message, markup) => {
+        const dialog = openDialog('alfa-dialog-refused', Joomla.Text._('COM_ALFA_COMBI_REFUSED_TITLE'), [
+            { label: Joomla.Text._('JCLOSE'), primary: true },
+        ], '640px');
+        const body = dialog ? dialog.querySelector('[data-refusal-text]') : null;
+
+        if (!body) {
+            return;
+        }
+
+        if (markup) {
+            body.innerHTML = message;
+        } else {
+            body.textContent = message;
+        }
+    };
+
+    window.Alfa = window.Alfa || {};
+    Alfa.refused = refusedDialog;
+
     document.addEventListener('DOMContentLoaded', () => {
         const wanted = sessionStorage.getItem(reopenKey());
 
@@ -663,7 +686,7 @@
             if (refused(json)) {
                 // The server refused: verbatim to the admin, never the "all exist" notice.
                 if (json.message) {
-                    alert(json.message);
+                    refusedDialog(json.message, !!json.data && json.data.markup === true);
                 }
             } else if (json?.data?.created > 0 || json?.data?.reordered) {
                 // Fresh rows created, or the dimension order changed: re-render through
@@ -672,7 +695,7 @@
 
                 return;
             } else {
-                alert(Joomla.Text._('COM_ALFA_COMBI_GENERATE_NONE'));
+                refusedDialog(Joomla.Text._('COM_ALFA_COMBI_GENERATE_NONE'), false);
             }
         } catch (error) {
             // Network hiccup: leave the page as is.
@@ -1072,7 +1095,7 @@
             if (refused(json)) {
                 // The server refused: its own words.
                 if (json.message) {
-                    alert(json.message);
+                    refusedDialog(json.message, false);
                 }
             } else if (json?.data?.added > 0) {
                 // New rows exist: re-render through item.reload (the list rows are
@@ -1122,7 +1145,7 @@
             if (refused(json)) {
                 // The server refused: its own words.
                 if (json.message) {
-                    alert(json.message);
+                    refusedDialog(json.message, false);
                 }
             } else if (json?.data?.added > 0) {
                 reloadItemPage();
@@ -1512,7 +1535,7 @@
             if (refused(json)) {
                 // The server refused: its own words; the dialog stays open.
                 if (json.message) {
-                    alert(json.message);
+                    Alfa.refused(json.message, false);
                 }
             } else if (json?.data?.saved !== undefined) {
                 // Swap the inline control in place from the server's authoritative state +

@@ -689,3 +689,9 @@ body:has(.alfa-studio) {
   max-block-size: 40vh;
   overflow: auto;
 }
+
+.alfa-dialog-refusal {
+  max-block-size: 70vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}

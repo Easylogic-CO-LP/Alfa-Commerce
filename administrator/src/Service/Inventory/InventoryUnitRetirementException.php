@@ -150,13 +150,16 @@ final class InventoryUnitRetirementException extends RuntimeException
      * @param int $itemId The item.
      * @param array $blockers Its blockers: combination_id and open_lines (order_id,
      *                        line_id, ordered, outstanding).
+     * @param bool $markup The sentence is shown as markup: the names it carries are escaped and every order
+     *                     line is a link to its order, opened in a new tab. Plain text otherwise.
      *
      *
      * @since  2.0.0
      */
-    public static function openLinesText(int $itemId, array $blockers): ?string
+    public static function openLinesText(int $itemId, array $blockers, bool $markup = false): ?string
     {
         $sentences = [];
+        $escape = static fn (string $text): string => $markup ? htmlspecialchars($text, ENT_QUOTES, 'UTF-8') : $text;
 
         foreach ($blockers as $blocker) {
             $lines = $blocker['open_lines'] ?? [];
@@ -171,15 +174,22 @@ final class InventoryUnitRetirementException extends RuntimeException
 
             $sentences[] = Text::sprintf(
                 'COM_ALFA_INVENTORY_UNIT_OPEN_LINES',
-                InventoryUnitException::labelFor(itemId: $itemId, combinationId: (int) ($blocker['combination_id'] ?? 0)),
+                $escape(InventoryUnitException::labelFor(itemId: $itemId, combinationId: (int) ($blocker['combination_id'] ?? 0))),
                 \count($lines),
                 implode(', ', array_map(
-                    static fn (array $line): string => Text::sprintf(
-                        'COM_ALFA_INVENTORY_AUDIT_OPEN_LINE_ITEM',
-                        (int) ($line['order_id'] ?? 0),
-                        (int) ($line['line_id'] ?? 0),
-                        InventoryAvailabilityService::formatQuantity(value: (float) ($line['outstanding'] ?? 0)),
-                    ),
+                    static function (array $line) use ($escape, $markup): string {
+                        $orderId = (int) ($line['order_id'] ?? 0);
+                        $text = $escape(Text::sprintf(
+                            'COM_ALFA_INVENTORY_AUDIT_OPEN_LINE_ITEM',
+                            $orderId,
+                            (int) ($line['line_id'] ?? 0),
+                            InventoryAvailabilityService::formatQuantity(value: (float) ($line['outstanding'] ?? 0)),
+                        ));
+
+                        return $markup && $orderId > 0
+                            ? '<a href="index.php?option=com_alfa&amp;task=order.edit&amp;id=' . $orderId . '" target="_blank" rel="noopener">' . $text . '</a>'
+                            : $text;
+                    },
                     $lines,
                 )),
             );
