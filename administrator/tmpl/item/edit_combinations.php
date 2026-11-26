@@ -962,14 +962,16 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                 // ONE shared Studio dialog for every variant: core bootstrap
                 // modal, exactly like the order-edit popups (native
                 // modal-header carries the variant title, set on open). A
-                // single lazy iframe means zero per-variant page weight.
+                // single lazy iframe means zero per-variant page weight. The
+                // dialog takes most of the viewport, so the editor's tabs and
+                // field grids render as on a full screen, not stacked as on a phone.
                 echo HTMLHelper::_(
                     'bootstrap.renderModal',
                     'combinationStudioModal',
                     [
                         'title' => Text::_('COM_ALFA_TITLE_COMBINATION_EDIT'),
-                        'width' => '80%',
-                        'bodyHeight' => '70vh',
+                        'modalWidth' => 90,
+                        'bodyHeight' => 70,
                     ],
                     '<iframe id="combination-frame" src="about:blank" title="" loading="lazy"'
                     . ' style="width:100%;height:70vh;border:0;display:block"></iframe>',

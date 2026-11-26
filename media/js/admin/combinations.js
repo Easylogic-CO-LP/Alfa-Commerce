@@ -309,8 +309,12 @@
         currentIndex = index;
         studioDirty = false;
 
+        // The next variant opens on the tab the current one shows: the tab's id travels in the address's
+        // fragment, which Joomla's tab element reads as its page loads.
+        const tab = view.contentDocument ? view.contentDocument.querySelector('joomla-tab-element[active]') : null;
+
         if (view.dataset.current !== trigger.dataset.src) {
-            view.src = trigger.dataset.src;
+            view.src = trigger.dataset.src + (tab ? '#' + tab.id : '');
             view.dataset.current = trigger.dataset.src;
         }
 
