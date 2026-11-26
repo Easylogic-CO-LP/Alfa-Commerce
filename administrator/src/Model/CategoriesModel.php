@@ -104,27 +104,8 @@ class CategoriesModel extends AlfaListModel
      */
     protected function getStoreId($id = '')
     {
-        // Serialise EVERY filter into the cache identity, including filters a plugin
-        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
-        // silently omit (stale cache + the contract's list phases skipping re-runs).
-        // Same discipline as the orders grid.
-        $filters = [];
-
-        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
-        // object cast returns its protected properties and matches nothing.
-        foreach ($this->getState()->toArray() as $key => $value) {
-            if (str_starts_with((string) $key, 'filter.')) {
-                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
-            }
-        }
-
-        ksort($filters);
-
-        foreach ($filters as $key => $value) {
-            $id .= ':' . $key . '=' . $value;
-        }
-
-        return parent::getStoreId($id);
+        // Every filter of the state goes into the identity, nested ones as JSON.
+        return parent::getStoreId(AlfaHelper::listStoreId($id, $this->getState()->toArray()));
     }
 
     /**
@@ -240,12 +221,11 @@ class CategoriesModel extends AlfaListModel
             return $items;
         }
 
-        // Hierarchy enrichment rebuilds the tree from the CURRENT PAGE only and
-        // drops rows whose ancestors fell outside it, fatal to API pagination,
-        // where every paginated row must be returned. Admin grids page the tree
-        // from the root so the assumption holds there.
+        // Depth and path for the grid's indent come from the whole tree, so every
+        // row of the page shows whatever page its ancestors sit on. The API returns
+        // the rows as they are.
         if (!Factory::getApplication()->isClient('api')) {
-            $items = AlfaHelper::addHierarchyData($items);
+            $items = AlfaHelper::stampTreeRows($items, '#__alfa_categories', 'name', '#__alfa_categories', 'id_category');
         }
 
         return $this->alfaEnriched = $items;
