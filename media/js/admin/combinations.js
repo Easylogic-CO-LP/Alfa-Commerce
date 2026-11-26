@@ -35,13 +35,224 @@
     const itemForm = () => document.getElementById('item-form');
     const modalApi = () => window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(modal()) : null;
 
-    let itemFormDirty = false;
     let modalOpen = false;
     let pendingReload = false;
     let studioDirty = false;
     let currentIndex = -1;
 
     const triggers = () => [...document.querySelectorAll('[data-studio-open]')];
+    const itemId = () => new URLSearchParams(window.location.search).get('id') || '0';
+
+    // THE ITEM FORM'S UNSAVED CHANGES: what the form would post now, against what it held when the page was drawn
+    // and again when it had finished loading while nothing had been typed yet (an editor rewrites its text as it
+    // starts). A value typed and typed back is no change, and a form never touched is never dirty. Left out:
+    // Joomla's task, token and return fields, and the lazy popups' pickers, which live inside the form and post
+    // nothing of the product. An editor is read through Joomla's editor registry when it has started, as its
+    // textarea before that.
+    const EDITOR_WRAP = '[class*="js-editor-"]';
+    const SKIP_NAME = /^(task|return|boxchecked|[0-9a-f]{32})$/;
+    const GRID_NAME = /^jform\[(combinations|deleted_combination_ids)\]/;
+    let formBaseline = null;
+    let formTouched = false;
+
+    const editorValue = (textarea) => {
+        const instance = window.Joomla && Joomla.editors && Joomla.editors.instances
+            ? Joomla.editors.instances[textarea.id] : null;
+
+        return instance && typeof instance.getValue === 'function' ? String(instance.getValue()) : textarea.value;
+    };
+
+    const formState = () => {
+        const form = itemForm();
+        const state = new Map();
+
+        if (!form) {
+            return state;
+        }
+
+        for (const element of form.elements) {
+            const name = element.name || '';
+
+            if (name === '' || element.disabled || SKIP_NAME.test(name) || element.closest('.joomla-modal')) {
+                continue;
+            }
+
+            let values;
+
+            if (element.type === 'checkbox' || element.type === 'radio') {
+                if (!element.checked) {
+                    continue;
+                }
+
+                values = [element.value];
+            } else if (element.type === 'select-multiple') {
+                values = [...element.selectedOptions].map((option) => option.value);
+            } else if (element.type === 'file') {
+                values = [String(element.files ? element.files.length : 0)];
+            } else if (element.tagName === 'TEXTAREA' && element.closest(EDITOR_WRAP)) {
+                values = [editorValue(element)];
+            } else {
+                values = [element.value];
+            }
+
+            state.set(name, (state.get(name) || []).concat(values));
+        }
+
+        return state;
+    };
+
+    const serialize = (state) => [...state].map(([name, values]) => name + '=' + values.join('\u0001')).join('\u0002');
+
+    const takeBaseline = () => {
+        formBaseline = formState();
+    };
+
+    const isItemFormDirty = () => formBaseline !== null && serialize(formState()) !== serialize(formBaseline);
+
+    document.addEventListener('DOMContentLoaded', takeBaseline);
+
+    window.addEventListener('load', () => {
+        if (!formTouched) {
+            takeBaseline();
+        }
+    });
+
+    ['input', 'change'].forEach((type) => {
+        document.addEventListener(type, (event) => {
+            if (itemForm() && itemForm().contains(event.target)) {
+                formTouched = true;
+            }
+        }, true);
+    });
+
+    // The name of a changed field as its screen shows it: its label, the row it sits in, or the grid's tab for a
+    // variant row that is gone.
+    const labelFor = (name) => {
+        const form = itemForm();
+        const element = form ? form.querySelector('[name="' + CSS.escape(name) + '"]') : null;
+        const label = element ? element.closest('.control-group')?.querySelector('.control-label label, .control-label') : null;
+
+        if (label && label.textContent.trim() !== '') {
+            return label.textContent.trim().replace(/\s*\*\s*$/, '');
+        }
+
+        const row = element ? element.closest('tr')?.querySelector('[data-variant-name], .variant-name, th') : null;
+
+        if (row && row.textContent.trim() !== '') {
+            return row.textContent.trim();
+        }
+
+        if (element && element.getAttribute('aria-label')) {
+            return element.getAttribute('aria-label');
+        }
+
+        return GRID_NAME.test(name) ? Joomla.Text._('COM_ALFA_TAB_ITEM_COMBINATIONS') : name.replace(/^jform\[|\]$/g, '').replace(/\]\[/g, ' ');
+    };
+
+    const changedFieldLabels = () => {
+        const now = formState();
+        const names = new Set([...(formBaseline || new Map()).keys(), ...now.keys()]);
+        const labels = [];
+
+        for (const name of names) {
+            const before = (formBaseline && formBaseline.get(name)) || [];
+            const after = now.get(name) || [];
+
+            if (before.join('\u0001') !== after.join('\u0001')) {
+                const label = labelFor(name);
+
+                if (!labels.includes(label)) {
+                    labels.push(label);
+                }
+            }
+        }
+
+        return labels;
+    };
+
+    // A dialog from one of the page's templates: Joomla's dialog element clones the template into its body, and
+    // the body is filled once it is shown. Closing it, by a button or Escape, takes it out of the page.
+    const openDialog = (templateId, header, buttons, width) => {
+        const Dialog = customElements.get('joomla-dialog');
+        const template = document.getElementById(templateId);
+
+        if (!Dialog || !template) {
+            return null;
+        }
+
+        const dialog = new Dialog({
+            popupType: 'inline',
+            textHeader: header,
+            popupContent: template,
+            width: width,
+            popupButtons: buttons.map((button) => ({
+                label: button.label,
+                className: button.primary ? 'button button-primary btn btn-primary' : 'button button-secondary btn btn-outline-secondary',
+                onClick: () => {
+                    dialog.close();
+
+                    if (button.then) {
+                        button.then();
+                    }
+                },
+            })),
+        });
+
+        dialog.addEventListener('joomla-dialog:close', () => dialog.destroy());
+        dialog.show();
+
+        return dialog;
+    };
+
+    // The guard of the editors that save directly: while the product has unsaved changes they cannot open, since
+    // the page is drawn again after their save. The dialog names what changed and offers to save the product now;
+    // the editor asked for opens again once the page is back (reopenKey carries which one).
+    const reopenKey = () => 'alfaStudioReopen:' + itemId();
+
+    const guard = (reopen) => {
+        const dialog = openDialog('alfa-dialog-save-first', Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_TITLE'), [
+            {
+                label: Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_SAVE_NOW'),
+                primary: true,
+                then: () => {
+                    sessionStorage.setItem(reopenKey(), JSON.stringify(reopen));
+                    Joomla.submitbutton('item.apply');
+                },
+            },
+            { label: Joomla.Text._('JCANCEL') },
+        ], '560px');
+
+        if (!dialog) {
+            return;
+        }
+
+        const list = dialog.querySelector('[data-changed-fields]');
+
+        changedFieldLabels().forEach((label) => {
+            const item = document.createElement('li');
+
+            item.textContent = label;
+            list.appendChild(item);
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const wanted = sessionStorage.getItem(reopenKey());
+
+        if (wanted === null) {
+            return;
+        }
+
+        sessionStorage.removeItem(reopenKey());
+
+        const reopen = JSON.parse(wanted);
+
+        if (reopen.studio !== undefined) {
+            triggers()[reopen.studio]?.click();
+        } else if (reopen.popup) {
+            document.querySelector('[data-bs-toggle="modal"][data-bs-target="' + reopen.popup + '"]')?.click();
+        }
+    });
 
     // < 2/6 > navigation injected into the NATIVE modal-header, beside the title.
     const ensureHeaderNav = () => {
@@ -124,12 +335,6 @@
         }
     });
 
-    document.addEventListener('change', (event) => {
-        if (itemForm() && itemForm().contains(event.target) && !modalOpen) {
-            itemFormDirty = true;
-        }
-    });
-
     // Name column: typing into a secondary-language box pins that cell open, so
     // blurring never hides a name just entered. The collapsed state is otherwise
     // pure CSS (:focus-within); this only sets the attribute the stylesheet reads.
@@ -143,18 +348,12 @@
 
     // Drag-to-reorder: option lists (per field) + the variations grid. The DOM
     // order IS the saved order: the item form posts rows in document order and
-    // the item save numbers them by position, so a drag only
-    // flags the form dirty (no extra request). Re-inits cleanly after a reload.
+    // the item save numbers them by position, so a drag changes what the form
+    // would post and nothing else (no extra request). Re-inits cleanly after a reload.
     const initSortables = () => {
         if (!window.Sortable) {
             return;
         }
-
-        const flagMoved = (event) => {
-            if (event.oldIndex !== event.newIndex) {
-                itemFormDirty = true;
-            }
-        };
 
         // Value order: drag the rows inside one group (the row handle).
         document.querySelectorAll('[data-sortable-options], [data-sortable-info]').forEach((list) => {
@@ -167,7 +366,6 @@
                 handle: '.sortable-handler',
                 draggable: '.settings-row',
                 animation: 150,
-                onEnd: flagMoved,
             });
         });
 
@@ -185,7 +383,6 @@
                 handle: '.group-drag',
                 draggable: '.settings-group',
                 animation: 150,
-                onEnd: flagMoved,
             });
         });
 
@@ -308,7 +505,6 @@
                 onStart: () => { comboPreOrder = dimensionOrders(gridRows(grid)); },
                 onEnd: (event) => {
                     applyVariantOrder(grid, event.item, event.newIndex > event.oldIndex);
-                    flagMoved(event);
                 },
             });
         }
@@ -383,10 +579,10 @@
         const trigger = event.target.closest('[data-studio-open]');
 
         if (trigger) {
-            if (itemFormDirty) {
+            if (isItemFormDirty()) {
                 // The Studio saves directly to the database; an unsaved item form
                 // would silently lose its changes on the post-save re-render.
-                alert(Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_GUARD'));
+                guard({ studio: triggers().indexOf(trigger) });
 
                 return;
             }
@@ -754,13 +950,13 @@
     document.addEventListener('click', (event) => {
         const trigger = event.target.closest('[data-bs-toggle="modal"]');
 
-        if (!trigger || !GUARDED_POPUPS.includes(trigger.getAttribute('data-bs-target')) || !itemFormDirty) {
+        if (!trigger || !GUARDED_POPUPS.includes(trigger.getAttribute('data-bs-target')) || !isItemFormDirty()) {
             return;
         }
 
         event.preventDefault();
         event.stopPropagation();
-        alert(Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_GUARD'));
+        guard({ popup: trigger.getAttribute('data-bs-target') });
     }, true);
 
     // LAZY popup bodies: fetched on FIRST open via item.fieldsPopup; the
@@ -1210,7 +1406,6 @@
         if (event.data.saved) {
             // Fresh DB state exists: re-render the parent when the dialog closes.
             pendingReload = true;
-            itemFormDirty = false;
             studioDirty = false;
         }
 

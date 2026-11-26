@@ -64,10 +64,15 @@ $wa->useStyle('com_alfa.combinations')
     ->useStyle('com_alfa.showon-builder')
     ->useScript('com_alfa.showon-builder')
     // Drag-to-reorder handles for the option + variation lists (vendored).
-    ->useScript('com_alfa.sortable');
+    ->useScript('com_alfa.sortable')
+    // The dialogs of this screen (the unsaved-changes guard, a refusal): Joomla's own dialog element.
+    ->useScript('joomla.dialog');
 
-Text::script('COM_ALFA_COMBINATION_DIRTY_GUARD');
+Text::script('COM_ALFA_COMBINATION_DIRTY_TITLE');
+Text::script('COM_ALFA_COMBINATION_DIRTY_SAVE_NOW');
 Text::script('COM_ALFA_COMBINATION_NAV_DIRTY');
+Text::script('COM_ALFA_TAB_ITEM_COMBINATIONS');
+Text::script('JCANCEL');
 Text::script('COM_ALFA_COMBI_GENERATE_NONE');
 Text::script('COM_ALFA_COMBI_BULK_STOCK_PROMPT');
 Text::script('COM_ALFA_COMBI_BULK_DELETE_CONFIRM');
@@ -990,6 +995,16 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                 );
                 ?>
             <?php endif; ?>
+
+            <?php // The body of the guard dialog: the product has unsaved changes, so an editor that saves
+                  // directly cannot open yet. The script lists the changed fields in it. ?>
+            <template id="alfa-dialog-save-first">
+                <div class="alfa-dialog-body">
+                    <p><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_GUARD'); ?></p>
+                    <p class="mb-1"><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_CHANGED'); ?></p>
+                    <ul data-changed-fields></ul>
+                </div>
+            </template>
         </fieldset>
     </div>
 </div>
