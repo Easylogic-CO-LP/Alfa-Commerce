@@ -67,20 +67,23 @@
     <!-- Header: type tag + action buttons -->
     <div class="media-header">
         <div class="media-type-tag <?= $type; ?>">
-            <span><?= strtoupper($type); ?></span>
+            <span class="badge <?= $type === 'url' ? 'text-bg-danger' : 'text-bg-secondary'; ?>"><?= strtoupper($type); ?></span>
         </div>
 
         <div class="media-actions">
             <button type="button"
-                    class="action-btn delete media-btn-delete"
+                    class="btn btn-sm btn-outline-danger media-btn-delete"
                     title="<?= Text::_('JACTION_DELETE'); ?>">
                 <span class="icon-trash" aria-hidden="true"></span>
+                <span class="visually-hidden"><?= Text::_('JACTION_DELETE'); ?></span>
             </button>
 
-            <div class="action-btn drag-handle"
-                 title="<?= Text::_('COM_ALFA_MEDIA_DRAG_REORDER'); ?>">
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary drag-handle"
+                    title="<?= Text::_('COM_ALFA_MEDIA_DRAG_REORDER'); ?>">
                 <span class="icon-arrows-alt" aria-hidden="true"></span>
-            </div>
+                <span class="visually-hidden"><?= Text::_('COM_ALFA_MEDIA_DRAG_REORDER'); ?></span>
+            </button>
 
             <input type="checkbox"
                    name="jform[media][<?= $mediaId; ?>][delete]"
