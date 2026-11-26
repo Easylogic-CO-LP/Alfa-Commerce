@@ -16,7 +16,11 @@
  *
  * One table per category that has findings: the inconsistencies first, then, under their own
  * heading, the classifications (order lines listed for information, which never make the
- * catalogue unclean). Levels, detail names and identity reasons are shown in words; a listed
+ * catalogue unclean). Each category is a folded block the operator opens: its title with the
+ * count, and its description on its own line, stay in view while the table does not. A category
+ * whose rows offer the repair of the stock figures also offers that repair for every product it
+ * lists, once, above its table: a POST form with every product id of the section and the form
+ * token, behind a confirmation. Levels, detail names and identity reasons are shown in words; a listed
  * detail (the stock records of a product, the open order lines on it) one labelled line per
  * entry, and a hold's own facts as three labelled lines. Rows whose category offers the repair
  * carry it once per product and table: a POST form with the product id and the form token. Rows
@@ -58,6 +62,7 @@ $total = array_sum(array_map('count', $groups['defects']));
 $classified = array_sum(array_map('count', $groups['classifications']));
 
 $reconcileUrl = Route::_(url: 'index.php?option=com_alfa&task=inventoryaudit.reconcile');
+$reconcileAllUrl = Route::_(url: 'index.php?option=com_alfa&task=inventoryaudit.reconcileAll');
 $writeOffUrl = Route::_(url: 'index.php?option=com_alfa&task=inventoryaudit.writeOff');
 $resolveUrl = Route::_(url: 'index.php?option=com_alfa&task=inventoryaudit.resolveLine');
 $priorityUrl = Route::_(url: 'index.php?option=com_alfa&task=inventoryaudit.prioritise');
@@ -204,12 +209,64 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
             }
         }
         ?>
-        <section class="card mb-4" data-audit-category="<?php echo $this->escape(var: $category); ?>">
-            <div class="card-header">
-                <h2 class="h4 mb-1"><?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span></h2>
-                <p class="small text-muted mb-0"><?php echo Text::_($langKey . '_DESC'); ?></p>
-            </div>
+        <?php
+        // The products a repair of the whole section names: each once, in the order listed.
+        $repairAll = [];
+
+        if ($action === 'reconcile') {
+            foreach ($rows as $finding) {
+                if ((int) $finding['item_id'] > 0) {
+                    $repairAll[(int) $finding['item_id']] = true;
+                }
+            }
+
+            $repairAll = array_keys($repairAll);
+        }
+        ?>
+        <details class="card mb-4 alfa-audit-section" data-audit-category="<?php echo $this->escape(var: $category); ?>">
+            <summary class="card-header">
+                <h2 class="h4 mb-1">
+                    <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
+                    <?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span>
+                </h2>
+                <span class="d-block small text-muted"><?php echo Text::_($langKey . '_DESC'); ?></span>
+            </summary>
             <div class="card-body p-0">
+                <?php if (\count($repairAll) > 1) : ?>
+                    <?php $dialogId = 'joomla-dialog-repair-all-' . $this->escape(var: $category); ?>
+                    <div class="p-3 border-bottom" data-repair-all="<?php echo $this->escape(var: $category); ?>">
+                        <button type="button" class="btn btn-sm btn-primary"
+                                data-joomla-dialog="<?php echo $this->escape(var: json_encode([
+                                    'popupType' => 'inline',
+                                    'src' => '#' . $dialogId,
+                                    'textHeader' => Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_HEADER'),
+                                    'width' => '600px',
+                                    'height' => 'fit-content',
+                                ], JSON_UNESCAPED_SLASHES)); ?>">
+                            <?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_BTN', \count($repairAll)); ?>
+                        </button>
+                        <div class="form-text"><?php echo Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_HINT'); ?></div>
+                    </div>
+                    <template id="<?php echo $dialogId; ?>">
+                        <div class="p-4">
+                            <p class="mb-0"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_CONFIRM', \count($repairAll)); ?></p>
+                        </div>
+
+                        <div class="btn-toolbar p-3 border-top">
+                            <form method="dialog" class="m-0">
+                                <button type="submit" class="btn btn-outline-secondary"><?php echo Text::_('JCANCEL'); ?></button>
+                            </form>
+
+                            <form action="<?php echo $reconcileAllUrl; ?>" method="post" class="m-0 ms-auto">
+                                <?php foreach ($repairAll as $repairId) : ?>
+                                    <input type="hidden" name="id[]" value="<?php echo (int) $repairId; ?>">
+                                <?php endforeach; ?>
+                                <?php echo HTMLHelper::_('form.token'); ?>
+                                <button type="submit" class="btn btn-primary"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_BTN', \count($repairAll)); ?></button>
+                            </form>
+                        </div>
+                    </template>
+                <?php endif; ?>
                 <table class="table table-striped mb-0" id="inventory-audit-<?php echo $this->escape(var: $category); ?>">
                     <thead>
                     <tr>
@@ -518,7 +575,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
                     </tbody>
                 </table>
             </div>
-        </section>
+        </details>
     <?php endforeach; ?>
     <?php endforeach; ?>
 </div>

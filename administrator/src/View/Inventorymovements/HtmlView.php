@@ -88,8 +88,14 @@ class HtmlView extends BaseHtmlView
             ->url(Route::_('index.php?option=com_alfa&view=reservations'))
             ->icon('icon-clock');
 
-        // Options opens com_config, which itself requires core.admin.
+        // Options opens com_config, which itself requires core.admin; the inventory audit and
+        // its repair actions answer to core.admin only.
         if ($this->getCurrentUser()->authorise('core.admin', 'com_alfa')) {
+            $toolbar->linkButton('inventory-audit')
+                ->text('COM_ALFA_TOOLBAR_INVENTORY_AUDIT')
+                ->url(Route::_('index.php?option=com_alfa&view=inventoryaudit'))
+                ->icon('icon-search');
+
             $toolbar->preferences('com_alfa');
         }
 

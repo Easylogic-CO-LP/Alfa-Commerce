@@ -126,6 +126,64 @@ class InventoryauditController extends BaseController
     }
 
     /**
+     * Repair the stock figures of every product a section of the audit lists, one product after
+     * the other: each repair is the one above, in its own transaction and recorded by itself,
+     * so what was done before a refusal stands. The run stops at the first refusal and names
+     * the product it stopped at and how many were done.
+     *
+     *
+     * @throws NotAllowed Without a POST, the form token or Super User rights.
+     *
+     * @since  2.3.0
+     */
+    public function reconcileAll(): void
+    {
+        $operator = $this->operator();
+        $itemIds = array_values(array_unique(array_filter(
+            array_map('intval', (array) $this->input->post->get('id', [], 'array')),
+            static fn (int $id): bool => $id > 0,
+        )));
+
+        $this->setRedirect(url: Route::_(url: self::AUDIT_PAGE, xhtml: false));
+
+        if ($itemIds === []) {
+            $this->setMessage(text: Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_NONE'), type: 'warning');
+
+            return;
+        }
+
+        $service = new InventoryService();
+        $context = new InventoryContext(userId: (int) $operator->id);
+        $repaired = 0;
+        $corrected = 0;
+        $released = 0;
+
+        foreach ($itemIds as $itemId) {
+            try {
+                $result = $service->reconcile(
+                    itemId: $itemId,
+                    sourceType: self::REPAIR_SOURCE,
+                    sourceId: $itemId,
+                    context: $context,
+                );
+            } catch (RuntimeException $e) {
+                $this->setMessage(
+                    text: Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_STOPPED', $itemId, $repaired, \count($itemIds), $corrected, $this->refusal(e: $e)),
+                    type: 'warning',
+                );
+
+                return;
+            }
+
+            $repaired++;
+            $corrected += \count($result['corrections']);
+            $released += (int) $result['holds_released'];
+        }
+
+        $this->setMessage(text: Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_DONE', $repaired, $corrected, $released));
+    }
+
+    /**
      * Write off the stock held on one stock identity kept only for order history: the product
      * itself of a product with combinations, an archived combination, or any stock identity of
      * an archived product, named by the posted product and combination (0 for the product

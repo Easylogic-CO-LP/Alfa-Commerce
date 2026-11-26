@@ -24,19 +24,22 @@
 
     Sections follow how often a merchant opens the screen: the headerless catalogue
     group and Sales are daily work, Promotions change with the season, Inventory as
-    stock moves, and the last two are set up once: Market is where the shop trades
-    (places, currencies, taxes) and Configuration is how its checkout works (methods,
-    statuses, the fields a customer types). Within a section the order is the setup
-    order, so nothing depends on an item below it.
+    stock moves, Customers as they register and are grouped, and the last three are set
+    up once: Market is where the shop trades (places, currencies, taxes), Configuration
+    is how its checkout works (methods, statuses, the fields a customer types) and
+    System is what the shop tells and what maintains it (notifications, webhooks, tools).
+    Within a section the order is the setup order, so nothing depends on an item below it.
 
     Each <section> places a heading (ordering 100..900, spaced so a plugin can put its
-    own between any two; analytics and search declare 400 and 450 and so sit above
-    Market). A heading no <section> and no plugin places renders after every placed one.
+    own between any two; analytics and search declare 400 and 450 and so sit between
+    Customers and Market). A heading no <section> and no plugin places renders after
+    every placed one.
 -->
 <menu>
     <section id="COM_ALFA_MENU_SALES"      ordering="100"/>
     <section id="COM_ALFA_MENU_PROMOTIONS" ordering="200"/>
     <section id="COM_ALFA_MENU_INVENTORY"  ordering="300"/>
+    <section id="COM_ALFA_MENU_CUSTOMERS"  ordering="350"/>
     <section id="COM_ALFA_MENU_MARKET"     ordering="500"/>
     <section id="COM_ALFA_MENU_CONFIG"     ordering="600"/>
     <section id="COM_ALFA_MENU_SYSTEM"     ordering="900"/>
@@ -66,9 +69,10 @@
     <item id="formfields"        section="COM_ALFA_MENU_CONFIG"                        view="formfields"        title="COM_ALFA_TITLE_FORM_FIELDS"       icon="media/com_alfa/images/admin/menu/formfields.svg"    ordering="300"/>
     <item id="orderstatuses"     section="COM_ALFA_MENU_CONFIG"     view="orderstatuses"     title="COM_ALFA_TITLE_ORDER_STATUSES"    icon="media/com_alfa/images/admin/menu/orderstatuses.svg" ordering="400"/>
 
-    <item id="users"             section="COM_ALFA_MENU_SYSTEM"    view="users"             title="COM_ALFA_TITLE_USERS"             icon="media/com_alfa/images/admin/menu/users.svg"         ordering="100"/>
-    <item id="usergroups"        section="COM_ALFA_MENU_SYSTEM"    view="usergroups"        title="COM_ALFA_TITLE_USERGROUPS"        icon="media/com_alfa/images/admin/menu/usergroups.svg"    ordering="200"/>
-    <item id="webhooks"          section="COM_ALFA_MENU_SYSTEM"    view="webhooks"          title="COM_ALFA_TITLE_WEBHOOKS"          icon="media/com_alfa/images/admin/menu/webhooks.svg"      ordering="250"/>
+    <item id="users"             section="COM_ALFA_MENU_CUSTOMERS" view="users"             title="COM_ALFA_TITLE_USERS"             icon="media/com_alfa/images/admin/menu/users.svg"         ordering="100"/>
+    <item id="usergroups"        section="COM_ALFA_MENU_CUSTOMERS" view="usergroups"        title="COM_ALFA_TITLE_USERGROUPS"        icon="media/com_alfa/images/admin/menu/usergroups.svg"    ordering="200"/>
+
     <item id="notifications"     section="COM_ALFA_MENU_SYSTEM"    view="notifications"     title="COM_ALFA_NOTIFY_HISTORY_TITLE"    icon="media/com_alfa/images/admin/menu/notifications.svg" ordering="300"/>
+    <item id="webhooks"          section="COM_ALFA_MENU_SYSTEM"    view="webhooks"          title="COM_ALFA_TITLE_WEBHOOKS"          icon="media/com_alfa/images/admin/menu/webhooks.svg"      ordering="350"/>
     <item id="tools"             section="COM_ALFA_MENU_SYSTEM"    view="tools"             title="COM_ALFA_TITLE_TOOLS"             icon="media/com_alfa/images/admin/menu/tools.svg"         ordering="400" access="alfa.tools"/>
 </menu>
