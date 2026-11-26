@@ -121,9 +121,43 @@
         document.addEventListener(type, (event) => {
             if (itemForm() && itemForm().contains(event.target)) {
                 formTouched = true;
+                event.target.dataset.alfaTouched = '1';
             }
         }, true);
     });
+    // An editor starts after the page has loaded and rewrites its text as it does (a paragraph around a bare line,
+    // its own spacing), so the baseline of its field is taken from the editor itself once it exists, unless that
+    // field was typed into meanwhile: its rewriting never counts as a change. Polled, because an editor says
+    // nothing when it is ready.
+    const baselineEditors = () => {
+        const form = itemForm();
+        let waiting = false;
+        if (!form || formBaseline === null) {
+            return waiting;
+        }
+        for (const element of form.elements) {
+            if (element.tagName !== 'TEXTAREA' || !element.closest(EDITOR_WRAP) || element.dataset.alfaEditorBaseline) {
+                continue;
+            }
+            const instance = window.Joomla && Joomla.editors && Joomla.editors.instances
+                ? Joomla.editors.instances[element.id] : null;
+            if (!instance || typeof instance.getValue !== 'function') {
+                waiting = true;
+                continue;
+            }
+            element.dataset.alfaEditorBaseline = '1';
+            if (!element.dataset.alfaTouched && formBaseline.has(element.name)) {
+                formBaseline.set(element.name, [String(instance.getValue())]);
+            }
+        }
+        return waiting;
+    };
+    let editorPolls = 0;
+    const editorPoll = window.setInterval(() => {
+        if (!baselineEditors() || ++editorPolls > 60) {
+            window.clearInterval(editorPoll);
+        }
+    }, 250);
 
     // The name of a changed field as its screen shows it: its label, the row it sits in, or the grid's tab for a
     // variant row that is gone.
@@ -982,7 +1016,7 @@
         }
 
         event.preventDefault();
-        event.stopPropagation();
+        event.stopImmediatePropagation();
         guard({ popup: trigger.getAttribute('data-bs-target') });
     }, true);
 
