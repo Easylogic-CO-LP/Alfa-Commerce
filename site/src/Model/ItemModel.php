@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\Items\ItemDisplayEvent;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper as AdminAlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -113,10 +114,13 @@ class ItemModel extends BaseItemModel
             // Published state + active publish window: a draft, scheduled or expired
             // product must 404 by direct URL, exactly as the listing hides it. Empty
             // dates are stored NULL. The moment is the shared UTC clock (see
-            // ActiveDateCondition::now()), never the DB's local-time NOW().
+            // ActiveDateCondition::now()), never the DB's local-time NOW(). A draft
+            // renders for whoever may edit products: the preview from the back
+            // office, while the listings and the search keep showing published only.
             $now = $db->quote(Pricing\ActiveDateCondition::now());
+            $states = AdminAlfaHelper::can(section: 'items', action: 'edit') ? '(0, 1)' : '(1)';
 
-            $query->where($db->quoteName('a.state') . ' = 1')
+            $query->where($db->quoteName('a.state') . ' IN ' . $states)
                 ->where('(' . $db->quoteName('a.publish_up') . ' IS NULL OR ' . $db->quoteName('a.publish_up') . ' <= ' . $now . ')')
                 ->where('(' . $db->quoteName('a.publish_down') . ' IS NULL OR ' . $db->quoteName('a.publish_down') . ' >= ' . $now . ')');
 
