@@ -867,7 +867,7 @@ class EmailService
             throw new RuntimeException('Order #' . $orderId . ' could not be read for its status e-mail.');
         }
 
-        $langTag = self::resolveLangTag(idLanguage: (int) ($order->id_language ?? 0));
+        $langTag = OrderLanguage::tagOf((int) ($order->id_language ?? 0));
         $status = self::loadStatusForLanguage(statusId: $statusId, langTag: $langTag);
 
         if ($status === null) {
@@ -1004,7 +1004,7 @@ class EmailService
             throw new RuntimeException('Order #' . $orderId . ' may not be paid again (' . $verdict . '): no payment link is sent.');
         }
 
-        $langTag = self::resolveLangTag(idLanguage: (int) ($order->id_language ?? 0));
+        $langTag = OrderLanguage::tagOf((int) ($order->id_language ?? 0));
         $statusId = (int) ($order->id_order_status ?? 0);
         $status = self::loadStatusForLanguage(statusId: $statusId, langTag: $langTag);
         $payUrl = PayAgain::link(order: $order);
@@ -2110,45 +2110,6 @@ class EmailService
         } catch (Exception $e) {
             return null;
         }
-    }
-
-    /**
-     * Resolve the language tag for an order.
-     *
-     * `#__alfa_orders.id_language` is the PK from `#__languages`. When
-     * unset (legacy / guest orders) or unresolvable, the site's default
-     * language ({@see MultilingualHelper::getDefaultLanguageCode()}): never the
-     * language of whoever runs the request, which in the back office is the
-     * operator's.
-     *
-     * @param int $idLanguage Joomla language id stored on the order.
-     *
-     * @return string Language tag like 'en-GB'.
-     *
-     * @since  1.0.0
-     */
-    private static function resolveLangTag(int $idLanguage): string
-    {
-        if ($idLanguage > 0) {
-            try {
-                $db = Factory::getContainer()->get('DatabaseDriver');
-                $query = $db->getQuery(true)
-                    ->select($db->quoteName('lang_code'))
-                    ->from($db->quoteName('#__languages'))
-                    ->where($db->quoteName('lang_id') . ' = ' . (int) $idLanguage);
-
-                $db->setQuery(query: $query);
-                $tag = (string) ($db->loadResult() ?? '');
-
-                if ($tag !== '') {
-                    return $tag;
-                }
-            } catch (Exception $e) {
-                // Fall through to the site default.
-            }
-        }
-
-        return MultilingualHelper::getDefaultLanguageCode();
     }
 
     /**

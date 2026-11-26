@@ -75,6 +75,51 @@
     }
 
     /**
+     * A trackpad swipe (and a mouse wheel turned sideways) moves the slider as a drag does: the
+     * slider reads only a mouse and a touch by itself, and a sideways wheel over it would scroll
+     * nothing. The wheel's sideways travel is fed to the slider as a drag, from its first event to a
+     * pause of 50 ms after its last; a wheel that mostly moves up or down is left to the page.
+     */
+    function wheelSwipe() {
+        return function (slider) {
+            let timer = 0;
+            let active = false;
+            let position = { x: 0, y: 0 };
+
+            const send = (name, event) => {
+                position.x -= event.deltaX;
+                position.y -= event.deltaY;
+                slider.container.dispatchEvent(new CustomEvent(name, { detail: { x: position.x, y: position.y } }));
+            };
+
+            const onWheel = (event) => {
+                if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (!active) {
+                    active = true;
+                    // The drag's start: a point of its own, never the origin, which the slider reads as no point.
+                    position = { x: 100000, y: 100000 };
+                    send('ksDragStart', event);
+                }
+
+                send('ksDrag', event);
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    active = false;
+                    send('ksDragEnd', event);
+                }, 50);
+            };
+
+            slider.on('created', () => slider.container.addEventListener('wheel', onWheel, { passive: false }));
+            slider.on('destroyed', () => slider.container.removeEventListener('wheel', onWheel));
+        };
+    }
+
+    /**
      * Advance on the delay of the band the screen is in: `delay()` answers 0 where the
      * slider does not play; hold while hovered or focused, resume when left.
      */
@@ -176,7 +221,7 @@
         // The band the screen is in: the widest whose lower edge it has passed.
         const current = () => edges.reduce((found, edge) => (edge.media && edge.media.matches ? edge.band : found), bands[0]);
         const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const plugins = [navigation(root)];
+        const plugins = [navigation(root), wheelSwipe()];
 
         if (!reducedMotion && bands.some((band) => band.autoplay > 0)) {
             plugins.push(autoplay(() => current().autoplay));

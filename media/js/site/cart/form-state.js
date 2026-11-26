@@ -64,15 +64,17 @@
 
         // The picker redirect lands on a fragment, but late layout (cart
         // images/totals above) shifts the target after the browser's native
-        // anchor scroll; re-align once everything has settled.
+        // anchor scroll, and a template's sticky header covers the viewport's
+        // top: re-align once everything has settled, the picker's box just
+        // under the header (Alfa.headerOffset, header-offset.js: the height
+        // the template states, else a measure), as the listing's results are.
         window.addEventListener('load', function () {
             var target = location.hash && document.getElementById(location.hash.slice(1));
 
             if (target && form.contains(target)) {
-                var top = target.getBoundingClientRect().top
-                    + (window.pageYOffset || document.scrollingElement.scrollTop || 0)
-                    - Math.round(window.innerHeight / 3);
-                window.scrollTo(0, Math.max(0, top));
+                var box = target.closest('.cart-user-info') || target;
+
+                window.scrollTo(0, Math.max(0, window.scrollY + box.getBoundingClientRect().top - window.Alfa.headerOffset(box)));
             }
         });
     });

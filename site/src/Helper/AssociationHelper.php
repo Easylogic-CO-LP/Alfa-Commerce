@@ -54,9 +54,12 @@ class AssociationHelper
     /**
      * Build the per-language URL set for the current (or given) Alfa page.
      *
-     * Only the detail and category-listing views take part in language
-     * switching; everything else returns [] so Joomla falls back to native
-     * menu-item associations.
+     * The catalogue's record views (a product, a manufacturer, a category's
+     * listing) and the pages of no record a visitor reads under a menu item of
+     * each language (the account's orders and one order, the addresses, the
+     * cart, the registration, the manufacturers) take part in language
+     * switching: the switch keeps the page. Everything else returns [] so
+     * Joomla falls back to native menu-item associations.
      *
      * @param int $id Record id (0 = read from the request).
      * @param string|null $view View name (null = read from the request).
@@ -98,6 +101,24 @@ class AssociationHelper
                 // Category product listing (id lives in category_id, not id).
                 $catId = RequestScalar::read($input, 'category_id', null, 'int');
                 $base = 'index.php?option=com_alfa&view=items' . ($catId ? '&category_id=' . $catId : '');
+                break;
+
+            case 'order':
+                // The customer's one order: the same id under the other language's orders menu item.
+                if (!$id) {
+                    return [];
+                }
+                $base = 'index.php?option=com_alfa&view=order&id=' . $id;
+                break;
+
+            case 'orders':
+            case 'userinfo':
+            case 'cart':
+            case 'registration':
+            case 'manufacturers':
+                // A page of no record: the same view under the other language's menu item. The cart's keyed
+                // order page is not carried (its key never leaves the customer's own address).
+                $base = 'index.php?option=com_alfa&view=' . $view;
                 break;
 
             default:
