@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilitySer
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -113,6 +114,9 @@ class HtmlView extends BaseHtmlView
         }
 
         $this->report = $this->getModel()->getReport();
+
+        // The repair of a whole section asks before it runs, in Joomla's own dialog.
+        $this->getDocument()->getWebAssetManager()->useScript('joomla.dialog-autocreate');
 
         ob_start();
         include __DIR__ . '/_report.php';
@@ -255,5 +259,19 @@ class HtmlView extends BaseHtmlView
     protected function addToolbar(): void
     {
         ToolbarHelper::title(title: Text::_('COM_ALFA_TITLE_INVENTORY_AUDIT'), icon: 'generic');
+
+        // The two lists the audit is reached from, so a repair can be followed up where the
+        // stock is edited and where its movements are read.
+        $toolbar = $this->getDocument()->getToolbar();
+
+        $toolbar->linkButton('items')
+            ->text('COM_ALFA_TITLE_ITEMS')
+            ->url(Route::_(url: 'index.php?option=com_alfa&view=items'))
+            ->icon('icon-list');
+
+        $toolbar->linkButton('inventorymovements')
+            ->text('COM_ALFA_INVENTORYMOVEMENTS_TITLE')
+            ->url(Route::_(url: 'index.php?option=com_alfa&view=inventorymovements'))
+            ->icon('icon-generic');
     }
 }

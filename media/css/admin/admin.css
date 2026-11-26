@@ -628,3 +628,41 @@ tr.alfa-row-refund > * {
     padding-top: 1.5rem;
     border-top: 1px solid var(--template-bg-dark-7, var(--bs-border-color));
 }
+
+/* Inventory audit: each category folds. The summary is the card header, with the title, the
+   count and the description; the table opens under it. The caret stands in for the marker
+   the summary drops, and turns with the block. */
+.com-alfa-inventory-audit > details {
+    margin: 0 0 1.5rem;
+    padding: 0;
+}
+
+.com-alfa-inventory-audit > details > summary {
+    cursor: pointer;
+    list-style: none;
+    border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
+}
+
+.com-alfa-inventory-audit > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.com-alfa-inventory-audit > details:not([open]) > summary {
+    border-bottom: 0;
+    border-radius: calc(0.25rem - 1px);
+}
+
+.com-alfa-inventory-audit .alfa-audit-caret {
+    display: inline-block;
+    transition: transform 0.15s ease-in-out;
+}
+
+.com-alfa-inventory-audit > details:not([open]) .alfa-audit-caret {
+    transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .com-alfa-inventory-audit .alfa-audit-caret {
+        transition: none;
+    }
+}
