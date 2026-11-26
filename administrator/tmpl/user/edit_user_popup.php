@@ -19,9 +19,12 @@ if (!$this->linkedUser || !$this->editUrl) {
 }
 ?>
 
-<?php // Name + email?>
+<?php // Name, username and email?>
 <p class="mb-1">
     <strong><?php echo $this->escape($this->item->joomla_name ?? '-'); ?></strong>
+    <?php if (($this->item->joomla_username ?? '') !== '') : ?>
+        <code class="raw-value ms-2"><?php echo $this->escape($this->item->joomla_username); ?></code>
+    <?php endif; ?>
     <span class="text-muted ms-2">
         <?php echo $this->escape($this->item->joomla_email ?? ''); ?>
     </span>
