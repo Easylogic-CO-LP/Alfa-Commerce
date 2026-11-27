@@ -82,7 +82,7 @@ $renderValueRow = function ($idx, $row = null) {
                     <?php if ($valueId > 0 && $this->valueXmlPath) : ?>
                         <details class="mt-2">
                             <summary class="small text-muted"><?php echo Text::_('COM_ALFA_ITEMFIELDVALUE_PLUGIN_SETTINGS'); ?></summary>
-                            <div class="mt-2">
+                            <div class="pt-2">
                                 <?php
                                 $rowForm = new Form('com_alfa.itemfieldvalue.' . $idx, ['control' => $base]);
                                 $rowForm->loadFile($this->valueXmlPath, false);
