@@ -54,9 +54,24 @@ $wa->useScript('keepalive')
                 <?php echo $this->form->renderField('publish_down'); ?>
                 <?php echo $this->form->renderField('categories'); ?>
                 <?php echo $this->form->renderField('manufacturers'); ?>
+                <?php echo $this->form->renderField('items'); ?>
                 <?php echo $this->form->renderField('places'); ?>
                 <?php echo $this->form->renderField('usergroups'); ?>
                 <?php echo $this->form->renderField('users'); ?>
+            </fieldset>
+
+            <?php // Except: what the rule never reaches, whatever its scope takes in. ?>
+            <fieldset class="adminform">
+                <legend><?php echo Text::_('COM_ALFA_DISCOUNT_FS_EXCEPT'); ?></legend>
+                <?php echo $this->form->renderField('excluded_items'); ?>
+                <?php echo $this->form->renderField('excluded_categories'); ?>
+                <?php echo $this->form->renderField('new_products'); ?>
+                <?php echo $this->form->renderField('new_days'); ?>
+                <?php if ($this->exclusions !== null && ((int) $this->exclusions['by_rule'] > 0 || (int) $this->exclusions['own'] > 0)) : ?>
+                    <p class="small text-muted mb-0" id="discount-exclusions">
+                        <?php echo $this->escape(Text::sprintf('COM_ALFA_DISCOUNT_EXCLUSIONS_COUNTS', (int) $this->exclusions['by_rule'], (int) $this->exclusions['own'])); ?>
+                    </p>
+                <?php endif; ?>
             </fieldset>
         </div>
         <div class="col-lg-3">

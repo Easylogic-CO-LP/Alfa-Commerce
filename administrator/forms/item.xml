@@ -292,6 +292,21 @@
                 layout="joomla.form.field.list-fancy-select"
         />
 
+        <!-- The product's own discount rules switch: excluded, no rule reaches it whatever the rules say. A variant
+             follows it unless its Studio sets its own (ItemFieldsAdminHelper::COMBINATION_OVERRIDABLES). -->
+        <field
+                name="discount_rules"
+                type="radio"
+                class="btn-group"
+                default="1"
+                validate="options"
+                label="COM_ALFA_FORM_LBL_ITEM_DISCOUNT_RULES"
+                description="COM_ALFA_FORM_DESC_ITEM_DISCOUNT_RULES"
+        >
+            <option value="1">COM_ALFA_ITEM_DISCOUNT_RULES_APPLY</option>
+            <option value="0">COM_ALFA_ITEM_DISCOUNT_RULES_EXCLUDED</option>
+        </field>
+
         <field
                 name="prices"
                 type="alfaprices"

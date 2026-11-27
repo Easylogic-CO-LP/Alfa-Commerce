@@ -133,12 +133,33 @@ class PriceCalculator
             $quantity,
             $selection,
             $data->getPricesFor($itemId),
-            $data->getDiscountsFor($itemId),
+            $this->unitDiscounts($data, $itemId, $selection->combinationId),
             $data->getTaxesFor($itemId),
             $comboRows,
             $context,
             $price,
         );
+    }
+
+    /**
+     * The discount rules a unit takes: its combination's own switch when it has one (1 the rules as their scope matched
+     * them, even while the product is excluded; 0 none), else the product's (its switch applied by the loader).
+     *
+     * @param PriceDataCollection $data The loaded data.
+     * @param int $itemId The product.
+     * @param int $combinationId The combination; 0 for the product itself.
+     *
+     * @return object[]
+     *
+     * @since  2.3.0
+     */
+    private function unitDiscounts(PriceDataCollection $data, int $itemId, int $combinationId): array
+    {
+        return match ($combinationId > 0 ? $this->loader->combinationDiscountSwitch($combinationId) : null) {
+            0 => [],
+            1 => $data->getRuleDiscountsFor($itemId),
+            default => $data->getDiscountsFor($itemId),
+        };
     }
 
     /**
@@ -250,7 +271,7 @@ class PriceCalculator
                     $quantity,
                     $selection,
                     $data->getPricesFor($itemId),
-                    $data->getDiscountsFor($itemId),
+                    $this->unitDiscounts($data, $itemId, $selection->combinationId),
                     $data->getTaxesFor($itemId),
                     $comboRowsByItem[$itemId] ?? [],
                     $context,
@@ -326,7 +347,7 @@ class PriceCalculator
                     $quantity,
                     new VariantSelection(combinationId: $combinationId),
                     $data->getPricesFor($itemId),
-                    $data->getDiscountsFor($itemId),
+                    $this->unitDiscounts($data, $itemId, $combinationId),
                     $data->getTaxesFor($itemId),
                     $rows[$combinationId] ?? [],
                     $context,

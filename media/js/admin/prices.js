@@ -413,6 +413,13 @@
             discountCell.hidden = !discounts.length;
             refreshCurrent(row);
         }
+
+        // The product's own switch: excluded from every discount rule.
+        const excludedCell = row.querySelector('[data-price-rules-excluded]');
+
+        if (excludedCell) {
+            excludedCell.hidden = !preview.excluded;
+        }
     };
 
     // The item form's pricing context: its default category, categories and
@@ -428,6 +435,10 @@
         'jform[categories][]': 'categories[]',
         'jform[manufacturers][]': 'manufacturers[]',
     };
+
+    // The product's own discount rules switch (a radio: the checked value, 1 when the form has none).
+    const SWITCH_FIELD = 'jform[discount_rules]';
+    const switchValue = (form) => form.querySelector('[name="' + SWITCH_FIELD + '"]:checked')?.value ?? '1';
 
     const itemIdOf = (root) => parseInt(root.dataset.itemId || '0', 10);
 
@@ -457,7 +468,8 @@
         const categories = idList([...contextValues(form, 'jform[categories][]'), ...contextValues(form, 'jform[id_category_default]')]);
 
         return categories !== root.dataset.itemCategories
-            || idList(contextValues(form, 'jform[manufacturers][]')) !== (root.dataset.itemManufacturers || '');
+            || idList(contextValues(form, 'jform[manufacturers][]')) !== (root.dataset.itemManufacturers || '')
+            || switchValue(form) !== (root.dataset.itemDiscountRules || '1');
     };
 
     // The item form's pricing context, as the save will read it.
@@ -470,6 +482,10 @@
 
         for (const [name, key] of Object.entries(CONTEXT_FIELDS)) {
             contextValues(form, name).forEach((value) => params.append(key, value));
+        }
+
+        if (form.querySelector('[name="' + SWITCH_FIELD + '"]')) {
+            params.set('discount_rules', switchValue(form));
         }
     };
 
@@ -489,7 +505,7 @@
     const shutFinal = (row, message) => {
         const final = row.querySelector('[data-price-final]');
 
-        applyPreview(row, { a: 1, b: 0, taxFactor: 1, decimals: row.dataset.decimals, baseNet: 0, baseSale: false, taxes: [], discounts: [] });
+        applyPreview(row, { a: 1, b: 0, taxFactor: 1, decimals: row.dataset.decimals, baseNet: 0, baseSale: false, taxes: [], discounts: [], excluded: false });
 
         if (final) {
             final.disabled = true;
@@ -606,7 +622,7 @@
         // The item form's own pricing context changed (the fancy selects announce it
         // with a change event): every row that follows it asks again, a saved
         // product's as before once its form holds its stored memberships again.
-        if (Object.hasOwn(CONTEXT_FIELDS, name)) {
+        if (Object.hasOwn(CONTEXT_FIELDS, name) || name === SWITCH_FIELD) {
             contextRows(event.target.closest('form') || document).forEach(([contextRow, contextRoot]) => refreshPreview(contextRow, contextRoot));
 
             return;

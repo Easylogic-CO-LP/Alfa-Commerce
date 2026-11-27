@@ -430,3 +430,48 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_shipments` (
   PRIMARY KEY (`item_id`, `combination_id`, `shipment_id`),
   KEY `idx_shipment_id` (`shipment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The shipping methods a product or one of its combinations ships with only; no row = every method (a combination: as its product)';
+
+-- A discount rule's products
+
+-- The products a discount rule names: the rule reaches these alone, within its categories and manufacturers; no row
+-- is every product the other parts take in. The install SQL creates the same table; this runs again harmlessly.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_items` (
+  `discount_id` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `item_id`),
+  KEY `idx_item_id` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A discount rule's exclusions, and the product's own switch
+
+-- The products and the categories a rule never reaches, whatever its scope takes in; and on the product the switch
+-- that takes it out of every rule (its variants follow it unless they say otherwise). The install SQL has the same
+-- tables and columns; each statement runs again harmlessly.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_excluded_items` (
+  `discount_id` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `item_id`),
+  KEY `idx_item_id` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_excluded_categories` (
+  `discount_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `#__alfa_items` ADD COLUMN `discount_rules` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the discount rules apply; 0 = excluded from every discount rule, whatever the rules say' AFTER `is_virtual` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_item_combinations` ADD COLUMN `discount_rules` tinyint(1) DEFAULT NULL COMMENT 'NULL = as the product; 1 = the discount rules apply; 0 = excluded from every discount rule' AFTER `min_qty` /** CAN FAIL **/;
+
+-- New products: the rule's choice, and when a product was made
+
+-- A rule may leave out products new within the shop's days (Options > General > Products) or within days of its own;
+-- a product is counted from the day it was made, kept from now on, or from its publish-up date by the shop's setting.
+-- A product made before the date was kept has none and is never new. The install SQL has the same columns.
+
+ALTER TABLE `#__alfa_discounts` ADD COLUMN `new_products` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 = reaches new products; 1 = leaves out products new within the shop''s days (Options > General > Products); 2 = leaves out products new within new_days' AFTER `apply_before_tax` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_discounts` ADD COLUMN `new_days` int(11) NOT NULL DEFAULT 0 COMMENT 'The rule''s own days a product counts as new for, when new_products is 2; else 0' AFTER `new_products` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_items` ADD COLUMN `created` datetime DEFAULT NULL COMMENT 'UTC: when the product was made; NULL on a product made before the date was kept, which is then never new' AFTER `created_by` /** CAN FAIL **/;

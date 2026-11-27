@@ -127,7 +127,7 @@ class ItemFieldsAdminHelper
         'weight', 'width', 'height', 'depth',
         'quantity_min', 'quantity_max', 'quantity_step',
         'stock_action', 'stock_low', 'low_stock_notify', 'manage_stock',
-        'backorder', 'min_qty',
+        'backorder', 'min_qty', 'discount_rules',
         'name', 'short_desc', 'full_desc', 'stock_low_message', 'stock_zero_message',
     ];
 
@@ -166,6 +166,8 @@ class ItemFieldsAdminHelper
         'manage_stock' => self::CAST_BOOL,
         'stock_action' => self::CAST_ENUM_STOCK_ACTION,
         'backorder' => self::CAST_ENUM_BACKORDER,
+        // The variant's own discount rules switch: blank follows the product.
+        'discount_rules' => self::CAST_BOOL,
     ];
 
     /**

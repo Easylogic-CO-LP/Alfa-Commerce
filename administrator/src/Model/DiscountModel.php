@@ -154,6 +154,9 @@ class DiscountModel extends AlfaAdminModel
         if ($item = parent::getItem($pk)) {
             $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_categories', 'discount_id', 'category_id');
             $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_manufacturers', 'discount_id', 'manufacturer_id');
+            $item->items = array_map('intval', AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_items', 'discount_id', 'item_id'));
+            $item->excluded_items = array_map('intval', AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_excluded_items', 'discount_id', 'item_id'));
+            $item->excluded_categories = array_map('intval', AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_excluded_categories', 'discount_id', 'category_id'));
             $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_places', 'discount_id', 'place_id');
 
             $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_discount_users', 'discount_id', 'user_id');
@@ -172,7 +175,8 @@ class DiscountModel extends AlfaAdminModel
      * it reads the scope associations committed in the step before it:
      *
      *   1. parent::save()           - writes the #__alfa_discounts row
-     *   2. setAssocsToDb() x 5     - writes categories, manufacturers, places, users, usergroups
+     *   2. setAssocsToDb() x 8     - writes categories, manufacturers, products, places, users, usergroups, the excluded
+     *                                products and the excluded categories
      *      (1 and 2, with the translations, in ONE transaction: committed together, and
      *      onAlfaAdminAfterSave announced at that commit)
      *   3. PriceIndexSyncService   - reads the scope above, re-indexes affected items
@@ -285,6 +289,11 @@ class DiscountModel extends AlfaAdminModel
             $assignZeroIdIfDataEmpty = true;
             AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_discount_categories', 'discount_id', 'category_id', $assignZeroIdIfDataEmpty);
             AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_discount_manufacturers', 'discount_id', 'manufacturer_id', $assignZeroIdIfDataEmpty);
+            // The products: no row names every product the other parts take in, so an empty list writes none.
+            AlfaHelper::setAssocsToDb($currentId, $data['items'] ?? [], '#__alfa_discount_items', 'discount_id', 'item_id');
+            // The exclusions: what the rule never reaches; an empty list excludes nothing.
+            AlfaHelper::setAssocsToDb($currentId, $data['excluded_items'] ?? [], '#__alfa_discount_excluded_items', 'discount_id', 'item_id');
+            AlfaHelper::setAssocsToDb($currentId, $data['excluded_categories'] ?? [], '#__alfa_discount_excluded_categories', 'discount_id', 'category_id');
             AlfaHelper::setAssocsToDb($currentId, $data['places'] ?? [], '#__alfa_discount_places', 'discount_id', 'place_id', $assignZeroIdIfDataEmpty);
 
             AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_discount_users', 'discount_id', 'user_id', $assignZeroIdIfDataEmpty);
@@ -470,6 +479,9 @@ class DiscountModel extends AlfaAdminModel
         foreach ([
             '#__alfa_discount_categories',
             '#__alfa_discount_manufacturers',
+            '#__alfa_discount_items',
+            '#__alfa_discount_excluded_items',
+            '#__alfa_discount_excluded_categories',
             '#__alfa_discount_places',
             '#__alfa_discount_usergroups',
             '#__alfa_discount_users',

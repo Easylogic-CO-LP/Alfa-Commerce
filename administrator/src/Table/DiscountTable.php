@@ -93,6 +93,25 @@ class DiscountTable extends Table
             return false;
         }
 
+        // New products: reached (0), left out within the shop's days (1), or within the rule's own days (2), which then
+        // are at least one; any other choice keeps no days.
+        $newProducts = (int) ($this->new_products ?? 0);
+
+        if (!\in_array($newProducts, [0, 1, 2], true)) {
+            $this->setError(Text::_('COM_ALFA_ERROR_DISCOUNT_NEW_PRODUCTS'));
+
+            return false;
+        }
+
+        if ($newProducts === 2 && (int) ($this->new_days ?? 0) <= 0) {
+            $this->setError(Text::_('COM_ALFA_ERROR_DISCOUNT_NEW_DAYS'));
+
+            return false;
+        }
+
+        $this->new_products = $newProducts;
+        $this->new_days = $newProducts === 2 ? (int) $this->new_days : 0;
+
         return true;
     }
 
