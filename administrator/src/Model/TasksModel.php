@@ -159,13 +159,14 @@ class TasksModel extends AlfaListModel
                 $query->where($db->quoteName('a.subject_type') . ' = ' . $db->quote('order'))
                     ->where($db->quoteName('a.subject_id') . ' = ' . (int) $matches[1]);
             } else {
-                $like = '%' . $db->escape($search, true) . '%';
-                $query->extendWhere('AND', [
-                    $db->quoteName('a.handler') . ' LIKE ' . $db->quote($like),
-                    $db->quoteName('a.scope_key') . ' LIKE ' . $db->quote($like),
-                    $db->quoteName('a.last_error') . ' LIKE ' . $db->quote($like),
-                    $db->quoteName('a.owner') . ' LIKE ' . $db->quote($like),
-                ], 'OR');
+                // One clause of its own: the search may be the only condition of the query.
+                $like = $db->quote('%' . $db->escape($search, true) . '%');
+                $query->where('(' . implode(' OR ', [
+                    $db->quoteName('a.handler') . ' LIKE ' . $like,
+                    $db->quoteName('a.scope_key') . ' LIKE ' . $like,
+                    $db->quoteName('a.last_error') . ' LIKE ' . $like,
+                    $db->quoteName('a.owner') . ' LIKE ' . $like,
+                ]) . ')');
             }
         }
 

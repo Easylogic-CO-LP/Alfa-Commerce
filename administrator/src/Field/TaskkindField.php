@@ -53,7 +53,7 @@ class TaskkindField extends ListField
         $db = Factory::getContainer()->get(DatabaseInterface::class);
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select('DISTINCT ' . $db->quoteName(['handler', 'owner', 'type']))
+                ->select('DISTINCT ' . implode(', ', $db->quoteName(['handler', 'owner', 'type'])))
                 ->from($db->quoteName(Tasks::TABLE)),
         )->loadAssocList() ?: [];
         $names = [];
