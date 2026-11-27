@@ -18,7 +18,6 @@ use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -146,14 +145,8 @@ class HtmlView extends BaseHtmlView
                 ->listCheck(true);
         }
 
-        // Options are com_config's screen, which asks core.admin itself; the inventory audit and
-        // its repair actions answer to core.admin only.
+        // Options are com_config's screen, which asks core.admin itself.
         if ($user->authorise('core.admin', 'com_alfa')) {
-            $toolbar->linkButton('inventory-audit')
-                ->text('COM_ALFA_TOOLBAR_INVENTORY_AUDIT')
-                ->url(Route::_(url: 'index.php?option=com_alfa&view=inventoryaudit'))
-                ->icon('icon-search');
-
             $toolbar->preferences('com_alfa');
         }
 

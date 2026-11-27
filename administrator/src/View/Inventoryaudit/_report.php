@@ -225,11 +225,14 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
         ?>
         <details class="card mb-4 alfa-audit-section" data-audit-category="<?php echo $this->escape(var: $category); ?>">
             <summary class="card-header">
-                <h2 class="h4 mb-1">
-                    <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
-                    <?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span>
-                </h2>
-                <span class="d-block small text-muted"><?php echo Text::_($langKey . '_DESC'); ?></span>
+                <?php // The card header is a flex row; one block inside it keeps the description under the title. ?>
+                <div class="alfa-audit-summary">
+                    <h2 class="h4 mb-1">
+                        <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
+                        <?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span>
+                    </h2>
+                    <span class="d-block small text-muted"><?php echo Text::_($langKey . '_DESC'); ?></span>
+                </div>
             </summary>
             <div class="card-body p-0">
                 <?php if (\count($repairAll) > 1) : ?>
