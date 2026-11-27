@@ -330,7 +330,7 @@
         nav.querySelector('.studio-next').addEventListener('click', () => navigate(1));
     };
 
-    const showVariant = (index) => {
+    const showVariant = (index, tabId) => {
         const list = triggers();
         const trigger = list[index];
         const view = frame();
@@ -343,6 +343,11 @@
         currentIndex = index;
         studioDirty = false;
 
+        if (view.dataset.current === trigger.dataset.src && tabId) {
+            // The same variant is already loaded: its window switches to the asked tab itself.
+            view.contentDocument?.querySelector('#combinationStudioTabs [aria-controls="' + tabId + '"]')?.click();
+        }
+
         if (view.dataset.current !== trigger.dataset.src) {
             // The next variant opens on the tab the current one shows, at the same point of the page. The
             // tab is read from the studio's own tabset, its direct children only: a tab nested in one of
@@ -352,6 +357,8 @@
             const doc = view.contentDocument;
             const tabset = doc ? doc.getElementById('combinationStudioTabs') : null;
             const tab = tabset ? tabset.querySelector(':scope > joomla-tab-element[active]') : null;
+            // A tab asked for (the grid's image opens the Images tab) wins over the one the current variant shows.
+            const wanted = tabId || (tab ? tab.id : '');
             const scrollTop = doc && doc.scrollingElement ? doc.scrollingElement.scrollTop : 0;
 
             if (scrollTop > 0) {
@@ -364,7 +371,7 @@
                 }, { once: true });
             }
 
-            view.src = trigger.dataset.src + (tab ? '#' + tab.id : '');
+            view.src = trigger.dataset.src + (wanted ? '#' + wanted : '');
             view.dataset.current = trigger.dataset.src;
         }
 
@@ -653,6 +660,30 @@
             return;
         }
 
+        // The grid's image: the variant's window on its Images tab, through the row's own Edit trigger.
+        const images = event.target.closest('[data-studio-images]');
+
+        if (images) {
+            const imagesTrigger = images.closest('tr')?.querySelector('[data-studio-open]');
+
+            if (!imagesTrigger) {
+                return;
+            }
+
+            if (isItemFormDirty()) {
+                guard({ studio: triggers().indexOf(imagesTrigger) });
+
+                return;
+            }
+
+            ensureHeaderNav();
+            showVariant(triggers().indexOf(imagesTrigger), 'combo-media');
+            modalOpen = true;
+            modalApi()?.show();
+
+            return;
+        }
+
         const trigger = event.target.closest('[data-studio-open]');
 
         if (trigger) {
@@ -685,6 +716,106 @@
 
             row.remove();
         }
+    });
+
+    // THE IMAGE COLUMN'S DROP ZONE. A variant without an image takes a dropped or chosen file at once, through the
+    // store the Images tab uses (item.uploadCombinationImage); the answer is the cell drawn again by its layout,
+    // put in the cell's place. The file input carries no name, so the product form never posts it.
+    const imageCellOf = (node) => node.closest('[data-variant-image]');
+
+    const formToken = () => {
+        const input = [...document.querySelectorAll('#item-form input[type="hidden"]')].find((field) => /^[a-f0-9]{32}$/.test(field.name));
+
+        return input ? input.name : '';
+    };
+
+    const uploadVariantImage = (cell, file) => {
+        if (!cell || !file || cell.classList.contains('is-uploading')) {
+            return;
+        }
+
+        const body = new FormData();
+        body.append('id', itemId());
+        body.append('combination_id', cell.dataset.combinationId || '0');
+        body.append('file', file);
+
+        const token = formToken();
+
+        if (token) {
+            body.append(token, '1');
+        }
+
+        cell.classList.add('is-uploading');
+        cell.setAttribute('aria-busy', 'true');
+
+        fetch('index.php?option=com_alfa&task=item.uploadCombinationImage&format=json', {
+            method: 'POST',
+            body,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then((response) => response.json())
+            .then((json) => {
+                if (refused(json) || !json.data || !json.data.html) {
+                    throw new Error((json && json.message) || '');
+                }
+
+                const drawn = document.createElement('template');
+                drawn.innerHTML = json.data.html;
+
+                if (drawn.content.firstElementChild) {
+                    cell.replaceWith(drawn.content.firstElementChild);
+                }
+            })
+            .catch((error) => {
+                cell.classList.remove('is-uploading');
+                cell.removeAttribute('aria-busy');
+
+                if (error && error.message && window.Joomla && Joomla.renderMessages) {
+                    Joomla.renderMessages({ error: [error.message] });
+                }
+            });
+    };
+
+    document.addEventListener('change', (event) => {
+        const input = event.target.closest('[data-variant-image-file]');
+
+        if (!input) {
+            return;
+        }
+
+        uploadVariantImage(imageCellOf(input), input.files && input.files[0]);
+        input.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach((type) => document.addEventListener(type, (event) => {
+        const zone = event.target.closest('[data-variant-image-drop]');
+
+        if (!zone) {
+            return;
+        }
+
+        event.preventDefault();
+        zone.classList.add('is-over');
+    }));
+
+    document.addEventListener('dragleave', (event) => {
+        const zone = event.target.closest('[data-variant-image-drop]');
+
+        if (zone && !zone.contains(event.relatedTarget)) {
+            zone.classList.remove('is-over');
+        }
+    });
+
+    document.addEventListener('drop', (event) => {
+        const zone = event.target.closest('[data-variant-image-drop]');
+
+        if (!zone) {
+            return;
+        }
+
+        event.preventDefault();
+        zone.classList.remove('is-over');
+        uploadVariantImage(imageCellOf(zone), event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null);
     });
 
     // Generator / filter / bulk tools
@@ -1647,4 +1778,88 @@
             only.hidden = scope.value !== 'only';
         }
     });
+    // THE IMAGES TAB'S PREVIEW, in the Studio's own document: the selected card's image as stored, with its
+    // description. The first card when the tab is drawn, then the card clicked or focused; the description follows
+    // its input as it is typed; a card deleted or a new one dropped picks again. Nothing is drawn here: the aside
+    // and its figure are the layout's, this only fills them.
+    const previewAside = () => document.querySelector('[data-studio-image-preview]');
+
+    const previewCard = (card) => {
+        const aside = previewAside();
+
+        if (!aside) {
+            return;
+        }
+
+        const figure = aside.querySelector('[data-studio-image-preview-figure]');
+        const img = aside.querySelector('[data-studio-image-preview-img]');
+        const caption = aside.querySelector('[data-studio-image-preview-caption]');
+        const empty = aside.querySelector('[data-studio-image-preview-empty]');
+        const source = card ? card.querySelector('.media-preview-img') : null;
+
+        if (!card || !source || !figure || !img) {
+            if (figure) {
+                figure.hidden = true;
+            }
+
+            if (empty) {
+                empty.hidden = false;
+            }
+
+            document.querySelectorAll('.media-card.is-previewed').forEach((other) => other.classList.remove('is-previewed'));
+
+            return;
+        }
+
+        const alt = card.querySelector('input[name$="[alt]"]');
+
+        img.src = source.getAttribute('src') || '';
+        img.alt = alt ? alt.value : (source.getAttribute('alt') || '');
+
+        if (caption) {
+            caption.textContent = alt ? alt.value : '';
+        }
+
+        figure.hidden = false;
+
+        if (empty) {
+            empty.hidden = true;
+        }
+
+        document.querySelectorAll('.media-card.is-previewed').forEach((other) => other.classList.remove('is-previewed'));
+        card.classList.add('is-previewed');
+    };
+
+    const firstCard = () => document.querySelector('[data-media-grid] .media-card:not(.is-deleted)');
+
+    if (previewAside()) {
+        previewCard(firstCard());
+
+        ['click', 'focusin'].forEach((type) => document.addEventListener(type, (event) => {
+            const card = event.target.closest('.media-card');
+
+            if (card && !card.classList.contains('is-deleted') && !event.target.closest('.media-btn-delete')) {
+                previewCard(card);
+            }
+        }));
+
+        document.addEventListener('input', (event) => {
+            const alt = event.target.closest('.media-card.is-previewed input[name$="[alt]"]');
+
+            if (alt) {
+                previewCard(alt.closest('.media-card'));
+            }
+        });
+
+        const grid = document.querySelector('[data-media-grid]');
+
+        if (grid) {
+            // A card removed, marked deleted or added: the preview keeps a card that is still shown, else the first.
+            new MutationObserver(() => {
+                const shown = document.querySelector('.media-card.is-previewed:not(.is-deleted)');
+
+                previewCard(shown && grid.contains(shown) ? shown : firstCard());
+            }).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        }
+    }
 })();

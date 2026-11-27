@@ -649,6 +649,185 @@ body:has(.alfa-studio) {
   color: var(--alfa-ink-soft);
 }
 
+/* Studio, Images tab: the gallery on the left, the selected image on the right as stored, at most 320px wide,
+   with its description under it. One column on a narrow window. */
+.alfa-studio .studio-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem 1.5rem;
+  align-items: start;
+}
+
+.alfa-studio .studio-media-zone {
+  min-width: 0;
+}
+
+.alfa-studio .studio-image-preview {
+  position: sticky;
+  top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--alfa-line);
+  border-radius: 4px;
+  background: var(--alfa-paper);
+}
+
+.alfa-studio .studio-image-preview-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--alfa-ink-soft);
+}
+
+.alfa-studio .studio-image-preview-figure {
+  margin: 0;
+}
+
+.alfa-studio .studio-image-preview-figure img {
+  display: block;
+  max-width: 320px;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--alfa-line-soft);
+  border-radius: 3px;
+  background: var(--alfa-canvas);
+}
+
+.alfa-studio .studio-image-preview-figure figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--alfa-ink);
+  overflow-wrap: anywhere;
+}
+
+.alfa-studio .studio-image-preview-figure figcaption:empty {
+  display: none;
+}
+
+.alfa-studio .media-card.is-previewed {
+  outline: 2px solid var(--alfa-gold);
+  outline-offset: -2px;
+}
+
+@media (max-width: 991.98px) {
+  .alfa-studio .studio-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alfa-studio .studio-image-preview {
+    position: static;
+    order: -1;
+  }
+}
+
+/* Image column: the variant's first image with how many more it has, or a small drop zone for a variant
+   without one. One fixed size, so the row stays one line high. */
+.alfa-combinations .variant-image-cell {
+  width: 3.75rem;
+}
+
+.alfa-combinations .variant-image {
+  position: relative;
+  width: 44px;
+}
+
+.alfa-combinations .variant-image-open {
+  display: block;
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--alfa-line);
+  border-radius: 4px;
+  background: var(--alfa-paper);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.alfa-combinations .variant-image-open:focus-visible {
+  outline: 2px solid var(--alfa-gold);
+  outline-offset: 1px;
+}
+
+.alfa-combinations .variant-image-open img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.alfa-combinations .variant-image-more {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.4rem;
+  padding: 0 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.1rem;
+  color: var(--alfa-paper);
+  background: var(--alfa-ink);
+  border-radius: 0.55rem;
+}
+
+.alfa-combinations .variant-image-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 1px dashed var(--alfa-line);
+  border-radius: 4px;
+  color: var(--alfa-ink-soft);
+  background: var(--alfa-canvas);
+  cursor: pointer;
+}
+
+.alfa-combinations .variant-image-drop .icon-upload {
+  font-size: 0.9rem;
+}
+
+.alfa-combinations .variant-image-drop-text {
+  font-size: 0.5rem;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.alfa-combinations .variant-image-drop:hover,
+.alfa-combinations .variant-image-drop.is-over,
+.alfa-combinations .variant-image-drop:focus-within {
+  border-color: var(--alfa-gold);
+  background: var(--alfa-gold-soft);
+  color: var(--alfa-ink);
+}
+
+.alfa-combinations .variant-image.is-uploading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* A phone (the table scrolls inside its frame): the Image column keeps its thumbnail and its drop zone at their
+   size, so the first image stays readable while the other cells shrink. */
+@media (max-width: 575.98px) {
+  .alfa-combinations .variant-image-cell {
+    min-width: 3.75rem;
+  }
+
+  .alfa-combinations .variant-image,
+  .alfa-combinations .variant-image-open img,
+  .alfa-combinations .variant-image-drop {
+    width: 44px;
+  }
+
+  .alfa-combinations .variant-image-open img,
+  .alfa-combinations .variant-image-drop {
+    height: 44px;
+  }
+}
+
 /* Tighter SKU + stock so the price/final controls fit on one line. */
 .alfa-combinations td input[name$="[sku]"] {
   width: 8rem;

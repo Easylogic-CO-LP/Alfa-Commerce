@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\LocationPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 
 // Stock column: every figure comes from the stock records, read once for the
@@ -454,6 +455,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                 <tr>
                                     <th class="w-1"></th>
                                     <th class="w-1"><input type="checkbox" class="form-check-input" id="combi-select-all" aria-label="<?php echo $this->escape(Text::_('JGLOBAL_CHECK_ALL')); ?>" data-select-all></th>
+                                    <th class="variant-image-cell"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_IMAGE'); ?></th>
                                     <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_VARIANT'); ?></th>
                                     <th class="w-15">
                                         <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_NAME'); ?>
@@ -526,6 +528,16 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                     <tr data-combination-id="<?php echo $combinationId; ?>" data-values="<?php echo $this->escape($combination->signature); ?>" data-tuple="<?php echo implode('-', array_map('intval', (array) ($combination->value_ids ?? []))); ?>">
                                         <td class="text-center"><span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span></td>
                                         <td><input type="checkbox" class="form-check-input" id="combi-select-<?php echo $combinationId; ?>" aria-label="<?php echo $this->escape($combination->label); ?>" data-select-row></td>
+                                        <td class="variant-image-cell">
+                                            <?php // The variant's first image, which opens its window on the Images tab, or a drop zone that
+                                                  // stores a dropped file at once as its first image (item.uploadCombinationImage). ?>
+                                            <?php echo LayoutHelper::render('combinations.image', [
+                                                'combinationId' => $combinationId,
+                                                'mediaCount'    => $mediaCount,
+                                                'first'         => $combination->media_first ?? null,
+                                                'label'         => (string) $combination->label,
+                                            ], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+                                        </td>
                                         <td>
                                             <span class="variant-label"><?php echo $this->escape($combination->label); ?></span>
                                             <div class="signature"><?php echo $this->escape($combination->signature); ?></div>

@@ -2270,22 +2270,14 @@ class ItemFieldsAdminHelper
             $combinations[(int) $priceRow['combination_id']]->price_rows[] = $priceRow;
         }
 
-        // Each combination owns its gallery (#__alfa_media origin=combination,
-        // edited in the Studio popup). The grid only needs the counts for chips.
-        foreach ($combinations as $combination) {
-            $combination->media_count = 0;
-        }
+        // Each combination owns its gallery (#__alfa_media origin=combination, edited in the Studio popup). The grid
+        // shows the first image and counts the rest; the chips count them all.
+        $galleries = MediaHelper::getMediaData(origin: 'combination', itemIDs: $combinationIds);
 
-        $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->qn('item_id') . ', COUNT(*) AS media_total')
-                ->from($db->qn('#__alfa_media'))
-                ->where($db->qn('origin') . ' = ' . $db->quote('combination'))
-                ->whereIn($db->qn('item_id'), $combinationIds)
-                ->group($db->qn('item_id')),
-        );
-        foreach ($db->loadObjectList() ?: [] as $mediaCount) {
-            $combinations[(int) $mediaCount->item_id]->media_count = (int) $mediaCount->media_total;
+        foreach ($combinations as $combinationId => $combination) {
+            $gallery = $galleries[(int) $combinationId] ?? [];
+            $combination->media_count = \count($gallery);
+            $combination->media_first = $gallery[0] ?? null;
         }
 
         // SPARSE translatable overrides per content language.
