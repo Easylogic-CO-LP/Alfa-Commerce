@@ -138,6 +138,13 @@ class HtmlView extends BaseHtmlView
                 ->listCheck(true);
         }
 
+        // The endpoints a webhook's consumer calls back, and who may call them: the API routes page, for whoever may
+        // open Tools.
+        if ($user->authorise('alfa.tools', 'com_alfa')) {
+            $toolbar->link(Text::_('COM_ALFA_TITLE_APIROUTES'), 'index.php?option=com_alfa&view=apiroutes')
+                ->icon('icon-code');
+        }
+
         if ($user->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
