@@ -135,6 +135,16 @@ class EmailService
     public const SUBJECT_POSITION = 'subject';
 
     /**
+     * The position the note to the customer of ONE send fills: what staff typed on the order for a status change or
+     * for sending the status e-mail again. The layout renders it like any other position ($position('note'), after
+     * the intro in the shipped layout); it is never authored on the status, so discovery leaves it out of the
+     * composer and no default is seeded for it.
+     *
+     * @since  2.3.0
+     */
+    public const NOTE_POSITION = 'note';
+
+    /**
      * Language-key prefix for a position's seedable default content.
      * The full key is PREFIX . strtoupper($position), e.g.
      * COM_ALFA_ORDEREMAIL_DEFAULT_INTRO. Resolved per content-language
@@ -219,7 +229,7 @@ class EmailService
 
         $record = static function (string $type, string $name = '') use (&$seq, &$seen): void {
             if ($type === 'position') {
-                if ($name === '' || $name === self::SUBJECT_POSITION || isset($seen[$name])) {
+                if ($name === '' || $name === self::SUBJECT_POSITION || $name === self::NOTE_POSITION || isset($seen[$name])) {
                     return;
                 }
                 $seen[$name] = true;
@@ -837,12 +847,17 @@ class EmailService
      * @param callable(string, string, string): void $outcome A recipient's unit, outcome and error.
      * @param bool $customer Whether the customer is told when the status says so; false for a change made silent for the
      *                       customer, whose e-mail goes to the administrator recipients alone.
+     * @param bool $customerAsked Whether staff asked for the customer's e-mail: the customer is then told even when the
+     *                            status does not tell the customer by itself. A status without customer texts then
+     *                            reports the customer's unit failed, with the reason, rather than sending nothing in
+     *                            silence.
+     * @param string $note The note to the customer of this send, printed in the layout's note position; '' for none.
      *
      * @throws Throwable When the order or its data cannot be read (nothing was sent).
      *
      * @since  2.1.4
      */
-    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome, bool $customer = true): void
+    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome, bool $customer = true, bool $customerAsked = false, string $note = ''): void
     {
         if ($orderId <= 0 || $statusId <= 0) {
             return;
@@ -874,7 +889,7 @@ class EmailService
             return;
         }
 
-        $notifyCustomer = $customer && (int) ($status->notify_customer ?? 0) === 1;
+        $notifyCustomer = $customer && ($customerAsked || (int) ($status->notify_customer ?? 0) === 1);
         $adminRecipients = self::resolveAdminRecipientEmails(statusId: $statusId);
 
         if (!$notifyCustomer && empty($adminRecipients)) {
@@ -899,6 +914,7 @@ class EmailService
         if ($notifyCustomer) {
             $address = self::resolveCustomerEmail(order: $order);
             $unit = 'customer:' . $address;
+            $customerPositions = self::decodePositions(json: $status->email_positions_customer ?? '');
 
             if ($address === '') {
                 // A notification with nowhere to go is a fact worth a trace: an order whose customer has no email
@@ -910,12 +926,16 @@ class EmailService
                 );
             } elseif ($mailOff && $attempt($unit)) {
                 $notSent($unit);
+            } elseif ($customerPositions === [] && $attempt($unit)) {
+                // A status with no customer texts has no e-mail to send: said as the unit's failure, so the history
+                // and Tools > Tasks name it, instead of a send that quietly composed nothing.
+                $outcome($unit, self::OUTCOME_FAILED, 'The status #' . $statusId . ' has no customer e-mail texts (Order statuses, the Customer tab), so nothing was composed for the customer.');
             } elseif ($attempt($unit)) {
                 // Sales-document PDFs (attach_document_pdf status flag): customer email only; the legal copy goes to
                 // the buyer. The download links are composed here, for the send that carries them.
                 $result = self::dispatch(
                     recipient:   $address,
-                    positions:   self::decodePositions(json: $status->email_positions_customer ?? ''),
+                    positions:   self::withNote(positions: $customerPositions, note: $note, langTag: $langTag),
                     tokens:      $tokens,
                     orderId:     $orderId,
                     orderNumber: self::orderNumber(order: $order),
@@ -932,7 +952,8 @@ class EmailService
         }
 
         if (!empty($adminRecipients)) {
-            $adminPositions = self::decodePositions(json: $status->email_positions_admin ?? '');
+            // Staff read the note too: their copy shows what the customer was told.
+            $adminPositions = self::withNote(positions: self::decodePositions(json: $status->email_positions_admin ?? ''), note: $note, langTag: $langTag);
             $adminLayout = (string) ($status->email_layout_admin ?? self::LAYOUT_ID);
             $adminContext = self::buildLayoutContext(order: $order, status: $status, recipient: 'admin', langTag: $langTag);
 
@@ -1546,6 +1567,38 @@ class EmailService
                 return EmailLayouts::render($layoutId, $data ?? $dataContext);
             },
         ];
+    }
+
+    /**
+     * The positions of one send with its note to the customer in the note position: the label in the order's
+     * language, then the note's lines as paragraphs, every character escaped (the note is typed as plain text). Empty
+     * positions stay empty (there is no e-mail to put the note in), and no note leaves them as they are.
+     *
+     * @param array<string, string> $positions The status's decoded positions for the recipient.
+     * @param string $note The note, plain text; '' for none.
+     * @param string $langTag The order's language, for the label.
+     *
+     * @return array<string, string>
+     *
+     * @since  2.3.0
+     */
+    private static function withNote(array $positions, string $note, string $langTag): array
+    {
+        $note = trim($note);
+
+        if ($note === '' || $positions === []) {
+            return $positions;
+        }
+
+        $paragraphs = array_map(
+            static fn (string $line): string => '<p>' . nl2br(htmlspecialchars($line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')) . '</p>',
+            preg_split('/\R{2,}/u', $note) ?: [$note],
+        );
+        $label = MultilingualHelper::firstTranslated(key: 'COM_ALFA_ORDEREMAIL_NOTE_LABEL', langTag: $langTag);
+
+        $positions[self::NOTE_POSITION] = ($label !== '' ? '<h3>' . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</h3>' : '') . implode('', $paragraphs);
+
+        return $positions;
     }
 
     /**

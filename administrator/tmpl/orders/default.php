@@ -226,6 +226,14 @@ $colspan = 8 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRo
                                         </span>
 									<?php endif; ?>
 
+									<?php if (trim((string) ($item->note ?? '')) !== '') : ?>
+										<?php // Staff's internal note on the order: the whole note is its hover text, and the Quick view
+										      // below prints it in full. ?>
+                                        <span class="icon-comment ms-1 text-muted" role="img"
+                                              title="<?php echo $this->escape(trim((string) $item->note)); ?>"
+                                              aria-label="<?php echo $this->escape(Text::_('COM_ALFA_INTERNAL_NOTE')); ?>"></span>
+									<?php endif; ?>
+
 									<?php if (!empty($item->reference)) : ?>
                                         <small class="d-block text-muted"><?php echo $this->escape($item->reference); ?></small>
 									<?php endif; ?>

@@ -314,6 +314,17 @@
       }
     },
     {
+      "name": "com_alfa.admin.order-status-note",
+      "type": "script",
+      "uri": "com_alfa/admin/order-status-note.min.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.admin.cart-builder-line",
       "type": "script",
       "uri": "com_alfa/admin/cart-builder-line.min.js",

@@ -160,6 +160,22 @@ class Transition
     protected string $note = '';
 
     /**
+     * The note to the customer: typed by staff for this one change, printed in the status e-mail's note position and
+     * kept on the order's history. '' for none. Never the status's own text.
+     *
+     * @since  2.3.0
+     */
+    private string $customerNote = '';
+
+    /**
+     * Whether staff asked that the customer be e-mailed about this change, whatever the status says. The e-mail is
+     * then sent even for a status that does not tell the customer by itself.
+     *
+     * @since  2.3.0
+     */
+    private bool $tellCustomer = false;
+
+    /**
      * The status the order must still be in for the move to be made, checked under the order row lock; null for none.
      *
      * @since  2.2.0
@@ -387,6 +403,34 @@ class Transition
     public function note(string $note): self
     {
         $this->note = $note;
+
+        return $this;
+    }
+
+    /**
+     * A note to the customer for this change: it goes into the status e-mail (its note position, after the opening
+     * text by default) and onto the order's history. Plain text; '' for none.
+     *
+     * @param string $note What the customer is told.
+     *
+     * @since  2.3.0
+     */
+    public function customerNote(string $note): self
+    {
+        $this->customerNote = trim($note);
+
+        return $this;
+    }
+
+    /**
+     * E-mail the customer about this change even when the status entered does not tell the customer by itself: the
+     * operator's tick on the order screen. silent() and silentCustomer() still win.
+     *
+     * @since  2.3.0
+     */
+    public function tellCustomer(): self
+    {
+        $this->tellCustomer = true;
 
         return $this;
     }
@@ -1170,16 +1214,35 @@ class Transition
         // The timeline, atomic with the status: a request that dies after the commit cannot lose it. A record that
         // cannot be written raises the critical staff notice and its log line (logOrderActivity()); the e-mail single
         // below still commits with the change, so the e-mail is sent.
+        // The customer is left out of a change made silent for the customer alone; its single then has work only when
+        // the status tells staff. The operator's tick tells the customer whatever the status says.
+        $toCustomer = !$this->silent && !$this->silentCustomer;
+        $customerAsked = $toCustomer && $this->tellCustomer;
+
+        // The record says what the customer was told: the note, and whether an e-mail was asked for the customer (by
+        // the operator, or by the status when nobody chose) or declined; the e-mail's own record follows with the
+        // recipients it reached.
+        $record = [
+            'old_status' => $oldStatusId,
+            'new_status' => $toStatusId,
+            'actor' => $actor,
+            'note' => $this->note,
+        ];
+
+        if ($this->customerNote !== '') {
+            $record['note_to_customer'] = $this->customerNote;
+        }
+
+        if ($this->silent || $this->silentCustomer || $this->tellCustomer) {
+            $record['customer_emailed'] = $customerAsked;
+        }
+
         OrderModel::logOrderActivity(
             $orderId,
             'order.status_changed',
-            "Status {$oldStatusId} -> {$toStatusId} ({$actor})" . ($this->note !== '' ? ': ' . $this->note : ''),
-            [
-                'old_status' => $oldStatusId,
-                'new_status' => $toStatusId,
-                'actor' => $actor,
-                'note' => $this->note,
-            ],
+            "Status {$oldStatusId} -> {$toStatusId} ({$actor})" . ($this->note !== '' ? ': ' . $this->note : '')
+            . ($this->customerNote !== '' ? ' | Note to the customer: ' . $this->customerNote : ''),
+            $record,
         );
 
         // The consumers of status changes are owed this move, written with it: every move is told, in order.
@@ -1229,12 +1292,16 @@ class Transition
             BackgroundWork::core()->task(OrderDocuments::NAME)->about('order', $orderId)->with(['status' => $toStatusId])->enqueue();
         }
 
-        // The customer is left out of a change made silent for the customer alone; its single then has work only when the
-        // status tells staff.
-        $toCustomer = !$this->silentCustomer;
-
-        if (!$this->silent && $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId, customer: $toCustomer))) {
-            BackgroundWork::core()->task(OrderStatusEmail::NAME)->about('order', $orderId)->with(['status' => $toStatusId, 'customer' => $toCustomer])->enqueue();
+        // The e-mail single: owed when the status tells someone it may tell, or when the operator asked for the
+        // customer's. It carries the note to the customer and the operator's ask, so the e-mail says the note and
+        // reaches the customer even on a status that does not tell the customer by itself.
+        if (!$this->silent && ($customerAsked || $this->owes(handler: OrderStatusEmail::NAME, guard: static fn (): bool => EmailService::notifiesForStatus(statusId: $toStatusId, customer: $toCustomer)))) {
+            BackgroundWork::core()->task(OrderStatusEmail::NAME)->about('order', $orderId)->with([
+                'status' => $toStatusId,
+                'customer' => $toCustomer,
+                'customer_asked' => $customerAsked,
+                'note' => $this->customerNote,
+            ])->enqueue();
         }
 
         if ($this->owes(handler: OrderStatusEvent::NAME, guard: static fn (): bool => OrderStatusEvent::hasListeners())) {

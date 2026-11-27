@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: the order screen's Status e-mail card, which sends the e-mail of the order's current status again.
+
+    One field, the note to the customer of that send. The card prints it into the order screen's sibling form
+    (nested forms are invalid HTML), and OrderController::resendStatusEmail() filters and validates the post
+    through this definition before anything is sent.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form>
+    <fieldset name="status_email">
+        <field
+                name="note"
+                type="textarea"
+                label="COM_ALFA_ORDER_STATUS_NOTE_LABEL"
+                description="COM_ALFA_ORDER_STATUS_EMAIL_NOTE_DESC"
+                rows="3"
+                maxlength="2000"
+                filter="string"
+        />
+    </fieldset>
+</form>

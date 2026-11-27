@@ -53,12 +53,14 @@ final class OrderHistoryHelper
     public const FIELDS = [
         'actor', 'actor_name', 'after', 'again', 'amount', 'amount_known', 'assigned_items', 'attempt', 'balance',
         'before', 'booked', 'carrier_name', 'changes', 'chargeback', 'claim', 'count', 'custom_unit_price_tax_incl',
-        'customer_note', 'deducted_quantity', 'delivered', 'delivery_date', 'dispute', 'doc_type', 'error', 'from',
+        'customer_emailed', 'customer_note', 'deducted_quantity', 'delivered', 'delivery_date', 'dispute', 'doc_type',
+        'error', 'from',
         'gateway', 'grand_total_tax_excl', 'grand_total_tax_incl', 'held', 'id', 'id_address_delivery',
         'id_address_invoice', 'id_combination', 'id_dispute', 'id_document', 'id_item', 'id_payment',
         'id_payment_method', 'id_refund', 'id_refunded_payment', 'id_reversed_payment', 'id_shipment_method',
         'identified', 'initial_status', 'invoice_date', 'invoice_number', 'keys', 'kind', 'line', 'lines',
-        'manual_discount_percent', 'manual_discount_scope', 'name', 'new_status', 'new_task', 'note', 'number',
+        'manual_discount_percent', 'manual_discount_scope', 'name', 'new_status', 'new_task', 'note', 'note_to_customer',
+        'number',
         'old_status', 'original_bytes', 'outcome', 'payment', 'payment_amount', 'payment_method', 'payment_type',
         'persisted', 'previewed', 'price_command', 'processed_at', 'provider_amount', 'provider_currency',
         'provider_refund_id', 'quantity', 'reason', 'reconfigured', 'reference', 'refund_reason', 'refund_status',
@@ -107,6 +109,7 @@ final class OrderHistoryHelper
                 'shipment.added' => self::shipmentAdded(context: $context, order: $order),
                 'shipment.deleted' => self::shipmentDeleted(context: $context, order: $order),
                 'order.status_changed' => self::statusChanged(context: $context, entry: $entry),
+                'order.edited' => self::edited(context: $context),
                 'order.transition_refused' => self::statusRefused(context: $context, entry: $entry),
                 'order.email_sent', 'order.email_failed', 'order.email_held', 'order.email_resent', 'order.hook_failed',
                 'order.hook_held', 'order.hook_rerun', 'order.task_resolved', 'order.automation_superseded',
@@ -240,7 +243,8 @@ final class OrderHistoryHelper
     }
 
     /**
-     * A status change: the two status names, who made it and its note.
+     * A status change: the two status names, who made it and its note; then the note to the customer, and whether
+     * the customer was e-mailed about it when the record says so.
      *
      * @param array $context The entry's context.
      * @param object $entry The stored entry.
@@ -255,14 +259,48 @@ final class OrderHistoryHelper
         $to = self::statusName(id: $context['new_status'] ?? null);
         $actor = self::actor(actor: $context['actor'] ?? null, entry: $entry);
         $note = $context['note'] ?? '';
+        $customerNote = $context['note_to_customer'] ?? '';
 
-        if ($from === null || $to === null || $actor === null || !\is_string($note)) {
+        if ($from === null || $to === null || $actor === null || !\is_string($note) || !\is_string($customerNote)) {
             return null;
         }
 
-        return $note === ''
+        $line = $note === ''
             ? Text::sprintf('COM_ALFA_ORDER_HISTORY_STATUS_CHANGED', $from, $to, $actor)
             : Text::sprintf('COM_ALFA_ORDER_HISTORY_STATUS_CHANGED_NOTE', $from, $to, $actor, $note);
+
+        if ($customerNote !== '') {
+            $line .= ' ' . Text::sprintf('COM_ALFA_ORDER_HISTORY_STATUS_NOTE_TO_CUSTOMER', $customerNote);
+        }
+
+        if (\is_bool($context['customer_emailed'] ?? null)) {
+            $line .= ' ' . Text::_($context['customer_emailed'] ? 'COM_ALFA_ORDER_HISTORY_CUSTOMER_EMAILED' : 'COM_ALFA_ORDER_HISTORY_CUSTOMER_NOT_EMAILED');
+        }
+
+        return $line;
+    }
+
+    /**
+     * An edit of the order whose one change is the internal note: the note as saved, or that it was cleared. Any
+     * other edit keeps its stored summary (the Details box lists each change).
+     *
+     * @param array $context The entry's context: each changed field with its from and to.
+     *
+     * @return string|null Null when the edit changed anything else, or the note's change is not readable.
+     *
+     * @since  2.3.0
+     */
+    private static function edited(array $context): ?string
+    {
+        if (array_keys($context) !== ['note'] || !\is_array($context['note']) || !\is_string($context['note']['to'] ?? null)) {
+            return null;
+        }
+
+        $to = trim($context['note']['to']);
+
+        return $to === ''
+            ? Text::_('COM_ALFA_ORDER_HISTORY_INTERNAL_NOTE_CLEARED')
+            : Text::sprintf('COM_ALFA_ORDER_HISTORY_INTERNAL_NOTE_SAVED', $to);
     }
 
     /**
@@ -360,6 +398,7 @@ final class OrderHistoryHelper
             }
 
             $fields[] = [self::fieldLabel(name: $name), match (true) {
+                \is_bool($value) => Text::_($value ? 'JYES' : 'JNO'),
                 $name === 'task' && is_numeric($value) => Text::sprintf('COM_ALFA_ORDER_HISTORY_DETAIL_TASK', (int) $value),
                 $name === 'sent' && \is_array($value) => self::recipients(sent: $value),
                 $name === 'gateway' && \is_string($value) && preg_match('/^[a-z0-9_-]+$/', $value) === 1 => AlfaPluginHelper::get()->name(PluginId::from('alfa-payments', $value)),
