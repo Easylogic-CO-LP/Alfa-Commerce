@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 
 /**
@@ -58,6 +59,8 @@ class DiscountsModel extends AlfaListModel
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
                 'state', 'a.state',
+                // Where the period stands against the clock (RulePeriod), not a column.
+                'period',
                 // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
             ];
@@ -203,6 +206,13 @@ class DiscountsModel extends AlfaListModel
             $query->where('a.state = ' . (int) $published);
         } elseif (empty($published)) {
             $query->where('(a.state IN (0, 1))');
+        }
+
+        // Filter by where the period stands against the clock, with the engine's own conditions in UTC.
+        $period = (string) $this->getState('filter.period', '');
+
+        if (\in_array($period, RulePeriod::STATUSES, true)) {
+            $query->where(RulePeriod::sql(status: $period, startColumn: 'a.publish_up', endColumn: 'a.publish_down'));
         }
 
         // Filter by search in title

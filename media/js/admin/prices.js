@@ -95,6 +95,44 @@
         return Math.max(0, (net * c.a) + c.b);
     };
 
+    // A rule as the sentence names it: its name, and the rate the engine applied when it has one (the chips' own rule).
+    const ruleLabel = (discount) => (Number(discount.percent) > 0
+        ? discount.name + ' −' + Number(discount.percent) + '%'
+        : discount.name);
+
+    // The sentence under the after-discounts figure: the rules applied now, or, once the row carries a sale, the
+    // rules the sale replaces and what they would give (a*net + b, never below zero). The names come with the
+    // preview and are kept on the note; the server renders the first sentence the same way.
+    const updateRulesNote = (row, net) => {
+        const note = row.querySelector('[data-price-rules-note]');
+
+        if (!note) {
+            return;
+        }
+
+        const names = note.dataset.ruleNames || '';
+
+        if (names === '') {
+            note.hidden = true;
+            note.textContent = '';
+
+            return;
+        }
+
+        const type = row.querySelector('[data-price-override-type]:checked')?.value || '';
+        const sale = parseFloat(row.querySelector('[data-price-override]')?.value);
+        const c = calc(row);
+        const rowNet = net ?? parseFloat(row.querySelector('[data-price-value]')?.value);
+        const replaced = rowMode(row) === 'price' && (type === 'start' || type === 'final') && !Number.isNaN(sale) && !Number.isNaN(rowNet);
+
+        note.textContent = replaced
+            ? Joomla.Text._('COM_ALFA_PRICES_SALE_REPLACES_RULES')
+                .replace('%1$s', names)
+                .replace('%2$s', Math.max(0, (rowNet * c.a) + c.b).toFixed(c.dec))
+            : Joomla.Text._('COM_ALFA_PRICES_RULES_APPLIED').replace('%s', names);
+        note.hidden = false;
+    };
+
     const refreshCurrent = (row, net) => {
         const current = row.querySelector('[data-price-current]');
 
@@ -107,6 +145,7 @@
         const figure = Number.isNaN(rowNet) ? NaN : afterDiscounts(row, c, rowNet);
 
         current.textContent = Number.isNaN(figure) ? '-' : figure.toFixed(c.dec);
+        updateRulesNote(row, rowNet);
     };
 
     const inverseOp = (base, op, result) => {
@@ -359,6 +398,13 @@
             ...taxes.map(taxChip),
             ...discounts.filter((d) => (d.timing || 'before_tax') === 'after_tax').map(discountChip),
         );
+
+        // The rules the sentence under the figure names, as the preview lists them now.
+        const note = row.querySelector('[data-price-rules-note]');
+
+        if (note) {
+            note.dataset.ruleNames = discounts.map(ruleLabel).join(', ');
+        }
 
         // Today's selling price (only meaningful while discounts run).
         const discountCell = row.querySelector('[data-price-discounts]');

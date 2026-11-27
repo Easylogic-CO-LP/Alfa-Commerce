@@ -2,7 +2,7 @@
   "tools": {"css":"1","terser":"5.51.3"},
   "files": {
     "media/css/admin/action-page.css": ["8654482e3fb7edad1dfc3b1f4ef5c1a880e157ea3abdfaa5cb67a2c60086aeec", "9032c95cd0f233c871c46d35494fb75413c6012fbc16732f6be172afdf356649"],
-    "media/css/admin/admin.css": ["277a36bdff912804d83745d3080c41a2f07ea92d76d4f960aa2856e9c1fa2111", "06252a74bc1e469889e77bf31b0db6516fcf12793e9bd1a28b10bcc1ea18620c"],
+    "media/css/admin/admin.css": ["7ef5f7042f81a5274ab53c0c20c6a971bd459a0f607e012017f386f6fe0663f0", "ed14bf32f5bf2f38ab1a4669e89367d142434c4d00611ccf88933c9ac614ec5f"],
     "media/css/admin/charts.css": ["fa3383e2de1b03d172745a046b62887974c5e0fc4a5478b6229182c3bc88112a", "6de9e171b701939a35aa365a4210134d19441794e019c6df3050dba063b6bf74"],
     "media/css/admin/combinations.css": ["1684a7e47e18998c714f96ecc3a29f28cda6a328bc2d593fd667b2bd8c5b1595", "77ead798c6b95999bddba0ab08ba9613aa5e04a9b50197afefe91f649f37cea1"],
     "media/css/admin/email-positions.css": ["4d3c264006bc02ae7451268405b1b6bbfe8644e00ab426b0cfb403afa07dfb01", "4b9d40e8070dbadbdcc33b2683d7bf4b5221978c262eb9d71aa2fbba338b4e1a"],
@@ -54,7 +54,7 @@
     "media/js/admin/order-item.js": ["ef1578d7f8144f2d732f64202fb4289bfdd3abd2760dcbf29190d1787ca2be47", "f9904b1a4f656b4903b9489d184b574012dd3df93596c1741eeb65d2b1bc9971"],
     "media/js/admin/orders-list.js": ["e199adc7459f14281a8c9197acd5aab44ff930bc14476d3c0106029ad1baffcc", "dd6758cd8e2ef6f87530212ab094d13b0937e4fb9138f32f7edb41f85ff5fb35"],
     "media/js/admin/payment-checkup.js": ["8e007def278fe84b00786567db3ca2c71fb36c064fd3c74011a88d104caaa961", "893c0cb6bac1ffaba6fd1a1cf8bcd5879b0514505c16577d0ffd3b386ad8fe5f"],
-    "media/js/admin/prices.js": ["09e5bc7b11a578d27df5145ca1c17a4c4b8b6f60c4035db0500fdf0e4a118b9c", "ebc437c82fee718c678f7d670f5956fd60678555b5e1810efa69fab33420f572"],
+    "media/js/admin/prices.js": ["2b849b49e33ab902b1357705049def6e08e999e5bc412f16bbca94136ed45fd9", "bf1a2f88b04407770869d2058d6e3fb19515068337c70f00e817439ad9ea1181"],
     "media/js/admin/related-products.js": ["899712bc07f15b8c8990bf4d35f018d3daee8314181fc5921f7fae4085678088", "7d288dc9f127684321ae69dbd69e301dc8f7dd0afcbd39bae71415133bf3b8c7"],
     "media/js/admin/runner-kick.js": ["d7bf594007e3bb26db6c51ffaf45d2a98b5d519e848313d17b220a6551026c99", "0e8b42b983b4a9c05ae13ce07e84d05323253ce1e29dd21a008fe6ac40fb0c51"],
     "media/js/admin/seo.js": ["73327aaed4ca9d74675f1fbc64aacda509ae6d312b453f5186a392abb2fc2b67", "a1ffed2e91b1b70faf5f507690e1730bb4de713e496838bd0647ce60971f2ead"],

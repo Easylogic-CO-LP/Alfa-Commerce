@@ -14,6 +14,7 @@ use \Joomla\CMS\Factory;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Layout\LayoutHelper;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
@@ -66,6 +67,10 @@ $wa->useScript('keepalive')
                 <?php echo $this->form->renderField('modified'); ?>
                 <?php echo $this->form->renderField('modified_by'); ?>
             </fieldset>
+            <?php // What the saved rule reaches: products, the products its categories leave out, the rules it stacks with. ?>
+            <?php if ($this->reach !== null) : ?>
+                <?php echo LayoutHelper::render('discount.reach', ['reach' => $this->reach], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -137,8 +138,13 @@ class HtmlView extends BaseHtmlView
             ->listCheck(true);
         }
 
-        // Options opens com_config, which itself requires core.admin.
+        // Options opens com_config, which itself requires core.admin; the price check answers to core.admin only.
         if ($user->authorise('core.admin', 'com_alfa')) {
+            $toolbar->linkButton('price-audit')
+                ->text('COM_ALFA_TOOLBAR_PRICE_AUDIT')
+                ->url(Route::_('index.php?option=com_alfa&view=priceaudit'))
+                ->icon('icon-search');
+
             $toolbar->preferences('com_alfa');
         }
 

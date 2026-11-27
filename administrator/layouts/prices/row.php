@@ -147,6 +147,21 @@ foreach ($appliedDiscounts as $pipelineDiscount) {
     $pipelineChips .= ($pipelineDiscount['timing'] ?? 'before_tax') === 'after_tax' ? $discountChip((array) $pipelineDiscount) : '';
 }
 
+// The sentence under the after-discounts figure: the rules applied now, or, once the row carries a sale, the rules the
+// sale replaces and what they would give (a*net + b, never below zero). Each rule as the chips name it: its name, and
+// the rate the engine applied when it has one. prices.js keeps the sentence live from the names kept on the element.
+$ruleNames = implode(', ', array_map(
+    static fn (array $d): string => (string) $d['name'] . ((float) ($d['percent'] ?? 0) > 0 ? ' −' . rtrim(rtrim(number_format((float) $d['percent'], 2, '.', ''), '0'), '.') . '%' : ''),
+    array_map(static fn ($d): array => (array) $d, $appliedDiscounts),
+));
+$rulesNote = '';
+
+if ($ruleNames !== '') {
+    $rulesNote = ($mode === 'price' && $override !== '' && $value !== '')
+        ? Text::sprintf('COM_ALFA_PRICES_SALE_REPLACES_RULES', $ruleNames, $money(max(0.0, ((float) $value * $calcA) + $calcB), $decimals))
+        : Text::sprintf('COM_ALFA_PRICES_RULES_APPLIED', $ruleNames);
+}
+
 // Custom discount: the computed other end - Starting pins the net, so show
 // the resulting final (taxes on top); Final pins the gross, show the net.
 $overrideOn = $override !== '' ? $overrideType : '';
@@ -293,6 +308,7 @@ $calendarForm = PriceRowDates::form(control: $base, row: $row);
                 <div class="chip-line">
                     <output class="fw-bold" id="<?php echo $esc($idBase . '_current'); ?>" data-price-current><?php echo $esc($discountedValue); ?></output>
                 </div>
+                <div class="override-hint" data-price-rules-note data-rule-names="<?php echo $esc($ruleNames); ?>" <?php echo $rulesNote === '' ? 'hidden' : ''; ?>><?php echo $esc($rulesNote); ?></div>
             </div>
 
             <!-- Custom discount: replaces every regular discount with one

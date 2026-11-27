@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardStatsService;
 use Alfa\Component\Alfa\Administrator\Service\Stats\StatsCards;
@@ -228,6 +229,17 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => $this->attentionCard());
 
+        // The prices, in the same strip, to a Super User (the price check's own permission): the counts of the kinds
+        // of finding as one sentence, and the way to the price check. Nothing while the check finds nothing. Read
+        // with the strip and kept by the Dashboard's cache, which a product, discount or tax save drops.
+        $event->top(self::ID, 'prices.audit', 'COM_ALFA_DASHCARD_PRICES')
+            ->ordering(95)
+            ->setLayout('card.prices')
+            ->width(100)
+            ->url(Route::_('index.php?option=com_alfa&view=priceaudit', false))
+            ->when(static fn (): bool => (bool) Factory::getApplication()->getIdentity()?->authorise('core.admin', 'com_alfa'))
+            ->setLayoutData(static fn (): array => self::pricesCard());
+
         // The background work, in the same strip, to a user who may use Tools: its health notice while it
         // stands, and one line for each job running or waiting, with its progress and a link to its progress page
         // (read at page load). While neither is there its data is empty and the card is not shown.
@@ -239,6 +251,21 @@ final class CoreCardProvider
             ->width(100)
             ->when(static fn (): bool => (bool) Factory::getApplication()->getIdentity()?->authorise('alfa.tools', 'com_alfa'))
             ->setLayoutData(static fn (): array => self::backgroundWork());
+    }
+
+    /**
+     * The prices card's data: the price check's findings in one sentence and the way to the page; empty while the
+     * check finds nothing, so the card is not shown.
+     *
+     * @return array{text?: string, url?: string}
+     *
+     * @since  2.3.0
+     */
+    private static function pricesCard(): array
+    {
+        $sentence = PriceAudit::sentence(report: PriceAudit::read());
+
+        return $sentence === '' ? [] : ['text' => $sentence, 'url' => Route::_('index.php?option=com_alfa&view=priceaudit', false)];
     }
 
     /**

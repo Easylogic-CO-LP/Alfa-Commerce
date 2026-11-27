@@ -735,6 +735,8 @@ final class Runner
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,
             // The price index's retired generations and ended periods, removed.
             Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
+            // The price check, once a day, and its bell notice.
+            Job\PriceAuditJob::NAME => Job\PriceAuditJob::class,
             // The gallery's thumbnails, recreated from Tools > Media.
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
             // The images a REST API write gave as addresses, fetched and stored.

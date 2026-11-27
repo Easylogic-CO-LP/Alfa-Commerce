@@ -65,7 +65,7 @@ final class CardRegistry
      * @var string[] Entities whose save/delete can make a card's figures wrong.
      * @since  2.0.0
      */
-    public const WATCHED_ENTITIES = ['order', 'item', 'combination', 'payment', 'orderstatus'];
+    public const WATCHED_ENTITIES = ['order', 'item', 'combination', 'payment', 'orderstatus', 'discount', 'tax'];
 
     /**
      * @var int Minutes a resolved surface stays cached.
