@@ -236,7 +236,7 @@ class AboutField extends FormField
         // Plain-text report for support requests
         $html .= '<div class="col-12"><details>'
             . '<summary class="text-muted">Support report (plain text; click the box to select it)</summary>'
-            . '<pre class="bg-body-tertiary border rounded p-3 mt-2 mb-0 small user-select-all">'
+            . '<pre class="bg-body-tertiary border rounded p-3 mb-0 small user-select-all">'
             . self::e($this->report($installed, $registered, $update, $lastCheck, $env, $requirements, $joomla, $extensions))
             . '</pre></details></div>';
 
