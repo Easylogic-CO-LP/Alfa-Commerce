@@ -667,3 +667,12 @@ tr.alfa-row-refund > * {
         transition: none;
     }
 }
+
+/* Integrity verdict blocks
+ *
+ * Each block keeps the colour of its severity (info, secondary, warning, danger)
+ * and takes the same frame, drawn in that colour, so the three read as one set.
+ */
+.alfa-integrity-block {
+    border-color: currentColor;
+}
