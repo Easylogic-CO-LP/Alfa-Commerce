@@ -165,6 +165,15 @@ $check('B2e its data names the products in the order given and the operator', [$
 
 $again = StockRepairJob::enqueue(itemIds: array_reverse($items), userId: $superId);
 $check('B2f the same selection in another order joins the waiting job', [$again->id, $again->joined], [$queued->id, true]);
+$check('B2g a whole section is the job\'s scope, no list of products carried', (static function (): array {
+    try {
+        StockRepairJob::enqueueSection(section: 'no_such_section', userId: 0);
+    } catch (\InvalidArgumentException) {
+        return [StockRepairJob::SECTIONS[0], \in_array('ledger_missing', StockRepairJob::SECTIONS, true)];
+    }
+
+    return ['no refusal', false];
+})(), ['ledger_missing', true]);
 
 // ── B3: the handler stops at the first refusal ───────────────────────────────
 echo "B3 the first refusal ends the run\n";
@@ -178,7 +187,7 @@ $result = json_decode((string) $chunk->result, true);
 $check('B3b the chunk ends the job at the first product, which does not exist', [$chunk->finished, $chunk->units], [true, 0]);
 $check('B3c the result counts the products and none repaired', [$result['total'] ?? null, $result['repaired'] ?? null, $result['corrected'] ?? null, $result['released'] ?? null], [3, 0, 0, 0]);
 $check('B3d the result names the product it stopped at, gone', [$result['refused']['item'] ?? null, $result['refused']['gone'] ?? null], [$items[0], true]);
-$check('B3e the checkpoint stays at that product', $chunk->checkpoint['next'] ?? null, 0);
+$check('B3e the checkpoint stays at that product', [$chunk->checkpoint['next'] ?? null, $chunk->checkpoint['checked'] ?? null], [0, 0]);
 
 // ── B4: the Background screen reads the finished row ─────────────────────────
 echo "B4 the Background screen reads it\n";
@@ -212,7 +221,7 @@ $described = TaskStaff::describe(rows: [$read])['rows'][0];
 $check('B4a the row is finished, not driven', [$described['work'], $described['driven']], [TaskStaff::WORK_FINISHED, false]);
 $check('B4b its label is the handler\'s for staff', $described['labelText'], Text::_('COM_ALFA_TASKS_HANDLER_STOCK_REPAIR'));
 $check('B4c it covers the products of a stock audit section', $described['covers'], Text::_('COM_ALFA_TASKS_COVERS_STOCK_REPAIR'));
-$check('B4d its report says how far it got', $described['reportLines'][0] ?? null, Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', 0, 3, 0, 0));
+$check('B4d its report says how far it got', $described['reportLines'][0] ?? null, Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', 0, 0, 3, 0, 0));
 $check('B4e its report names the product it stopped at and why', $described['reportLines'][1] ?? null, Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_STOPPED', $items[0], Text::_('COM_ALFA_INVENTORY_AUDIT_REASON_ITEM_GONE')));
 $check('B4f the progress card reads the same report', TaskStaff::job(id: $queued->id)['reportLines'] ?? null, $described['reportLines']);
 

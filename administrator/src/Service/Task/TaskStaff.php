@@ -312,6 +312,7 @@ final class TaskStaff
                 str_starts_with($scope, $search) => Text::sprintf('COM_ALFA_TASKS_COVERS_SEARCH', Job\SearchRebuildJob::engineName(key: substr($scope, \strlen($search)))),
                 $scope === Job\ThumbnailsRecreateJob::NAME => Text::_((($row['report']['mode'] ?? ThumbnailRecreation::mode()) === ThumbnailRecreation::MODE_ALL)
                     ? 'COM_ALFA_TASKS_COVERS_THUMBNAILS_ALL' : 'COM_ALFA_TASKS_COVERS_THUMBNAILS_MISSING'),
+                str_starts_with($scope, Job\StockRepairJob::NAME . ':section:') => Text::sprintf('COM_ALFA_TASKS_COVERS_STOCK_REPAIR_SECTION', Text::_('COM_ALFA_INVENTORY_AUDIT_CATEGORY_' . strtoupper(substr($scope, \strlen(Job\StockRepairJob::NAME . ':section:'))))),
                 str_starts_with($scope, Job\StockRepairJob::NAME . ':') => Text::_('COM_ALFA_TASKS_COVERS_STOCK_REPAIR'),
                 default => Text::_('COM_ALFA_TASKS_COVERS_SHOP'),
             };
@@ -469,7 +470,7 @@ final class TaskStaff
         }
 
         if ((string) $row['handler'] === Job\StockRepairJob::NAME) {
-            $lines = [Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', (int) $report['repaired'], (int) $report['total'], (int) $report['corrected'], (int) $report['released'])];
+            $lines = [Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', (int) $report['repaired'], (int) $report['checked'], (int) $report['total'], (int) $report['corrected'], (int) $report['released'])];
 
             if (\is_array($report['refused'])) {
                 $lines[] = Text::sprintf(
