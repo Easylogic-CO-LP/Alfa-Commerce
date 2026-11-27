@@ -388,7 +388,7 @@ try {
 
     // The catalogue list filtered by a label, and the labels facet: the storefront listing model over this run's
     // products alone (filter.id), nothing drawn, no media, no prices.
-    $listed = static function (array $state) use ($factory, $pTicked, $pOver, $pLater, $pHot): array {
+    $listed = static function (array $state) use ($factory, $pTicked, $pOver, $pLater, $pHot): object {
         $model = $factory->createModel('Items', 'Site', ['ignore_request' => true]);
         $model->setState('filter.id', [$pTicked, $pOver, $pLater, $pHot]);
         $model->setState('plugin.layouts', false);
@@ -416,6 +416,7 @@ try {
         $filtered['facet'] = array_map(static fn (array $row): array => [$row['name'], $row['count'] ?? null], array_intersect_key($facet, array_flip($mine)));
         $filtered['new'] = $ids($listed(['filter.new' => 1])->getItems() ?: []);
     } catch (\Throwable $e) {
+        // A failure to build or run the storefront model is a failure of the arm, read below as one.
         $filtered['error'] = \get_class($e) . ': ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine();
     }
 
@@ -471,8 +472,7 @@ if (isset($result['error'])) {
     echo "\nthe filter\n";
 
     if ($result['filtered']['error'] !== null) {
-        $skip++;
-        echo "  skip [LB8] the storefront listing model could not run in this process: {$result['filtered']['error']}\n";
+        check('[LB8] ★ the storefront listing model runs in this process', $result['filtered']['error'], null);
     } else {
         check('[LB8] ★ filtered by Black Friday the list holds the product that ticks it and not the others', $result['filtered']['bf'], [$pTicked]);
         $either = $result['filtered']['either'];
