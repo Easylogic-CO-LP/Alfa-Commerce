@@ -95,7 +95,7 @@
     </div>
 
     <!-- Preview: main image/url + thumbnail -->
-    <div class="media-preview">
+    <div class="media-preview" title="<?= Text::_('COM_ALFA_MEDIA_PREVIEW_HINT'); ?>">
 		<?= $previewHtml; ?>
 
         <div class="media-thumbnail">
@@ -104,7 +104,7 @@
                    name="jform[media][<?= $mediaId; ?>][thumbnail]"
                    value="<?= $thumbnail; ?>">
 
-            <button type="button" class="media-thumbnail-btn">
+            <button type="button" class="media-thumbnail-btn" title="<?= Text::_('COM_ALFA_MEDIA_THUMBNAIL_HINT'); ?>">
 				<?= $thumbnailHtml; ?>
                 <span class="select-thumbnail-btn-msg"><?= Text::_('COM_ALFA_MEDIA_SELECT_THUMBNAIL_BUTTON_ERROR_TEXT') ?></span>
             </button>
