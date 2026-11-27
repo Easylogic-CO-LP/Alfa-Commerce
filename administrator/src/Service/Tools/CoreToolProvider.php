@@ -550,12 +550,12 @@ final class CoreToolProvider
                 return;
             }
 
-            $steps = PendingRun::step();
-            $advanced = false;
-            $stopped = $steps > PendingRun::STEPS_MAX;
+            [$advanced, $stopped, $erred] = $this->pendingStep();
 
-            if (!$stopped) {
-                [$advanced, $stopped] = $this->pendingStep();
+            // Steps that only fail stop the run at the safety limit; a step with progress starts the count again.
+            if (PendingRun::errorStreak(erredOnly: $erred && !$advanced) >= PendingRun::ERROR_STEPS_MAX) {
+                $advanced = false;
+                $stopped = true;
             }
 
             $pending = Tasks::dueCount() + InventoryEffectOutbox::owedCount() + self::pricesWaiting();
@@ -577,16 +577,17 @@ final class CoreToolProvider
 
     /**
      * One step of Run pending: the first kind with work, in order. Whether the step advanced (another step follows),
-     * and whether a kind could not advance though it has work (held by another process, or waiting out a retry), which
-     * stops the run with records pending.
+     * whether a kind could not advance though it has work (held by another process, or waiting out a retry), which
+     * stops the run with records pending, and whether an error was met.
      *
-     * @return array{bool, bool}
+     * @return array{bool, bool, bool}
      *
      * @since  2.3.0
      */
     private function pendingStep(): array
     {
         $stopped = false;
+        $erred = false;
 
         // The tasks a save left: one sweep while any is due. A sweep that takes nothing though tasks are due waits
         // for their retry times, or another process holds them: on to the next kind.
@@ -595,14 +596,16 @@ final class CoreToolProvider
                 $stats = Tasks::sweepSingles(budgetMs: self::TASKS_CHUNK_MS, trigger: 'tools');
                 PendingRun::add('jobs', (int) $stats['claimed']);
                 PendingRun::add('errors', (int) $stats['failed'] + (int) $stats['held'] + (int) $stats['lost']);
+                $erred = $erred || (int) $stats['failed'] + (int) $stats['held'] + (int) $stats['lost'] > 0;
 
                 if ((int) $stats['claimed'] > 0) {
-                    return [true, false];
+                    return [true, false, $erred];
                 }
 
                 $stopped = true;
             }
         } catch (Throwable $e) {
+            $erred = true;
             PendingRun::add('errors', 1);
             Tasks::log(entry: 'Run pending: the tasks could not be swept: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
@@ -615,13 +618,15 @@ final class CoreToolProvider
                 $tick = Runner::tick(trigger: 'tools', budgetMs: self::JOB_STEP_MS, onlyJob: $job['id']);
                 PendingRun::add('stock', $tick->units);
                 PendingRun::add('errors', $tick->failed);
+                $erred = $erred || $tick->failed > 0;
 
                 if ($tick->chunks > 0) {
-                    return [true, false];
+                    return [true, false, $erred];
                 }
 
                 $stopped = true;
             } catch (Throwable $e) {
+                $erred = true;
                 PendingRun::add('errors', 1);
                 Tasks::log(entry: 'Run pending: the stock movements could not be applied: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
             }
@@ -638,14 +643,15 @@ final class CoreToolProvider
                 PendingRun::add('prices', $tick->units);
                 PendingRun::add('errors', $tick->failed);
 
-                return [$tick->chunks > 0, $tick->chunks === 0 || $stopped];
+                return [$tick->chunks > 0, $tick->chunks === 0 || $stopped, $erred || $tick->failed > 0];
             }
         } catch (Throwable $e) {
+            $erred = true;
             PendingRun::add('errors', 1);
             Tasks::log(entry: 'Run pending: the list prices could not be prepared: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
         }
 
-        return [false, $stopped];
+        return [false, $stopped, $erred];
     }
 
     /**

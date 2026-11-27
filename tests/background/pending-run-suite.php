@@ -11,7 +11,8 @@
  *        run found nothing and did nothing; stopped at a limit with what is still pending, never "finished"; the
  *        errors when there were any;
  *   P3   the run's counts live in the session from the plan to the last step: zero at the start, added to by each
- *        step, the records done counted for the progress, forgotten when the run ends.
+ *        step, the records done counted for the progress, the steps that only failed counted in a row, forgotten
+ *        when the run ends; a run is stopped only by a step without progress or that safety limit, never its length.
  *
  * Nothing of the shop is run: the registry is only read, and the counts are the suite's own. The database is not
  * written.
@@ -129,18 +130,18 @@ $check('P2g a run that only failed is not "nothing pending"',
 echo "P3 the counts\n";
 
 PendingRun::start();
-$check('P3a a run starts at zero', PendingRun::counts(), ['jobs' => 0, 'stock' => 0, 'prices' => 0, 'errors' => 0, 'steps' => 0]);
+$check('P3a a run starts at zero', PendingRun::counts(), ['jobs' => 0, 'stock' => 0, 'prices' => 0, 'errors' => 0, 'streak' => 0]);
 PendingRun::add('jobs', 4);
 PendingRun::add('stock', 2);
 PendingRun::add('prices', 10);
 $check('P3b each step adds to its kind', [PendingRun::counts()['jobs'], PendingRun::counts()['stock'], PendingRun::counts()['prices']], [4, 2, 10]);
 $check('P3c the records done are the three kinds together', PendingRun::done(), 16);
-$check('P3d the steps are counted', [PendingRun::step(), PendingRun::step()], [1, 2]);
+$check('P3d steps that only fail are counted in a row, and a step with progress starts the count again', [PendingRun::errorStreak(erredOnly: true), PendingRun::errorStreak(erredOnly: true), PendingRun::errorStreak(erredOnly: false), PendingRun::errorStreak(erredOnly: true)], [1, 2, 0, 1]);
 $check('P3e the run ends with its message and forgets its counts', [PendingRun::finish(pending: 0, stopped: false), PendingRun::counts()], [
     $finished . ' ' . Text::sprintf('COM_ALFA_TASKS_PENDING_JOBS', 4) . ' ' . Text::sprintf('COM_ALFA_TASKS_PENDING_STOCK', 2) . ' ' . Text::sprintf('COM_ALFA_TASKS_PENDING_PRICES', 10),
-    ['jobs' => 0, 'stock' => 0, 'prices' => 0, 'errors' => 0, 'steps' => 0],
+    ['jobs' => 0, 'stock' => 0, 'prices' => 0, 'errors' => 0, 'streak' => 0],
 ]);
-$check('P3f the most steps of a run is a limit', PendingRun::STEPS_MAX > 0, true);
+$check('P3f the run stops only at the safety limit of steps that only failed, never for its length', [PendingRun::ERROR_STEPS_MAX, \defined(PendingRun::class . '::STEPS_MAX')], [3, false]);
 
 echo "\n{$pass} passed, {$fail} failed\n";
 exit($fail > 0 ? 1 : 0);
