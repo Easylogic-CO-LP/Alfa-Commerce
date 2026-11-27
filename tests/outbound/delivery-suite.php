@@ -171,7 +171,7 @@ try {
     $check('D1d the newer change waits to be told', \count($later), 1);
 
     $deliver($down);
-    $check('D1e a retried row stands for its unit again', [$read((int) $later[0])['state'], $read((int) $later[0])['pending']], [OutboundDelivery::STATE_PENDING, '1']);
+    $check('D1e a retried row stands for its unit again', [$read((int) $later[0])['state'], (int) $read((int) $later[0])['pending']], [OutboundDelivery::STATE_PENDING, 1]);
     OutboundFeed::record(db: $db, topic: OutboundTopics::PRICE, subjectId: $product);
     $price = (int) $db->setQuery(
         'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES) . ' WHERE ' . $db->quoteName('consumer_id') . ' = ' . $consumer
@@ -220,7 +220,7 @@ try {
     $values = OutboundValues::for(rows: [(object) ['id' => 1, 'topic' => OutboundTopics::ORDER_CREATED, 'subject_id' => $order, 'unit_id' => 0, 'payload' => '3', 'created' => gmdate('Y-m-d H:i:s')]]);
     $check('D6a the status told is the one recorded with the change', $values[1]['status_id'] ?? null, 3);
     $values = OutboundValues::for(rows: [(object) ['id' => 2, 'topic' => OutboundTopics::ORDER_CREATED, 'subject_id' => $order, 'unit_id' => 0, 'payload' => '', 'created' => gmdate('Y-m-d H:i:s')]]);
-    $check('D6b a row recorded without it tells none', $values[2]['status_id'] ?? 'missing', null);
+    $check('D6b a row recorded without it tells status_id null, the field present', [\array_key_exists('status_id', $values[2] ?? []), $values[2]['status_id'] ?? 'missing'], [true, null]);
 
     // ── D8: retention of a paused consumer's rows ───────────────────────────
     echo "D8 retention\n";
