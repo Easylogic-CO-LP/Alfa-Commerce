@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentAutomation;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\PaymentRefundFlip;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\ShipmentAutomation;
+use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundDelivery;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\CatalogueRebuildJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceIndexTidyJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\SearchRebuildJob;
@@ -48,6 +49,9 @@ use Joomla\Database\QueryInterface;
  *
  * Anything that must outlive a task is written to the order's timeline before the task may go (the order.email_sent
  * record, OrderStatusEmail).
+ *
+ * The same pass removes the outgoing notifications' settled rows past their keeping, of every consumer
+ * ({@see OutboundDelivery::pruneSettled()}).
  *
  * @since  2.2.0
  */
@@ -154,6 +158,14 @@ final class TaskRetention
 
         do {
             $batch = self::pruneChunk(limit: self::BATCH);
+            $deleted += $batch;
+        } while ($batch === self::BATCH && (hrtime(true) - $start) / 1e6 < $budgetMs);
+
+        // The outgoing notifications' settled rows, every consumer's alike (paused and idle ones included), by their own
+        // keeping ({@see OutboundDelivery::SENT_KEEP_DAYS}, {@see OutboundDelivery::DEAD_KEEP_DAYS}), until none is left
+        // or the budget is spent.
+        do {
+            $batch = OutboundDelivery::pruneSettled(limit: self::BATCH);
             $deleted += $batch;
         } while ($batch === self::BATCH && (hrtime(true) - $start) / 1e6 < $budgetMs);
 

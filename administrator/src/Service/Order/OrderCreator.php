@@ -291,7 +291,8 @@ final class OrderCreator
         try {
             $orderId = self::insertOrder(db: $db, draft: $draft, statusId: $statusId);
             // The consumers of new orders are owed this one, written with it; they read it whole when it is sent.
-            OutboundFeed::record(db: TransactionState::driver($db), topic: OutboundTopics::ORDER_CREATED, subjectId: $orderId);
+            // The status the order opened in travels with the row: the consumer is told it, not the status of the moment it is sent.
+            OutboundFeed::record(db: TransactionState::driver($db), topic: OutboundTopics::ORDER_CREATED, subjectId: $orderId, payload: (string) $statusId);
             // The lines' money is the order's, at the scale the order froze.
             $currency = OrderCurrency::of(orderId: $orderId);
             $lineIds = [];

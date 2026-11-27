@@ -179,7 +179,9 @@ final class OutboundConsumers
      *
      * @param int $id The consumer.
      *
-     * @return array{back: int, more: bool} The changes put back, and whether changes given up remain after the batch.
+     * @return array{back: int, overtaken: int, more: bool} The changes put back, the ones discarded as overtaken (a newer
+     *                                                change of the unit waits, or a later change of the order was
+     *                                                delivered), and whether changes given up remain after the batch.
      *
      * @throws DomainException When there is no such consumer.
      *
@@ -198,6 +200,7 @@ final class OutboundConsumers
             ['consumer_id', 'topic', 'subject_id', 'unit_id'],
         ));
         $back = 0;
+        $overtaken = 0;
         $db->transactionStart(true);
 
         try {
@@ -225,6 +228,20 @@ final class OutboundConsumers
                     . ' SET ' . $db->quoteName('d.state') . ' = ' . $discarded
                     . ' WHERE ' . $batch . ' AND ' . $db->quoteName('d.topic') . ' IN (' . $merged . ')',
                 )->execute();
+                $overtaken += (int) $db->getAffectedRows();
+
+                // An order's change overtaken: a later change of the same order was delivered since, so an older state
+                // must not arrive after a newer one.
+                $orders = implode(', ', array_map([$db, 'quote'], OutboundTopics::ORDERS));
+                $db->setQuery(
+                    'UPDATE ' . $table . ' AS ' . $db->quoteName('d') . ' INNER JOIN ' . $table . ' AS ' . $db->quoteName('o')
+                    . ' ON ' . $db->quoteName('o.consumer_id') . ' = ' . $db->quoteName('d.consumer_id') . ' AND ' . $db->quoteName('o.subject_id') . ' = ' . $db->quoteName('d.subject_id')
+                    . ' AND ' . $db->quoteName('o.topic') . ' IN (' . $orders . ') AND ' . $db->quoteName('o.state') . ' = ' . $db->quote(OutboundDelivery::STATE_SENT)
+                    . ' AND ' . $db->quoteName('o.id') . ' > ' . $db->quoteName('d.id')
+                    . ' SET ' . $db->quoteName('d.state') . ' = ' . $discarded . ', ' . $db->quoteName('d.last_error') . ' = ' . $db->quote('COM_ALFA_OUTBOUND_REASON_OVERTAKEN')
+                    . ' WHERE ' . $batch . ' AND ' . $db->quoteName('d.topic') . ' IN (' . $orders . ')',
+                )->execute();
+                $overtaken += (int) $db->getAffectedRows();
 
                 $db->setQuery(
                     'UPDATE ' . $table . ' AS ' . $db->quoteName('d')
@@ -252,7 +269,40 @@ final class OutboundConsumers
 
         self::syncNotice(consumerId: $id);
 
-        return ['back' => $back, 'more' => $more];
+        return ['back' => $back, 'overtaken' => $overtaken, 'more' => $more];
+    }
+
+    /**
+     * Discard a consumer's waiting changes of topics it no longer takes: never sent, no longer counted, the reason kept.
+     *
+     * @param int $id The consumer.
+     * @param list<string> $topics The topics dropped.
+     *
+     * @return int The changes discarded.
+     *
+     * @since  2.3.0
+     */
+    public static function discardTopics(int $id, array $topics): int
+    {
+        $topics = array_values(array_filter($topics, [OutboundTopics::class, 'known']));
+
+        if ($topics === []) {
+            return 0;
+        }
+
+        $db = self::db();
+        $db->setQuery(
+            $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))
+                ->set($db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_DISCARDED))
+                ->set($db->quoteName('pending') . ' = NULL')
+                ->set($db->quoteName('dead_at') . ' = UTC_TIMESTAMP(6)')
+                ->set($db->quoteName('last_error') . ' = ' . $db->quote('COM_ALFA_OUTBOUND_REASON_TOPIC_DROPPED'))
+                ->where($db->quoteName('consumer_id') . ' = ' . $id)
+                ->where($db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_PENDING))
+                ->whereIn($db->quoteName('topic'), $topics, ParameterType::STRING),
+        )->execute();
+
+        return (int) $db->getAffectedRows();
     }
 
     /**
@@ -281,9 +331,8 @@ final class OutboundConsumers
     }
 
     /**
-     * How many deliveries are in each state of work of the Background screen: running (waiting rows of a consumer
-     * whose delivery job runs now), waiting, attention (given up) and finished (taken, discarded, or of a plugin that
-     * takes none).
+     * How many deliveries wait (state of work waiting) and how many were given up (attention), for the Tools card; the
+     * other states of work count zero here: the finished are not read, and a row being sent counts as waiting.
      *
      * @return array<string, int> By state of work ({@see TaskStaff::WORK_STATES}).
      *
@@ -293,12 +342,15 @@ final class OutboundConsumers
     {
         $db = self::db();
         $counts = array_fill_keys(TaskStaff::WORK_STATES, 0);
+        $states = [OutboundDelivery::STATE_PENDING => TaskStaff::WORK_WAITING, OutboundDelivery::STATE_DEAD => TaskStaff::WORK_ATTENTION];
 
+        // The waiting and the given up only, read through the state index, as the card of who is told reads them; the
+        // finished are not counted here, and a waiting row's job being sent is the row's own display.
         foreach ($db->setQuery(
-            'SELECT ' . self::workSql(db: $db, alias: 'd') . ' AS ' . $db->quoteName('work') . ', COUNT(*) AS ' . $db->quoteName('n')
-            . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES, 'd') . ' GROUP BY ' . $db->quoteName('work'),
+            'SELECT ' . $db->quoteName('state') . ', COUNT(*) AS ' . $db->quoteName('n') . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES)
+            . ' WHERE ' . $db->quoteName('state') . ' IN (' . implode(', ', array_map([$db, 'quote'], array_keys($states))) . ') GROUP BY ' . $db->quoteName('state'),
         )->loadAssocList() ?: [] as $count) {
-            $counts[(string) $count['work']] = (int) $count['n'];
+            $counts[$states[(string) $count['state']]] = (int) $count['n'];
         }
 
         return $counts;
@@ -584,7 +636,7 @@ final class OutboundConsumers
     {
         $key = (string) $plugin;
         $row = $db->setQuery(
-            $db->getQuery(true)->select($db->quoteName(['id', 'state']))->from($db->quoteName(OutboundFeed::CONSUMERS))
+            $db->getQuery(true)->select($db->quoteName(['id', 'state', 'topics']))->from($db->quoteName(OutboundFeed::CONSUMERS))
                 ->where($db->quoteName('plugin') . ' = :plugin')->bind(':plugin', $key),
         )->loadObject();
 
@@ -629,6 +681,8 @@ final class OutboundConsumers
                     . $db->quoteName('state') . ' = 1, ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP() WHERE ' . $db->quoteName('id') . ' = ' . (int) $row->id,
                 )->bind(':topics', $list)->bind(':name', $name),
             )->execute();
+            // The changes waiting for a topic the plugin no longer names are not sent.
+            self::discardTopics(id: (int) $row->id, topics: array_values(array_diff(OutboundTopics::parse(topics: (string) $row->topics), $topics)));
         }
 
         OutboundFeed::forget();
