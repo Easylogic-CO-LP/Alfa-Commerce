@@ -169,7 +169,7 @@ class PlaceModel extends AlfaAdminModel
     /**
      * Save a place. A place that takes another parent changes the chain of every place below it, so the price index's
      * contexts priced at or below it, priced with the old chain, get their next generation, prepared by the
-     * price.set.prepare job (Tools > Tasks) and switched whole when complete; staff are told.
+     * price.set.prepare job (Background) and switched whole when complete; staff are told.
      *
      * @param array $data The form data.
      *

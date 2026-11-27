@@ -19,6 +19,9 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\OutboundDeliveryJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use DomainException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -28,7 +31,7 @@ use Joomla\Database\ParameterType;
 use Throwable;
 
 /**
- * The consumers of the shop's changes and what staff do with them: the rows of Tools, Tasks' card of outgoing
+ * The consumers of the shop's changes and what staff do with them: the rows of Background' card of outgoing
  * notifications, the changes given up put back or discarded, a consumer paused and resumed, a webhook's test, and the
  * row of a plugin consumer kept in step with the plugin (its topics when it is saved, paused when it is disabled,
  * removed with it).
@@ -55,7 +58,7 @@ final class OutboundConsumers
      *
      * @since  2.3.0
      */
-    public const URL = 'index.php?option=com_alfa&view=tools#tasks';
+    public const URL = 'index.php?option=com_alfa&view=tasks&tab=outbound';
 
     /**
      * The connection, as the driver whose transaction levels Alfa keeps.
@@ -240,6 +243,82 @@ final class OutboundConsumers
         self::syncNotice(consumerId: $id);
 
         return $discarded;
+    }
+
+    /**
+     * How many deliveries are in each state of work of the Background screen: running (waiting rows of a consumer
+     * whose delivery job runs now), waiting, attention (given up) and finished (taken, discarded, or of a plugin that
+     * takes none).
+     *
+     * @return array<string, int> By state of work ({@see TaskStaff::WORK_STATES}).
+     *
+     * @since  2.3.0
+     */
+    public static function deliveryCounts(): array
+    {
+        $db = self::db();
+        $counts = array_fill_keys(TaskStaff::WORK_STATES, 0);
+
+        foreach ($db->setQuery(
+            'SELECT ' . self::workSql(db: $db, alias: 'd') . ' AS ' . $db->quoteName('work') . ', COUNT(*) AS ' . $db->quoteName('n')
+            . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES, 'd') . ' GROUP BY ' . $db->quoteName('work'),
+        )->loadAssocList() ?: [] as $count) {
+            $counts[(string) $count['work']] = (int) $count['n'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * SQL that names a delivery's state of work ({@see TaskStaff::WORK_STATES}): running while it waits and its
+     * consumer's delivery job runs now, waiting, attention when given up, finished when taken, discarded or of a plugin
+     * that takes none.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $alias The deliveries table's alias in the query.
+     *
+     * @since  2.3.0
+     */
+    public static function workSql(DatabaseDriver $db, string $alias): string
+    {
+        $state = $db->quoteName($alias . '.state');
+        $running = 'EXISTS (SELECT 1 FROM ' . $db->quoteName(Tasks::TABLE, 'j') . ' WHERE ' . $db->quoteName('j.type') . ' = ' . $db->quote(Tasks::TYPE_JOB)
+            . ' AND ' . $db->quoteName('j.state') . ' = ' . $db->quote(Tasks::STATE_RUNNING)
+            . ' AND ' . $db->quoteName('j.scope_key') . ' = CONCAT(' . $db->quote(OutboundDeliveryJob::NAME . ':') . ', ' . $db->quoteName($alias . '.consumer_id') . '))';
+
+        return 'CASE WHEN ' . $state . ' = ' . $db->quote(OutboundDelivery::STATE_PENDING) . ' THEN IF(' . $running . ', ' . $db->quote(TaskStaff::WORK_RUNNING) . ', ' . $db->quote(TaskStaff::WORK_WAITING) . ')'
+            . ' WHEN ' . $state . ' = ' . $db->quote(OutboundDelivery::STATE_DEAD) . ' THEN ' . $db->quote(TaskStaff::WORK_ATTENTION)
+            . ' ELSE ' . $db->quote(TaskStaff::WORK_FINISHED) . ' END';
+    }
+
+    /**
+     * Delete finished deliveries: the rows named that were taken, discarded, or are of a plugin that takes none. A row
+     * in any other state is kept and counted.
+     *
+     * @param list<int> $ids The rows.
+     *
+     * @return array{deleted: int, kept: int}
+     *
+     * @since  2.3.0
+     */
+    public static function deleteFinished(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return ['deleted' => 0, 'kept' => 0];
+        }
+
+        $db = self::db();
+        $db->setQuery(
+            $db->getQuery(true)
+                ->delete($db->quoteName(OutboundFeed::DELIVERIES))
+                ->whereIn($db->quoteName('id'), $ids)
+                ->whereIn($db->quoteName('state'), [OutboundDelivery::STATE_SENT, OutboundDelivery::STATE_DISCARDED, OutboundDelivery::STATE_NO_CONSUMER], ParameterType::STRING),
+        )->execute();
+        $deleted = $db->getAffectedRows();
+
+        return ['deleted' => $deleted, 'kept' => \count($ids) - $deleted];
     }
 
     /**

@@ -26,7 +26,6 @@ use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardStatsService;
 use Alfa\Component\Alfa\Administrator\Service\Stats\StatsCards;
 use Alfa\Component\Alfa\Administrator\Service\Task\RunnerHealth;
-use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -274,7 +273,7 @@ final class CoreCardProvider
     /**
      * The jobs running or waiting, as the Dashboard's background-work card lists them: the job's label and how
      * far it is ("Recreate thumbnails: 640 of 1500 (42%)", "Not counted yet" for a total not counted), and its progress
-     * page; read from the jobs list of Tools > Tasks, running first. A failed read lists none, logged.
+     * page on the Background screen, running first. A failed read lists none, logged.
      *
      * @return list<array{text: string, url: string}>
      *
@@ -283,7 +282,7 @@ final class CoreCardProvider
     private static function activeJobs(): array
     {
         try {
-            $rows = TaskStaff::jobRows(limit: self::ACTIVE_JOBS);
+            $rows = TaskStaff::activeJobs(limit: self::ACTIVE_JOBS);
         } catch (Throwable $e) {
             Tasks::log(entry: 'Dashboard: the jobs could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
@@ -293,20 +292,9 @@ final class CoreCardProvider
         $jobs = [];
 
         foreach ($rows as $row) {
-            if (!\in_array($row['state'], [Tasks::STATE_RUNNING, Tasks::STATE_PENDING], true)) {
-                continue;
-            }
-
-            $total = (int) $row['total_units'];
             $jobs[] = [
-                'text' => Text::sprintf(
-                    'COM_ALFA_DASHCARD_RUNNER_JOB',
-                    $row['label'] !== '' ? Text::_((string) $row['label']) : (string) $row['handler'],
-                    $total > 0
-                        ? Text::sprintf('COM_ALFA_TASKS_PROGRESS_UNITS', (int) $row['done_units'], $total, TaskDocument::percent(row: $row))
-                        : Text::_('COM_ALFA_TASKS_PROGRESS_NOT_COUNTED'),
-                ),
-                'url' => Route::_('index.php?option=com_alfa&view=tools&job=' . (int) $row['id'], false) . '#tasks',
+                'text' => Text::sprintf('COM_ALFA_DASHCARD_RUNNER_JOB', $row['labelText'], $row['progressText']),
+                'url' => Route::_('index.php?option=com_alfa&view=tasks&job=' . (int) $row['id'], false),
             ];
         }
 

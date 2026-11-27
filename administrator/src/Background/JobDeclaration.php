@@ -27,7 +27,7 @@ namespace Alfa\Component\Alfa\Administrator\Background;
 final class JobDeclaration
 {
     /**
-     * Its name in Tools > Tasks, a key of the plugin's language file.
+     * Its name in Background, a key of the plugin's language file.
      *
      * @since  2.3.0
      */
@@ -71,7 +71,7 @@ final class JobDeclaration
     private bool $urgent = false;
 
     /**
-     * Its name in Tools > Tasks, a key of the plugin's own language file. Required.
+     * Its name in Background, a key of the plugin's own language file. Required.
      *
      * @param string $languageKey The key.
      *
@@ -85,7 +85,7 @@ final class JobDeclaration
     }
 
     /**
-     * Its "Covers" text in Tools > Tasks, a key of the plugin's own language file whose %s is the job's scope.
+     * Its "Covers" text in Background, a key of the plugin's own language file whose %s is the job's scope.
      * Without it the scope is shown as given, or "The whole shop" for a job with no scope.
      *
      * @param string $languageKey The key.

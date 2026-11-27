@@ -23,7 +23,7 @@ namespace Alfa\Component\Alfa\Administrator\Background;
 final class TaskDeclaration
 {
     /**
-     * Its name in Tools > Tasks: a key of the plugin's own language file. Required.
+     * Its name in Background: a key of the plugin's own language file. Required.
      *
      * @since  2.3.0
      */
@@ -44,7 +44,7 @@ final class TaskDeclaration
     private bool $urgent = false;
 
     /**
-     * Its name in Tools > Tasks, a key of the plugin's own language file. Required.
+     * Its name in Background, a key of the plugin's own language file. Required.
      *
      * @param string $languageKey The key.
      *

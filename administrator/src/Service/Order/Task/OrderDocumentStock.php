@@ -23,7 +23,7 @@ use Joomla\Database\ParameterType;
  * A document's stock movement that a stock plugin refused, waiting for staff.
  *
  * The refusal is final for the automatic tries: the drain that met it writes this task for the document's order, and
- * its first run fails with the plugin's words, so it stands in Tools > Tasks with Run again. Staff run it again once
+ * its first run fails with the plugin's words, so it stands in Background with Run again. Staff run it again once
  * the plugin allows the movement: the refused movement is opened and applied then; refused again, the new task waits
  * the same way. A movement that is no longer refused (applied, or opened again by its producer) needs nothing. One
  * task stands per document: a refusal met while one waits tells that one ({@see Tasks::failedAgain()}). What staff

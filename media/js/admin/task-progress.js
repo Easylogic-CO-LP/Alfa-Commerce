@@ -1,14 +1,13 @@
 /**
- * Alfa Commerce - Tools > Tasks, the progress page of one job (&job=N).
+ * Alfa Commerce - the Background screen following one job (&job=N).
  *
  * While the page is open and the job waits, each call asks the server for a 2-second tick on that job
  * (task=tasks.process) and shows how far it is. The answer paces the page: the next call follows after its
  * retry_after seconds (0 while the job advances, the endpoint's gap while it cannot be worked, with a line saying
  * why), and never sooner than a second after the last one began. Closing the page loses nothing: the job waits for
- * the next run. When the job ends, the sentence of its end shows, coloured by it, the bar turns solid in the same colour,
- * a thumbnails job's report is printed, and the jobs card below is asked for again: the server draws it with its own
- * layout (task=tasks.jobsCard) and the script swaps it in. The script fills the page's own elements and
- * swaps in the card the server drew; it builds no markup.
+ * the next run. When the job ends, the sentence of its end shows, coloured by it, the bar turns solid in the same
+ * colour, the job's report is printed, and the page loads itself again so the list shows the row as it ended. The
+ * script fills the page's own elements; it builds no markup.
  */
 (function () {
     'use strict';
@@ -42,7 +41,8 @@
             wait.hidden = !data.waitText;
         }
 
-        // The job ended: its sentence, its colour, its report, and the jobs card drawn again by the server.
+        // The job ended: its sentence, its colour and its report; then the page loads itself again, so the list below
+        // shows the row as it ended.
         function end(data) {
             bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
 
@@ -55,37 +55,7 @@
             });
             report.textContent = data.report || '';
             report.hidden = !data.report;
-            refreshJobs();
-        }
-
-        function refreshJobs() {
-            const jobs = document.querySelector('[data-alfa-jobs-card]');
-
-            if (!jobs) {
-                return;
-            }
-
-            const body = new FormData();
-            body.append('id', card.getAttribute('data-id'));
-            body.append(card.getAttribute('data-token'), '1');
-
-            fetch(card.getAttribute('data-jobs-url'), { method: 'POST', body: body, credentials: 'same-origin', headers: { Accept: 'application/json' } })
-                .then(function (response) { return response.json(); })
-                .then(function (reply) {
-                    if (!reply || !reply.success || !reply.data || !reply.data.html) {
-                        return;
-                    }
-
-                    const drawn = document.createElement('template');
-                    drawn.innerHTML = reply.data.html.trim();
-                    const fresh = drawn.content.querySelector('[data-alfa-jobs-card]');
-
-                    if (fresh) {
-                        jobs.replaceWith(fresh);
-                    }
-                })
-                // The card stays as it was; the next page load draws it.
-                .catch(function () {});
+            window.setTimeout(function () { window.location.reload(); }, 1500);
         }
 
         // The next call after the answer's retry_after seconds, and never sooner than a second after this one began.

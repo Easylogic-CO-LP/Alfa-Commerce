@@ -280,7 +280,7 @@ abstract class OrderTaskHandler implements TaskHandler, TaskSettleListener
 
     /**
      * The record of a run that ended failed or held, or of one recovery held: [event, text, actor]. A sentence that
-     * names the units leaves out the task's error, which only lists them again (Tools > Tasks shows each unit's).
+     * names the units leaves out the task's error, which only lists them again (Background shows each unit's).
      *
      * @param TaskSettlement $settlement What happened.
      * @param array{key: string, args: list<mixed>} $what What the task is.

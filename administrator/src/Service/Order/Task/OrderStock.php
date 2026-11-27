@@ -31,7 +31,7 @@ use Throwable;
  *
  * A failure around the drain (the order's status not read, a lost connection) is retried with the task engine's
  * backoff, as every other order task's is, and still owes the drain job whatever threw; a task that fails for good
- * shows in Tools > Tasks and the bell.
+ * shows in Background and the bell.
  *
  * @since  2.1.4
  */

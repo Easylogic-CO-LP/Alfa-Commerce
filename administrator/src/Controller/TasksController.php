@@ -32,10 +32,11 @@ use Joomla\CMS\Router\Route;
 use Throwable;
 
 /**
- * The staff actions of Tools > Tasks: Resend, Run again and Mark resolved on a failed or held single, Retry and Mark
- * resolved on a failed job, Cancel on an extension's job that waits or runs ({@see TaskStaff}); the progress page's calls (process, and jobsCard when its job ends); and a
- * new web-cron key (generateKey). Each is a POST with the form token, by a user with the Tools permission. The actions go back to the
- * Tasks tab with what happened; process answers JSON; generateKey answers the Tools page with the new address, once.
+ * The staff actions of the Background screen: Resend, Run again and Mark resolved on a failed or held single, Retry
+ * and Mark resolved on a failed job, Cancel on an extension's job that waits or runs ({@see TaskStaff}), Delete on
+ * finished entries; the progress page's call (process); and a new web-cron key (generateKey). Each is a POST with
+ * the form token, by a user with the Tools permission. The actions go back to the Background screen with what
+ * happened; process answers JSON; generateKey answers the Tools page with the new address, once.
  *
  * @since  2.1.4
  */
@@ -56,6 +57,13 @@ class TasksController extends BaseController
         TaskStaff::REFUSED_NO_REASON => 'COM_ALFA_TASKS_REASON_REQUIRED',
         TaskStaff::REFUSED_ACTIVE => 'COM_ALFA_TASKS_JOB_ACTIVE',
     ];
+
+    /**
+     * Where every action returns to: the Background screen.
+     *
+     * @since  2.3.0
+     */
+    private const PAGE = 'index.php?option=com_alfa&view=tasks';
 
     /**
      * Resend an e-mail to the recipients not recorded as sent.
@@ -125,7 +133,8 @@ class TasksController extends BaseController
     /**
      * The progress page's call: a 2-second tick on the job while it waits, then how far it is, as JSON. The session is
      * closed before the tick, so the same member of staff's other pages never wait for it. A job waiting out its
-     * backoff is made due first, as staff asked.
+     * backoff is made due first, as staff asked. When the job has ended the answer carries its report, and the page
+     * loads itself again so the list shows the row as it ended.
      *
      * The answer paces the page: retry_after is 0 while the tick worked the job and it still waits, and the endpoint's
      * gap (5 s) when the job could not be worked, with the reason and its line (another run holds it, a large job holds
@@ -169,10 +178,8 @@ class TasksController extends BaseController
             'percent' => $job['percent'],
             'text' => TaskStaff::unitsText(done: $job['done'], total: $job['total'], percent: $job['percent']),
             'error' => Tasks::errorText($job['error']),
-            // A thumbnails job's report, printed in the card when the job ends.
-            'report' => $finished && \is_array($job['report'])
-                ? Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_REPORT', (int) $job['report']['made'], (int) $job['report']['kept'], (int) $job['report']['missing'], (int) $job['report']['failed'])
-                : '',
+            // What the job reports, printed in the card when the job ends.
+            'report' => $finished ? implode(' ', $job['reportLines']) : '',
             'finished' => $finished,
             'retry_after' => $reason === '' ? 0 : Runner::ENDPOINT_GAP_SECONDS,
             'reason' => $reason,
@@ -181,25 +188,45 @@ class TasksController extends BaseController
     }
 
     /**
-     * The jobs card of the Tasks tab, drawn by its own layout from the one source of its data (TaskStaff::jobsCard()), as
-     * JSON {html}: the progress page swaps it in when its job ends, so the list below the card is never left stale and a
-     * thumbnails job's report shows in its row. A POST with the form token, by a user with the Tools permission.
+     * Delete the finished entries checked in the list: done, resolved or cancelled rows go; a row in any other state
+     * is kept and the message says so. A POST with the form token, by a user with the Tools permission.
      *
-     * @since  2.2.0
+     * @throws NotAllowed When the user may not use Tools.
+     *
+     * @since  2.3.0
      */
-    public function jobsCard(): void
+    public function delete(): void
     {
-        $this->ajaxGuard();
+        $page = Route::_(self::PAGE, false);
 
-        if (strtoupper($this->input->getMethod()) !== 'POST') {
-            $this->ajaxRespond([], false, Text::_('JINVALID_TOKEN_NOTICE'));
+        if (strtoupper($this->input->getMethod()) !== 'POST' || !$this->checkToken('post', false)) {
+            $this->setRedirect($page, Text::_('JINVALID_TOKEN_NOTICE'), 'error');
 
             return;
         }
 
-        $this->ajaxRespond([
-            'html' => LayoutHelper::render('tasks.jobs', TaskStaff::jobsCard(followedJob: RequestScalar::int($this->input->post, 'id')), JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'),
-        ]);
+        if (!$this->app->getIdentity()->authorise('alfa.tools', 'com_alfa')) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        $ids = array_map('intval', (array) $this->input->post->get('cid', [], 'array'));
+
+        try {
+            $result = TaskStaff::deleteFinished(ids: $ids);
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Background (delete) stopped with ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
+            $this->setRedirect($page, Text::_('COM_ALFA_TASKS_ACTION_ERROR'), 'error');
+
+            return;
+        }
+
+        $message = Text::plural('COM_ALFA_TASKS_DELETED', $result['deleted']);
+
+        if ($result['kept'] > 0) {
+            $message .= ' ' . Text::plural('COM_ALFA_TASKS_DELETE_KEPT', $result['kept']);
+        }
+
+        $this->setRedirect($page, $message, $result['kept'] > 0 ? 'warning' : 'success');
     }
 
     /**
@@ -285,7 +312,7 @@ class TasksController extends BaseController
     }
 
     /**
-     * The token of a POST and the Tools permission, then the act, then back to the Tasks tab.
+     * The token of a POST and the Tools permission, then the act, then back to the Background screen.
      *
      * @param callable(int, int): string $call The act, given the task and the user; answers what to say.
      *
@@ -295,7 +322,7 @@ class TasksController extends BaseController
      */
     private function act(callable $call): void
     {
-        $page = Route::_('index.php?option=com_alfa&view=tools', false) . '#tasks';
+        $page = Route::_(self::PAGE, false);
 
         if (strtoupper($this->input->getMethod()) !== 'POST' || !$this->checkToken('post', false)) {
             $this->setRedirect($page, Text::_('JINVALID_TOKEN_NOTICE'), 'error');
@@ -316,7 +343,7 @@ class TasksController extends BaseController
         } catch (DomainException $e) {
             $this->setRedirect($page, Text::_(self::REFUSALS[$e->getCode()] ?? 'COM_ALFA_TASKS_ACTION_ERROR'), 'warning');
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools > Tasks (' . $this->getTask() . ') on task #' . $id . ' stopped with ' . $e::class . ': ' . ErrorText::of($e)
+            Tasks::log(entry: 'Background (' . $this->getTask() . ') on task #' . $id . ' stopped with ' . $e::class . ': ' . ErrorText::of($e)
                 . ' (' . $e->getFile() . ':' . $e->getLine() . ')', priority: Log::ERROR);
             TaskAttention::sync();
             $this->setRedirect($page, Text::_('COM_ALFA_TASKS_ACTION_ERROR'), 'error');

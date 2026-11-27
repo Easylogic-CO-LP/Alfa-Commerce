@@ -104,6 +104,9 @@ class TasksController extends ApiController
         $limit = is_numeric($page['limit'] ?? null) ? (int) $page['limit'] : self::PAGE_DEFAULT;
         $offset = is_numeric($page['offset'] ?? null) ? max(0, (int) $page['offset']) : 0;
         $this->input->set('page', ['limit' => $limit < 1 ? self::PAGE_DEFAULT : min(self::PAGE_MAX, $limit), 'offset' => $offset]);
+        // The list's model, chosen here and never by the caller (the guards clear any ?model=): the documents' list,
+        // not the Background screen's, which reads the same rows for staff.
+        $this->input->set('model', 'taskdocuments');
 
         return parent::displayList();
     }

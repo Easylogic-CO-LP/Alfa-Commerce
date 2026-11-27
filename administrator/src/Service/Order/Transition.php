@@ -76,7 +76,7 @@ use WeakReference;
  * until then; with no stock single they answer "nothing to apply" at once),
  * never after a rollback. A request that dies leaves them to
  * recovery. An e-mail whose outcome is unknown, and onOrderStatusChange, are
- * never run twice automatically: staff decide (Tools > Tasks).
+ * never run twice automatically: staff decide (Background).
  *
  * @since  2.0.0
  */

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Tools > Tasks: the consumers of the shop's changes (webhooks and plugins) and what each is owed: what waits, what was
+ * The Background screen's Outgoing notifications tab: the consumers of the shop's changes (webhooks and plugins) and what each is owed: what waits, what was
  * given up after the last retry or refused, and the last delivery with its answer. Staff put the changes given up back
  * in the queue (Retry), discard them (they are never sent and stop being counted), and pause or resume a consumer
  * (paused, nothing new is queued for it and nothing waiting is sent or lost). Every action is a plain form POST with

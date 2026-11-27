@@ -271,7 +271,8 @@ final class CoreToolProvider
 
         // THE LIST PRICES OF A NEW COMBINATION OF CUSTOMER GROUPS are prepared by its
         // price.set.prepare job, never by the request that brought the combination. The
-        // card says what waits and how far each job is; its button works the waiting sets' jobs now.
+        // action says what waits and how far each job is; its button on the Background screen works the waiting
+        // sets' jobs now.
         $priceSets = $this->priceSetsState();
 
         // The card names what it is about; its button says what it does, with the run buttons' icon.
@@ -281,7 +282,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-secondary')
             ->priority(95)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'background')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PRICE_SETS_DESC');
 
@@ -292,7 +293,7 @@ final class CoreToolProvider
         // STOCK MOVEMENTS THAT NEVER HAPPENED. An order status change or an issued document
         // records the movement it owes and applies it at once; this finishes any that failed
         // or were cut off. It replaces a scheduled task: the notification centre says when
-        // it is needed, and the merchant runs it from here.
+        // it is needed, and the merchant runs it from the Background screen.
         $stockOwed = false;
 
         try {
@@ -307,7 +308,7 @@ final class CoreToolProvider
             ->mutating()
             ->css($stockOwed ? 'btn-warning' : 'btn-secondary')
             ->priority(80)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'background')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_STOCK_EFFECTS_DESC');
 
@@ -331,7 +332,7 @@ final class CoreToolProvider
             ->mutating()
             ->css($tasksOwed ? 'btn-warning' : 'btn-secondary')
             ->priority(100)
-            ->meta('surface', 'tasks')
+            ->meta('surface', 'background')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_TASKS_RUN_DESC');
 
@@ -346,7 +347,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-secondary')
             ->priority(90)
-            ->meta('surface', 'tasks')
+            ->meta('surface', 'background')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_TASKS_PRUNE_DESC');
 
@@ -1247,7 +1248,7 @@ final class CoreToolProvider
     }
 
     /**
-     * Send the Tools screen to the progress page of the job just queued for a scope (Tools > Tasks, &job=N), whose
+     * Send the Tools screen to the progress page of the job just queued for a scope (Background, &job=N), whose
      * 2-second ticks follow it to its end. A request that joined a job already waiting or running (it merges
      * into that job) is told so, by the job's state, in the message area of the page that opens:
      * a button pressed again never just goes grey.
@@ -1266,7 +1267,7 @@ final class CoreToolProvider
             return;
         }
 
-        $event->setLocation(Route::_('index.php?option=com_alfa&view=tools&job=' . (int) $job['id'], false) . '#tasks');
+        $event->setLocation(Route::_('index.php?option=com_alfa&view=tasks&job=' . (int) $job['id'], false));
 
         if ($joined && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
             $event->setMessage(Text::sprintf(

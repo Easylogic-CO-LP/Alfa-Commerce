@@ -9,7 +9,7 @@
 
 /**
  * The background work's card on the Dashboard's alert strip: the standing health notice's text and a link to
- * Tools > Tasks, and one line for each job running or waiting, linking to its progress page. Nothing is
+ * Background, and one line for each job running or waiting, linking to its progress page. Nothing is
  * printed while neither is there. The staff kick draws it again after each of its ticks (TasksController::
  * backgroundCard()) and swaps [data-alfa-background-card] in.
  *

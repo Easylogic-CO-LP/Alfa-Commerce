@@ -1,12 +1,11 @@
 <?php
 
 /**
- * Tools > Tasks, focused on one job (&job=N): its progress, followed while the page is open by the progress script,
- * whose every call is a 2-second tick on this job (task=tasks.process), paced by the answer (the line under the bar
- * says why the page waits). Closing the page loses nothing: the job waits for the next run. When the job ends, one
- * sentence says how, coloured by it, a thumbnails job's report is printed here, and the jobs card below is drawn again
- * by its own layout (task=tasks.jobsCard). The script fills this layout's elements and swaps in the card
- * the server drew.
+ * The Background screen following one job (&job=N): its progress, followed while the page is open by the progress
+ * script, whose every call is a 2-second tick on this job (task=tasks.process), paced by the answer (the line under
+ * the bar says why the page waits). Closing the page loses nothing: the job waits for the next run. When the job
+ * ends, one sentence says how, coloured by it, the job's report is printed here, and the page loads itself again so
+ * the list below shows the row as it ended. The script fills this layout's elements.
  *
  * Available $displayData:
  *   - job     (array|null) TaskStaff::job()
@@ -33,12 +32,12 @@ use Joomla\CMS\Session\Session;
 
 $job = $displayData['job'] ?? null;
 $e   = static fn ($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-$tab = Route::_('index.php?option=com_alfa&view=tools') . '#tasks';
+$list = Route::_('index.php?option=com_alfa&view=tasks');
 
 if (!empty($displayData['missing'])) : ?>
     <div class="alert alert-warning">
         <?php echo Text::sprintf('COM_ALFA_TASKS_JOB_GONE_ID', (int) ($displayData['id'] ?? 0)); ?>
-        <a href="<?php echo $tab; ?>"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_BACK'); ?></a>
+        <a href="<?php echo $list; ?>"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_BACK'); ?></a>
     </div>
     <?php return;
 endif;
@@ -57,13 +56,10 @@ $ends = [
     Tasks::STATE_RESOLVED => ['COM_ALFA_TASKS_PROGRESS_END_RESOLVED', 'text-muted', 'bg-secondary'],
 ];
 $ended = $ends[$job['state']] ?? null;
-$report = \is_array($job['report'] ?? null)
-    ? Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_REPORT', (int) $job['report']['made'], (int) $job['report']['kept'], (int) $job['report']['missing'], (int) $job['report']['failed'])
-    : '';
+$report = implode(' ', (array) ($job['reportLines'] ?? []));
 ?>
 <div class="card mb-3" id="alfa-job-progress" data-alfa-job-progress data-id="<?php echo (int) $job['id']; ?>" data-token="<?php echo Session::getFormToken(); ?>"
-    data-url="<?php echo $e(Route::_('index.php?option=com_alfa&task=tasks.process', false)); ?>"
-    data-jobs-url="<?php echo $e(Route::_('index.php?option=com_alfa&task=tasks.jobsCard', false)); ?>">
+    data-url="<?php echo $e(Route::_('index.php?option=com_alfa&task=tasks.process', false)); ?>">
     <div class="card-header">
         <?php echo Text::sprintf('COM_ALFA_TASKS_PROGRESS_TITLE', (int) $job['id'], $job['label'] !== '' ? Text::_($job['label']) : ''); ?>
     </div>
@@ -86,6 +82,6 @@ $report = \is_array($job['report'] ?? null)
         <?php endforeach; ?>
         <p class="mb-1" data-alfa-job-report<?php echo $report === '' ? ' hidden' : ''; ?>><?php echo $e($report); ?></p>
         <p class="small text-muted mb-2"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_DESC'); ?></p>
-        <a class="btn btn-sm btn-secondary" href="<?php echo $tab; ?>"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_BACK'); ?></a>
+        <a class="btn btn-sm btn-secondary" href="<?php echo $list; ?>"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_BACK'); ?></a>
     </div>
 </div>
