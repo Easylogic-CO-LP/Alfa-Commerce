@@ -18,9 +18,24 @@
  *         product that keeps it off, and the empty list's sentence names both products.
  *   [IS4] ★ the reader: a variant with rows of its own ships with them, one with the wildcard row with every method,
  *         one with no row as its product; the product's page scope (one line, its own list) lists A and not B.
- *   [IS5] ★ a shipping method deleted through its model leaves no row of it on any shipping list: the product and the
- *         variant that shipped with it alone have no list (every method, as the product), a wildcard row and another
- *         method's rows stay, and the operator is told one product and one variant lost their list.
+ *   [IS5] ★ a shipping method no list names is deleted, alone and with another in one delete.
+ *   [IS6] ★ a method a product allows beside another is not deleted until the delete is confirmed; confirmed, it is
+ *         deleted, its row leaves the product's list and the product keeps its other method.
+ *   [IS7] ★ a method that is the only one a product, or a variant, allows is refused whatever is confirmed, with the
+ *         count; the method and the lists stay, and the product is still limited.
+ *   [IS8] ★ a delete of several methods is judged as a whole: two methods that are each other's only alternative on
+ *         a product are each confirmable alone and refused together.
+ *   [IS9] ★ unpublishing the only method of products is allowed, changes no list and tells the operator how many
+ *         products it leaves with no published method; their cart is offered nothing and names them; the Products
+ *         list's filter lists exactly them; published again, the cart is offered the method with no list changed.
+ *         Unpublishing several methods is judged as a whole too.
+ *   [IS10] ★ a confirmed delete that leaves a product with only unpublished methods on its list is done, and says so.
+ *   [IS11] ★ a method an order names is not deleted: the order keeps naming it and the method stays.
+ *   [IS12] ★ the REST resource's model refuses the same deletes with the sentence and the count the API answers 409
+ *         with, and takes the confirmation from force.
+ *   [IS13] ★ "only these" with no method chosen is refused by the forms' rule and by the writer; a list is never
+ *         written naming a method that does not exist; an unpublished method of a list is offered to its form, marked.
+ *   [IS14] the Products list's filters: limited to a method, limited to methods alone.
  *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
  *
  * Fixtures: two published carriers of this run's own, admitted to everyone (the wildcard row on each scope), three
@@ -53,10 +68,14 @@ require_once JPATH_BASE . '/includes/framework.php';
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseFactory;
@@ -285,31 +304,221 @@ try {
     check('[IS4] ★ the product page\'s scope lists A', \in_array($a, $page, true), true);
     check('[IS4] ★ and not B', \in_array($b, $page, true), false);
 
-    // [IS5] carrier B deleted through its model, as the list and the REST resource delete it. The product that ships
-    // with B only and the variant with B alone lose their list with it.
+    // The deletes and the state changes below go through the models, as the lists, the forms and the REST resource
+    // send them. Every carrier made from here on is made after the method set was read, which only the cart reads;
+    // where a cart is asked again, the set is read again.
+    $factory = $app->bootComponent('com_alfa')->getMVCFactory();
     $app->loadIdentity(new User($operatorId));
     $app->getMessageQueue(true);
-    $shipmentModel = $app->bootComponent('com_alfa')->getMVCFactory()->createModel('Shipment', 'Administrator', ['ignore_request' => true]);
-    $pks = [$b];
+
+    $forgetMethodSet = static function (): void {
+        (new \ReflectionProperty(AlfaHelper::class, 'loaded'))->setValue(null, []);
+    };
+    $exists = static fn (int $id): bool => (int) $db->setQuery("SELECT COUNT(*) FROM `{$p}alfa_shipments` WHERE id = {$id}")->loadResult() === 1;
+    $rowsOf = static fn (int $shipmentId): int => (int) $db->setQuery("SELECT COUNT(*) FROM `{$p}alfa_items_shipments` WHERE shipment_id = {$shipmentId}")->loadResult();
+    $listOf = static fn (int $itemId, ?int $combinationId = null): array => ItemShipments::allowed(ItemShipments::forItems($db, [$itemId])[$itemId] ?? null, $combinationId);
+
+    /** A delete through a model: whether it was done, the refusal's sentence as the REST answer carries it, and what the operator was told. */
+    $delete = static function (array $ids, bool $confirmed = false, string $name = 'Shipment', string $side = 'Administrator') use ($app, $factory): array {
+        $model = $factory->createModel($name, $side, ['ignore_request' => true]);
+        $model->setState('delete.confirmed', $confirmed);
+        $pks = $ids;
+        $done = (bool) $model->delete($pks);
+        $error = $model->getError(null, false);
+
+        return [
+            'done' => $done,
+            'refusal' => $error instanceof DeleteRefusedException ? $error->plain : (\is_string($error) ? $error : ''),
+            'told' => array_column($app->getMessageQueue(true), 'message'),
+        ];
+    };
+
+    /** A change of state through the model: whether it was done and what the operator was told. */
+    $setState = static function (array $ids, int $state) use ($app, $factory): array {
+        $model = $factory->createModel('Shipment', 'Administrator', ['ignore_request' => true]);
+        $pks = $ids;
+
+        return ['done' => (bool) $model->publish($pks, $state), 'told' => array_column($app->getMessageQueue(true), 'message')];
+    };
+
+    /** Whether the operator was told a sentence: the message starts with it, the link to the products follows. */
+    $toldOf = static function (array $told, string $sentence): bool {
+        foreach ($told as $message) {
+            if (str_starts_with((string) $message, $sentence)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    /** The Products list filtered by shipping list, every state: the product ids, ascending. */
+    $listed = static function (array $ids, string $list) use ($factory): array {
+        try {
+            $model = $factory->createModel('Items', 'Administrator', ['ignore_request' => true]);
+            $model->setState('filter.state', '*');
+            $model->setState('filter.shipment', $ids);
+            $model->setState('filter.shipment_list', $list);
+            $model->setState('list.ordering', 'a.id');
+            $model->setState('list.direction', 'ASC');
+            $model->setState('list.start', 0);
+            $model->setState('list.limit', 0);
+
+            return array_map(static fn (object $row): int => (int) $row->id, $model->getItems() ?: []);
+        } catch (\Throwable $e) {
+            return ['error' => \get_class($e) . ': ' . $e->getMessage()];
+        }
+    };
+    $sorted = static function (array $ids): array {
+        sort($ids);
+
+        return $ids;
+    };
+
+    $confirmHint = ' ' . Text::_('COM_ALFA_SHIPMENT_DELETE_CONFIRM_REST');
 
     try {
-        $deleted = $shipmentModel->delete($pks);
-    } finally {
-        $app->loadIdentity(new User(0));
-    }
+        // [IS5] methods no list names.
+        $c = $carrier('C');
+        $h = $carrier('H');
+        $i = $carrier('I');
+        $unused = $delete([$c]);
+        check('[IS5] ★ a method no list names is deleted without a confirmation', [$unused['done'], $unused['refusal'], $exists($c)], [true, '', false]);
+        $unusedTwo = $delete([$h, $i]);
+        check('[IS5] ★ two such methods are deleted in one delete', [$unusedTwo['done'], $exists($h), $exists($i)], [true, false, false]);
 
-    $told = array_column($app->getMessageQueue(true), 'message');
-    $rowsOf = static fn (int $shipmentId): int => (int) $db->setQuery("SELECT COUNT(*) FROM `{$p}alfa_items_shipments` WHERE shipment_id = {$shipmentId}")->loadResult();
-    $lists = ItemShipments::forItems($db, [$onlyA, $onlyB, $variants]);
-    check('[IS5] ★ the delete is accepted', [$deleted, (string) $shipmentModel->getError()], [true, '']);
-    check('[IS5] ★ the method is gone', (int) $db->setQuery("SELECT COUNT(*) FROM `{$p}alfa_shipments` WHERE id = {$b}")->loadResult(), 0);
-    check('[IS5] ★ no shipping list names it', $rowsOf($b), 0);
-    check('[IS5] ★ the product that shipped with it alone has no list: every method', ItemShipments::allowed($lists[$onlyB] ?? null, null), []);
-    check('[IS5] ★ the variant that shipped with it alone ships as its product', ItemShipments::allowed($lists[$variants] ?? null, $own), [$a]);
-    check('[IS5] the lists that name another method, and the wildcard row, stay',
-        [ItemShipments::allowed($lists[$onlyA] ?? null, null), ItemShipments::allowed($lists[$variants] ?? null, null), $lists[$variants]->combinations[$every] ?? null], [[$a], [$a], [ItemShipments::EVERY_METHOD]]);
-    check('[IS5] ★ the operator is told one product and one variant lost their list',
-        \in_array(\Joomla\CMS\Language\Text::sprintf('COM_ALFA_SHIPMENT_DELETE_LISTS_ENDED', 1, 1), $told, true), true);
+        // [IS6] one of several.
+        $d = $carrier('D');
+        $e = $carrier('E');
+        $both = $product();
+        ItemShipments::replace(db: $db, itemId: $both, combinationId: 0, shipmentIds: [$d, $e]);
+        $asked = $delete([$d]);
+        check('[IS6] ★ a method a product allows beside another is not deleted unconfirmed', [$asked['done'], $exists($d), $rowsOf($d)], [false, true, 1]);
+        check('[IS6] ★ the refusal says one product names it and how to confirm', $asked['refusal'], Text::plural('COM_ALFA_SHIPMENT_DELETE_CONFIRM', 1) . $confirmHint);
+        check('[IS6] the Products list limited to the method lists that product', $listed([$d], ItemShipments::LIST_ANY), [$both]);
+        $confirmed = $delete([$d], true);
+        check('[IS6] ★ confirmed, it is deleted and leaves the list', [$confirmed['done'], $exists($d), $rowsOf($d)], [true, false, 0]);
+        check('[IS6] ★ the product keeps its other method', $listOf($both), [$e]);
+
+        // [IS7] the only method of a product, and of a variant.
+        $refused = $delete([$e], true);
+        check('[IS7] ★ the only method a product allows is not deleted, confirmed or not', [$refused['done'], $exists($e), $rowsOf($e)], [false, true, 1]);
+        check('[IS7] ★ the refusal says one product would lose its restriction', $refused['refusal'], Text::plural('COM_ALFA_SHIPMENT_DELETE_ONLY_METHOD', 1));
+        check('[IS7] ★ the product is still limited to it', $listOf($both), [$e]);
+        $refusedTwo = $delete([$b], true);
+        check('[IS7] ★ the only method of a product and of another product\'s variant is refused for both products',
+            [$refusedTwo['done'], $refusedTwo['refusal'], $exists($b)], [false, Text::plural('COM_ALFA_SHIPMENT_DELETE_ONLY_METHOD', 2), true]);
+        check('[IS7] ★ the product\'s list and the variant\'s list stand', [$listOf($onlyB), $listOf($variants, $own)], [[$b], [$b]]);
+        check('[IS14] the Products list limited to that method alone lists the two products', $listed([$b], ItemShipments::LIST_ONLY), $sorted([$onlyB, $variants]));
+
+        // [IS8] the whole selection is judged.
+        $f = $carrier('F');
+        $g = $carrier('G');
+        $pair = $product();
+        ItemShipments::replace(db: $db, itemId: $pair, combinationId: 0, shipmentIds: [$f, $g]);
+        $alone = $delete([$f]);
+        check('[IS8] ★ one of the two alone waits for a confirmation', [$alone['done'], $alone['refusal']], [false, Text::plural('COM_ALFA_SHIPMENT_DELETE_CONFIRM', 1) . $confirmHint]);
+        $together = $delete([$f, $g], true);
+        check('[IS8] ★ the two together are refused: they would leave the product no method', [$together['done'], $together['refusal']], [false, Text::plural('COM_ALFA_SHIPMENT_DELETE_ONLY_METHOD', 1)]);
+        check('[IS8] ★ both methods and the list stand', [$exists($f), $exists($g), $listOf($pair)], [true, true, [$f, $g]]);
+        check('[IS14] the Products list limited to the two alone lists the product; to one of them alone, nothing', [$listed([$f, $g], ItemShipments::LIST_ONLY), $listed([$f], ItemShipments::LIST_ONLY)], [[$pair], []]);
+
+        // [IS9] unpublishing the only method of two products (the product that ships with A only, and the product
+        // with variants, whose own list is A), then publishing it again.
+        $leftWithout = Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', 2);
+        $off = $setState([$a], 0);
+        check('[IS9] ★ unpublishing the only method of two products is done', [$off['done'], (int) $db->setQuery("SELECT state FROM `{$p}alfa_shipments` WHERE id = {$a}")->loadResult()], [true, 0]);
+        check('[IS9] ★ the operator is told two products have no published method now', $toldOf($off['told'], $leftWithout), true);
+        check('[IS9] ★ no list changed', [$listOf($onlyA), $listOf($variants)], [[$a], [$a]]);
+        check('[IS9] ★ the Products list of the method\'s products with no published method lists exactly them', $listed([$a], ItemShipments::LIST_NONE), $sorted([$onlyA, $variants]));
+        $forgetMethodSet();
+        $stranded = $methodsOf([$onlyA, $any]);
+        check('[IS9] ★ a cart of such a product beside one that ships with everything is offered nothing', $stranded['offered'], []);
+        check('[IS9] ★ and the empty list\'s sentence names the limited product', str_contains($stranded['notice'], $nameOf($onlyA)), true);
+        $held = ItemShipments::heldUnpublished($db, [$a, $b]);
+        check('[IS13] ★ the unpublished method of a list is offered to its form, marked; the published one is not among the held',
+            [array_keys($held), (string) ($held[$a]->name ?? '')], [[$a], Text::sprintf('COM_ALFA_ITEM_SHIPMENTS_HELD_NOT_PUBLISHED', 'ALFA IS carrier A ' . $run)]);
+        $on = $setState([$a], 1);
+        check('[IS9] ★ published again, nothing is said and no list changed', [$on['done'], $toldOf($on['told'], $leftWithout), $listOf($onlyA)], [true, false, [$a]]);
+        $forgetMethodSet();
+        $back = $methodsOf([$onlyA, $any]);
+        check('[IS9] ★ and the same cart is offered the method again', \in_array($a, $back['offered'], true), true);
+
+        $oneOff = $setState([$f], 0);
+        check('[IS9] unpublishing one of a product\'s two methods says nothing', $toldOf($oneOff['told'], Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', 1)), false);
+        $setState([$f], 1);
+        $bothOff = $setState([$f, $g], 0);
+        check('[IS9] ★ unpublishing the two together says the product is left with none', $toldOf($bothOff['told'], Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', 1)), true);
+
+        // [IS10] F published again, G still unpublished: the confirmed delete of F leaves the product limited to G alone.
+        $setState([$f], 1);
+        $last = $delete([$f], true);
+        check('[IS10] ★ the confirmed delete is done and the product keeps its unpublished method', [$last['done'], $exists($f), $listOf($pair)], [true, false, [$g]]);
+        check('[IS10] ★ the operator is told one product is left without an available method', $toldOf($last['told'], Text::plural('COM_ALFA_SHIPMENT_DELETE_LEAVES_NONE', 1)), true);
+        check('[IS10] the Products list of products with no published method lists it', \in_array($pair, $listed([], ItemShipments::LIST_NONE), true), true);
+
+        // [IS11] a method an order names.
+        $o = $carrier('O');
+        $historical = null;
+
+        try {
+            $order = OrderCreator::create(draft: [
+                'id_user' => 0, 'customer_name' => 'Item shipments suite', 'customer_email' => 'host@easylogic.gr', 'customer_is_guest' => 1,
+                'id_order_status' => (int) OrderStatusHelper::getInitialId(), 'id_address_delivery' => 0, 'id_address_invoice' => 0,
+                'source' => 'backend', 'created_by' => $operatorId, 'actor_name' => 'Item shipments suite', 'allow_empty' => true, 'lines' => [],
+            ], manageTransaction: false);
+            $orderId = (int) $order->orderId;
+            $db->setQuery("UPDATE `{$p}alfa_orders` SET id_shipment_method = {$o} WHERE id = {$orderId}")->execute();
+            $kept = $delete([$o], true);
+            $historical = [
+                $kept['done'],
+                $kept['refusal'] === Text::sprintf('COM_ALFA_SHIPMENT_DELETE_HAS_ORDERS', $o, 1, 0),
+                $exists($o),
+                (int) $db->setQuery("SELECT id_shipment_method FROM `{$p}alfa_orders` WHERE id = {$orderId}")->loadResult() === $o,
+            ];
+        } catch (\Throwable $e) {
+            $historical = \get_class($e) . ': ' . $e->getMessage();
+        }
+
+        check('[IS11] ★ a method an order names is not deleted, the refusal counts the order, the method stays and the order still names it', $historical, [false, true, true, true]);
+
+        // [IS12] the REST resource's model: the refusals the API answers 409 with, and its confirmation.
+        $restOnly = $delete([$e], false, 'Shipmentmethod', 'Api');
+        check('[IS12] ★ the REST model refuses the only method of a product with the count', [$restOnly['done'], $restOnly['refusal'], $exists($e)], [false, Text::plural('COM_ALFA_SHIPMENT_DELETE_ONLY_METHOD', 1), true]);
+        $j = $carrier('J');
+        ItemShipments::replace(db: $db, itemId: $both, combinationId: 0, shipmentIds: [$e, $j]);
+        $restAsk = $delete([$j], false, 'Shipmentmethod', 'Api');
+        check('[IS12] ★ and asks for force on a method a product allows beside another', [$restAsk['done'], $restAsk['refusal']], [false, Text::plural('COM_ALFA_SHIPMENT_DELETE_CONFIRM', 1) . $confirmHint]);
+        $restForced = $delete([$j], true, 'Shipmentmethod', 'Api');
+        check('[IS12] ★ forced, it is deleted and the product keeps the other', [$restForced['done'], $exists($j), $listOf($both)], [true, false, [$e]]);
+        $apiController = (string) file_get_contents(JPATH_ROOT . '/api/components/com_alfa/src/Controller/ShipmentmethodsController.php');
+        check('[IS12] the REST controller hands the model force as the confirmation', str_contains($apiController, "setState('delete.confirmed', RequestScalar::bool(\$this->input, 'force'))"), true);
+        $guards = (string) file_get_contents(JPATH_ROOT . '/api/components/com_alfa/src/Controller/HasApiGuards.php');
+        check('[IS12] and a refused delete is answered 409 with the sentence', str_contains($guards, 'throw new Save($refusal->plain, 409);'), true);
+
+        // [IS13] the rule of the forms and of the writer.
+        check('[IS13] ★ "only these" with no method chosen is refused, with methods or as "all methods" it is not',
+            [ItemShipments::choiceRefusal(ItemShipments::ONLY, []), ItemShipments::choiceRefusal(ItemShipments::ONLY, [$e]), ItemShipments::choiceRefusal(ItemShipments::ALL, [])],
+            [Text::_('COM_ALFA_ITEM_SHIPMENTS_ONLY_NEEDS_METHOD'), null, null]);
+        $threw = static function (callable $call): bool {
+            try {
+                $call();
+            } catch (\RuntimeException) {
+                return true;
+            }
+
+            return false;
+        };
+        check('[IS13] ★ the writer refuses it too, for a product and for a variant',
+            [$threw(static fn () => ItemShipments::posted(ItemShipments::ONLY, [], false)), $threw(static fn () => ItemShipments::posted(ItemShipments::ONLY, ['0', ''], true))], [true, true]);
+        $missing = (int) $db->setQuery("SELECT COALESCE(MAX(id), 0) + 1000 FROM `{$p}alfa_shipments`")->loadResult();
+        check('[IS13] ★ a list is not written naming a method that does not exist, and the list stays as it was',
+            [$threw(static fn () => ItemShipments::replace(db: $db, itemId: $both, combinationId: 0, shipmentIds: [$missing])), $listOf($both)], [true, [$e]]);
+    } finally {
+        $app->getMessageQueue(true);
+        $app->loadIdentity(new User(0));
+        $forgetMethodSet();
+    }
 } finally {
     $fx->rollback();
 }
