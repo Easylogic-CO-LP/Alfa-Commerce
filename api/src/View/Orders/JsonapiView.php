@@ -21,7 +21,9 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  *
  * Never render: secure_key (guest-tracking token), ip_address (PII), note
  * (internal), the _items/_shipments/_payments/_discounts/_contributions raw
- * arrays or any Money/Currency object properties.
+ * arrays or any Money/Currency object properties. history is the customer's
+ * view of the timeline (status changes with their notes to the customer, and
+ * the status e-mails sent again), never the internal note or staff's records.
  *
  * @since  1.0.0
  */

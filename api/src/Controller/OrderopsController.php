@@ -850,7 +850,12 @@ class OrderopsController extends OrdersController
      * Change the order's status through the transition funnel.
      *
      * POST v1/alfa/orders/:id/status
-     * {id_order_status, note?, force?, silent?}
+     * {id_order_status, note?, note_to_customer?, notify_customer?, force?, silent?}
+     *
+     * note is the change's internal line on the history; note_to_customer is printed in the customer's status e-mail
+     * (its note position) and kept on the history as the customer's. notify_customer true e-mails the customer
+     * about the change whatever the status says, false leaves the customer out (as silent does); absent, the status
+     * decides.
      *
      * Deliberately not a PATCH of the column: the fat save path always
      * force()s, so it reinstates cancelled orders with no client opt-in, and
@@ -925,11 +930,19 @@ class OrderopsController extends OrdersController
             $transition->note((string) $body['note']);
         }
 
+        // The note the customer reads, in the status e-mail and on the history.
+        if (\is_string($body['note_to_customer'] ?? null) && trim($body['note_to_customer']) !== '') {
+            $transition->customerNote($body['note_to_customer']);
+        }
+
         // Suppresses the customer status email ONLY: the staff the status
         // tells are still sent theirs. Stock, entitlements, document issuance, both activity
-        // rows and the plugin event all still fire.
-        if (!empty($body['silent'])) {
+        // rows and the plugin event all still fire. notify_customer true tells the customer
+        // even on a status that does not by itself.
+        if (!empty($body['silent']) || (\array_key_exists('notify_customer', $body) && !$body['notify_customer'])) {
             $transition->silentCustomer();
+        } elseif (!empty($body['notify_customer'])) {
+            $transition->tellCustomer();
         }
 
         if ($forced) {

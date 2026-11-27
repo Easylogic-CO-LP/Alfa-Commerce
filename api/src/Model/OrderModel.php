@@ -402,15 +402,49 @@ class OrderModel extends AdminOrderModel
             $rows($item->contributions ?? null),
         );
 
-        $item->history = array_map(
-            static fn ($h): array => [
-                'id' => (int) ($h->id ?? 0),
-                'id_order_status' => isset($h->id_order_status) ? (int) $h->id_order_status : null,
-                'created' => $h->created ?? null,
-                'created_by' => isset($h->created_by) ? (int) $h->created_by : null,
-            ],
+        $statuses = AlfaHelper::getOrderStatuses();
+
+        // The history the customer may see, newest first: each status change with the note to the customer it
+        // carried and whether the customer was e-mailed about it, and each status e-mail staff sent again, with its
+        // note. Nothing else of the timeline: not the internal note or its saves, not a change's internal note, not
+        // who on staff did it, not a plugin's or a task's record.
+        $item->history = array_values(array_filter(array_map(
+            static function ($h) use ($statuses): ?array {
+                $context = \is_string($h->context ?? null) && $h->context !== '' ? json_decode($h->context, true) : null;
+                $context = \is_array($context) ? $context : [];
+                $event = (string) ($h->event ?? '');
+                $status = static fn (mixed $id): ?array => $id === null ? null : [
+                    'id' => (int) $id,
+                    'name' => (string) ($statuses[(int) $id]->name ?? ''),
+                ];
+                $note = \is_string($context['note_to_customer'] ?? null) && $context['note_to_customer'] !== '' ? $context['note_to_customer'] : null;
+
+                if ($event === 'order.status_changed') {
+                    return [
+                        'id' => (int) ($h->id ?? 0),
+                        'kind' => 'status_change',
+                        'created' => $h->created ?? null,
+                        'from_status' => $status($context['old_status'] ?? null),
+                        'to_status' => $status($context['new_status'] ?? ($h->id_order_status ?? null)),
+                        'note' => $note,
+                        'customer_emailed' => \is_bool($context['customer_emailed'] ?? null) ? $context['customer_emailed'] : null,
+                    ];
+                }
+
+                if ($event === 'order.email_resent' && str_starts_with((string) ($context['text']['key'] ?? ''), 'COM_ALFA_ORDER_TASK_EMAIL_AGAIN')) {
+                    return [
+                        'id' => (int) ($h->id ?? 0),
+                        'kind' => 'status_email_again',
+                        'created' => $h->created ?? null,
+                        'status' => $status($h->id_order_status ?? null),
+                        'note' => $note,
+                    ];
+                }
+
+                return null;
+            },
             $rows($item->history ?? null),
-        );
+        )));
 
         // Buyer identity: this is a back-office endpoint, so the delivery and
         // invoice addresses belong here, but only as flat scalars.
