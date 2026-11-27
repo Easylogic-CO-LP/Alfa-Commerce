@@ -273,6 +273,39 @@ final class OutboundConsumers
     }
 
     /**
+     * Discard a consumer's waiting changes of topics it no longer takes: never sent, no longer counted, the reason kept.
+     *
+     * @param int $id The consumer.
+     * @param list<string> $topics The topics dropped.
+     *
+     * @return int The changes discarded.
+     *
+     * @since  2.3.0
+     */
+    public static function discardTopics(int $id, array $topics): int
+    {
+        $topics = array_values(array_filter($topics, [OutboundTopics::class, 'known']));
+
+        if ($topics === []) {
+            return 0;
+        }
+
+        $db = self::db();
+        $db->setQuery(
+            $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))
+                ->set($db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_DISCARDED))
+                ->set($db->quoteName('pending') . ' = NULL')
+                ->set($db->quoteName('dead_at') . ' = UTC_TIMESTAMP(6)')
+                ->set($db->quoteName('last_error') . ' = ' . $db->quote('COM_ALFA_OUTBOUND_REASON_TOPIC_DROPPED'))
+                ->where($db->quoteName('consumer_id') . ' = ' . $id)
+                ->where($db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_PENDING))
+                ->whereIn($db->quoteName('topic'), $topics, ParameterType::STRING),
+        )->execute();
+
+        return (int) $db->getAffectedRows();
+    }
+
+    /**
      * Discard a consumer's changes given up: never sent, no longer counted, removed with the other settled rows.
      *
      * @param int $id The consumer.
@@ -601,7 +634,7 @@ final class OutboundConsumers
     {
         $key = (string) $plugin;
         $row = $db->setQuery(
-            $db->getQuery(true)->select($db->quoteName(['id', 'state']))->from($db->quoteName(OutboundFeed::CONSUMERS))
+            $db->getQuery(true)->select($db->quoteName(['id', 'state', 'topics']))->from($db->quoteName(OutboundFeed::CONSUMERS))
                 ->where($db->quoteName('plugin') . ' = :plugin')->bind(':plugin', $key),
         )->loadObject();
 
@@ -646,6 +679,8 @@ final class OutboundConsumers
                     . $db->quoteName('state') . ' = 1, ' . $db->quoteName('modified') . ' = UTC_TIMESTAMP() WHERE ' . $db->quoteName('id') . ' = ' . (int) $row->id,
                 )->bind(':topics', $list)->bind(':name', $name),
             )->execute();
+            // The changes waiting for a topic the plugin no longer names are not sent.
+            self::discardTopics(id: (int) $row->id, topics: array_values(array_diff(OutboundTopics::parse(topics: (string) $row->topics), $topics)));
         }
 
         OutboundFeed::forget();

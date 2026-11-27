@@ -200,8 +200,18 @@ class WebhookModel extends AlfaAdminModel
             $data['created_by'] = (int) $user->id;
         }
 
+        // The topics the webhook took until now: the changes waiting for one it drops are not sent.
+        $before = $id > 0 ? OutboundTopics::parse(topics: (string) ($this->getDatabase()->setQuery(
+            $this->getDatabase()->getQuery(true)->select($this->getDatabase()->quoteName('topics'))->from($this->getDatabase()->quoteName(OutboundFeed::CONSUMERS))
+                ->where($this->getDatabase()->quoteName('id') . ' = ' . $id),
+        )->loadResult() ?? '')) : [];
+
         if (!parent::save($data)) {
             return false;
+        }
+
+        if ($id > 0) {
+            OutboundConsumers::discardTopics(id: $id, topics: array_values(array_diff($before, $topics)));
         }
 
         // The secret is written after the save, so no listener of the save's events is handed it.
