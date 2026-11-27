@@ -112,6 +112,10 @@ $section = function (
                     <div class="alert alert-info mb-0"><?php echo Text::_('COM_ALFA_CART_BUILDER_PAYMENT_NEEDS_SHIPMENT'); ?></div>
                 <?php else : ?>
                     <div class="alert alert-danger mb-0"><?php echo Text::_($noneEligible); ?></div>
+                    <?php // The products whose own shipping lists leave no method, when they are the reason. ?>
+                    <?php if ($kind === 'shipment' && $offers->shipmentNotShared !== '') : ?>
+                        <div class="alert alert-info mb-0 mt-2"><?php echo $this->escape($offers->shipmentNotShared); ?></div>
+                    <?php endif; ?>
                 <?php endif; ?>
             <?php else : ?>
                 <form action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">

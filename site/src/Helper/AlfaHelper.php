@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodCategoryScope;
 use Closure;
 use InvalidArgumentException;
@@ -72,6 +73,11 @@ class AlfaHelper
      * listed category covers its subcategories, and a shipping method's
      * excluded categories refuse a line that lies inside one of them.
      *
+     * A line's own shipping list (ItemShipments: the product's chosen
+     * methods, or its variant's) admits a shipping method only when it names
+     * it; a line with no list admits every method. So a cart is offered the
+     * methods every line allows, and nothing when its lines share none.
+     *
      * @param array $categories Category ids of the single product in scope (ignored when $lines is given).
      * @param array $manufacturers Manufacturer ids of the single product in scope (ignored when $lines is given).
      * @param array $usergroups The visitor's user group ids.
@@ -83,15 +89,17 @@ class AlfaHelper
      *                                     destination from a field of its own is filtered against
      *                                     the same chain it will later be quoted and placed against.
      * @param int|null $shipmentId The chosen shipping method, 0 when none is chosen; null = not evaluated (payment methods only).
-     * @param array|null $lines Per-line scopes of a cart, [['categories' => int[], 'manufacturers' => int[]], ...]; null = the single product scope.
+     * @param array|null $lines Per-line scopes of a cart, [['categories' => int[], 'manufacturers' => int[], 'shipments' => int[]], ...],
+     *                          shipments being the line's own shipping list ([] for every method); null = the single product scope.
      * @param bool $categoryScope False to leave the category lists out of the question: the methods every other scope
      *                            offers, so the reasons a cart's goods keep one off can be told (CartMethods).
+     * @param bool $itemScope False to leave the lines' own shipping lists out of the question, for the same reasons.
      *
      * @return array The offered methods keyed by id, in administration order.
      *
      * @since  1.0.0
      */
-    public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment', array|Closure|null $placeIds = null, ?int $shipmentId = null, ?array $lines = null, bool $categoryScope = true)
+    public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment', array|Closure|null $placeIds = null, ?int $shipmentId = null, ?array $lines = null, bool $categoryScope = true, bool $itemScope = true)
     {
         $scopes = $lines ?? [['categories' => (array) $categories, 'manufacturers' => (array) $manufacturers]];
 
@@ -108,6 +116,11 @@ class AlfaHelper
                 || !self::scopeAllows($method->usergroups, (array) $usergroups)
                 || !self::scopeAllows($method->users, [(int) $userId])
             ) {
+                continue;
+            }
+
+            // A shipping method a line's product or variant does not ship with is not offered to the cart.
+            if ($baseTable === 'shipment' && $itemScope && ItemShipments::refused((int) $id, $scopes) !== []) {
                 continue;
             }
 

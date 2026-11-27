@@ -26,6 +26,10 @@ $shipments = $snapshot->offers->shipments;
 	<?php if ($shipments === []) : ?>
 		<?php // What the checkout still needs, when a carrier waits for it. ?>
         <p class="cart-methods-empty"><?php echo Text::_($snapshot->offers->needsKey() ?: 'COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
+		<?php // The products whose own shipping lists leave no method for this cart, when they are the reason. ?>
+		<?php if ($snapshot->offers->shipmentNotShared !== '') : ?>
+        <p class="cart-methods-empty"><?php echo htmlspecialchars($snapshot->offers->shipmentNotShared, ENT_QUOTES, 'UTF-8'); ?></p>
+		<?php endif; ?>
 	<?php endif; ?>
 
 	<?php

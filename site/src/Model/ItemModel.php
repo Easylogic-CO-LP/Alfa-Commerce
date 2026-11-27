@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
@@ -202,6 +203,10 @@ class ItemModel extends BaseItemModel
             $data->combinations = $fieldData->combinations;
             $data->informational = $fieldData->informational;
 
+            // The shipping lists of the product and its combinations (ItemShipments), for its page and for a cart
+            // line of it.
+            $data->shipment_scope = ItemShipments::forItems($this->getDatabase(), [$pk])[$pk] ?? null;
+
             // Item gallery: the fallback the variant overlay may replace.
             $data->medias = MediaHelper::getMediaData(origin: 'item', itemIDs: $pk);
 
@@ -297,12 +302,18 @@ class ItemModel extends BaseItemModel
                 baseTable:     'payment',
             );
 
+            // The one line of the product's own scope: its page shows the methods the product ships with.
             $data->shipment_methods = AlfaHelper::getFilteredMethods(
-                categories:    $categoryIDs,
-                manufacturers: $manufacturerIDs,
+                categories:    [],
+                manufacturers: [],
                 usergroups:    $customerGroups,
                 userId:        $user->id,
                 baseTable:     'shipment',
+                lines:         [[
+                    'categories'    => $categoryIDs,
+                    'manufacturers' => $manufacturerIDs,
+                    'shipments'     => ItemShipments::allowed($data->shipment_scope, null),
+                ]],
             );
 
             // Field display surfaces (selectors + cart slot). Opt-out via

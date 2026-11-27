@@ -64,6 +64,9 @@ final class CartOffersView
      * @param array{id?: int, code?: string} $withdrawnShipment The chosen carrier this settle withdrew for its own
      *                                                          answer, with the code of that refusal; empty when none
      *                                                          ({@see CartMethods::withdrawnChosen()}).
+     * @param string $shipmentNotShared The sentence naming the products whose own shipping lists leave no method for
+     *                                  the cart; '' when the list is empty for another reason or not empty
+     *                                  ({@see CartMethods::shipmentNotSharedNotice()}).
      *
      * @since  2.0.0
      */
@@ -84,6 +87,7 @@ final class CartOffersView
         public readonly array $paymentFees = [],
         public readonly array $shipmentRefusals = [],
         public readonly array $withdrawnShipment = [],
+        public readonly string $shipmentNotShared = '',
     ) {
     }
 

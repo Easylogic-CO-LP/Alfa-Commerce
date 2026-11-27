@@ -147,6 +147,7 @@ final class CartSnapshotFactory
             paymentFees: $fees,
             shipmentRefusals: $methods->shipmentRefusals(),
             withdrawnShipment: $methods->withdrawnChosen(),
+            shipmentNotShared: $methods->shipmentNotSharedNotice(),
         );
     }
 }
