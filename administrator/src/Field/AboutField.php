@@ -110,7 +110,7 @@ class AboutField extends FormField
         $updateUrl = Route::_('index.php?option=com_installer&view=update', false);
         $copyright = '© ' . self::FIRST_YEAR . '-' . date('Y') . ' ' . self::COMPANY . ' / ' . self::AUTHOR . '. All rights reserved.';
 
-        $html = '<div class="alfa-about">';
+        $html = '<div class="about">';
 
         // Identity
         $html .= '<div class="card mb-3"><div class="card-body d-flex align-items-start gap-3">'

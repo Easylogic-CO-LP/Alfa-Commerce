@@ -11,7 +11,7 @@
  * The form of a dispute act on the action page of the disputed payment: the act's form from its XML (DisputeModel), its
  * fields rendered by Joomla, posted to the act's _do arm with the record's id. Accept at the provider shows the typed
  * confirmation instead. No markup is built in JavaScript: the action page posts the named controls of the
- * data-alfa-form block.
+ * data-action-form block.
  *
  * @var array $displayData
  *   act      string                         the act (record, change, evidence, close, reopen, amount, accept)
@@ -41,7 +41,7 @@ $intro = $act === 'record'
     ? Text::sprintf('COM_ALFA_DISPUTE_FORM_INTRO_RECORD', (int) ($payment->id ?? 0))
     : Text::sprintf('COM_ALFA_DISPUTE_FORM_INTRO_' . strtoupper($act), (int) ($dispute->id ?? 0));
 ?>
-<div class="alfa-dispute-form" data-alfa-form>
+<div class="dispute-form" data-action-form>
     <p class="mb-3"><?php echo $escape($intro); ?></p>
 
     <?php if ($refusal !== '') : ?>
@@ -49,7 +49,7 @@ $intro = $act === 'record'
     <?php endif; ?>
 
     <?php if ($act === 'accept') : ?>
-        <?php echo LayoutHelper::render('actions.typedconfirm', ['phrase' => (string) ($displayData['phrase'] ?? ''), 'id' => 'alfa-dispute-accept-phrase'], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo LayoutHelper::render('actions.typedconfirm', ['phrase' => (string) ($displayData['phrase'] ?? ''), 'id' => 'dispute-accept-phrase'], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
     <?php elseif ($form !== null) : ?>
         <?php foreach ($form->getFieldset('dispute') as $field) : ?>
             <?php echo $field->renderField(); ?>
@@ -59,8 +59,8 @@ $intro = $act === 'record'
     <div class="d-flex justify-content-end">
         <button type="button"
                 class="btn <?php echo $act === 'accept' ? 'btn-danger' : 'btn-primary'; ?>"
-                data-alfa-run="<?php echo $escape((string) ($displayData['submit'] ?? '')); ?>"
-                data-alfa-data="<?php echo $escape((string) json_encode($post)); ?>">
+                data-action-run="<?php echo $escape((string) ($displayData['submit'] ?? '')); ?>"
+                data-action-data="<?php echo $escape((string) json_encode($post)); ?>">
             <?php echo Text::_($act === 'accept' ? 'COM_ALFA_DISPUTE_ACTION_ACCEPT' : 'COM_ALFA_DISPUTE_FORM_SAVE'); ?>
         </button>
     </div>

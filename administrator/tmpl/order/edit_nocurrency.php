@@ -37,7 +37,7 @@ $number = '#' . (int) $order->id . (trim((string) ($order->reference ?? '')) !==
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=order&id=' . (int) $order->id); ?>"
       method="post" name="adminForm" id="adminForm">
 
-    <div class="alert alert-danger" role="alert" data-alfa-order-no-currency>
+    <div class="alert alert-danger" role="alert" data-order-no-currency>
         <?php echo $this->escape($this->currencyRefusal); ?>
     </div>
 

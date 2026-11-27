@@ -65,7 +65,7 @@
             <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
         </field>
 
-        <field name="rule_shipping" type="spacer" hr="true" class="alfa-group-rule"/>
+        <field name="rule_shipping" type="spacer" hr="true" class="group-rule"/>
 
         <!-- Shipping shape
              The dimensions sit with is_virtual because that switch is what
@@ -147,7 +147,7 @@
                 layout="joomla.form.field.list-fancy-select"
         />
 
-        <field name="rule_limits" type="spacer" hr="true" class="alfa-group-rule"/>
+        <field name="rule_limits" type="spacer" hr="true" class="group-rule"/>
 
         <!-- Purchase limits: what a shopper may put in the cart
              Enforced by the cart quantity policy on every add and update.
@@ -180,7 +180,7 @@
                 default="1"
         />
 
-        <field name="rule_policy" type="spacer" hr="true" class="alfa-group-rule"/>
+        <field name="rule_policy" type="spacer" hr="true" class="group-rule"/>
 
         <!-- Stock policy: overrides of the shop-wide inventory rules.
              Empty means "use the global setting". Both only matter when stock
@@ -201,7 +201,7 @@
                useglobal="true"
                showon="manage_stock:1"/>
 
-        <field name="rule_messages" type="spacer" hr="true" class="alfa-group-rule"/>
+        <field name="rule_messages" type="spacer" hr="true" class="group-rule"/>
 
         <!-- Low stock and what the shopper is told
              stock_low is the trigger for both the notify switch and the low

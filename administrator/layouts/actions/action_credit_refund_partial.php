@@ -51,20 +51,20 @@ $maxAttr = number_format($remainder->getAmount(), $scale, '.', '');
 $minorUnit = $scale > 0 ? '0.' . str_repeat('0', $scale - 1) . '1' : '1';
 ?>
 
-<div class="alfa-credit-refund-partial" data-credit-refund>
+<div class="credit-refund-partial" data-credit-refund>
 
     <p class="mb-3">
         <?php echo Text::sprintf('COM_ALFA_CREDIT_REFUND_PARTIAL_INTRO', $remainder->format()); ?>
     </p>
 
     <div class="mb-3">
-        <label class="form-label" for="alfa-credit-refund-amount">
+        <label class="form-label" for="credit-refund-amount">
             <?php echo Text::_('COM_ALFA_CREDIT_REFUND_AMOUNT'); ?>
         </label>
 
         <input type="number"
                class="form-control"
-               id="alfa-credit-refund-amount"
+               id="credit-refund-amount"
                name="amount"
                required
                step="<?php echo htmlspecialchars($minorUnit, ENT_QUOTES, 'UTF-8'); ?>"

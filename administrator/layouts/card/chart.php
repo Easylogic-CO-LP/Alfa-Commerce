@@ -12,7 +12,7 @@
  * Offered to be reused (core's own chart cards name it exactly as a plugin's would),
  * never imposed: a card that wants another shape names another layout, and one that
  * wants a chart INSIDE a shape of its own calls ChartHelper::attach() and draws its
- * own `<div data-alfa-chart="...">`.
+ * own `<div data-chart-key="...">`.
  *
  * The figures are not decoration. A chart alone forces the reader to estimate a number
  * off an axis; the lede states it, the delta judges it, and the chart is then evidence
@@ -69,7 +69,7 @@ $cell = static function (array $row, array $column) use ($e): string {
     $value = $row[$column['key']] ?? null;
 
     if ($value === null || $value === '') {
-        return '<span class="alfa-card-sub">&mdash;</span>';
+        return '<span class="dash-card-sub">&mdash;</span>';
     }
 
     // `money` arrives ALREADY FORMATTED by the provider that knew the currency; this
@@ -82,7 +82,7 @@ $cell = static function (array $row, array $column) use ($e): string {
     $swatch = '';
 
     if (!empty($column['swatch']) && ($row['color'] ?? '') !== '') {
-        $swatch = '<span class="alfa-chart-swatch" style="--swatch: '
+        $swatch = '<span class="chart-swatch" style="--swatch: '
             . $e((string) $row['color']) . '"></span>';
     }
 
@@ -93,26 +93,26 @@ $cell = static function (array $row, array $column) use ($e): string {
         : $e($text));
 };
 ?>
-<span class="alfa-card-head">
-    <span class="alfa-card-title"><?php echo Text::_($displayData['title']); ?></span>
+<span class="dash-card-head">
+    <span class="dash-card-title"><?php echo Text::_($displayData['title']); ?></span>
 
     <?php if (($displayData['subtitle'] ?? '') !== '') : ?>
-        <span class="alfa-card-sub"><?php echo Text::_($displayData['subtitle']); ?></span>
+        <span class="dash-card-sub"><?php echo Text::_($displayData['subtitle']); ?></span>
     <?php endif; ?>
 
     <?php if ($url !== '') : ?>
-        <a class="alfa-card-more alfa-card-more--button" href="<?php echo $e($url); ?>">
+        <a class="dash-card-more dash-card-more--button" href="<?php echo $e($url); ?>">
             <?php echo Text::_($more); ?>
         </a>
     <?php endif; ?>
 </span>
 
-<div class="alfa-chart-hero">
+<div class="chart-hero">
     <?php if ($figures !== []) : ?>
-        <div class="alfa-chart-lede">
+        <div class="chart-lede">
             <?php foreach ($figures as $figure) : ?>
-                <div class="alfa-chart-figure<?php echo !empty($figure['minor']) ? ' alfa-chart-figure--minor' : ''; ?>">
-                    <span class="alfa-chart-amount">
+                <div class="chart-figure<?php echo !empty($figure['minor']) ? ' chart-figure--minor' : ''; ?>">
+                    <span class="chart-amount">
                         <?php echo $e((string) ($figure['value'] ?? '')); ?>
 
                         <?php
@@ -129,7 +129,7 @@ $cell = static function (array $row, array $column) use ($e): string {
                                 'flat' => '<path d="M5 12h14"/>',
                             ][$trend];
                             ?>
-                            <span class="alfa-chart-delta" data-trend="<?php echo $trend; ?>"
+                            <span class="chart-delta" data-trend="<?php echo $trend; ?>"
                                   title="<?php echo $e(Text::_((string) ($delta['label'] ?? ''))); ?>">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
                                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $arrow; ?></svg>
@@ -137,20 +137,20 @@ $cell = static function (array $row, array $column) use ($e): string {
                             </span>
                         <?php endif; ?>
                     </span>
-                    <span class="alfa-chart-label"><?php echo $e(Text::_((string) ($figure['label'] ?? ''))); ?></span>
+                    <span class="chart-label"><?php echo $e(Text::_((string) ($figure['label'] ?? ''))); ?></span>
                 </div>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
 
-    <div<?php echo $pair ? ' class="alfa-chart-pair"' : ''; ?>>
+    <div<?php echo $pair ? ' class="chart-pair"' : ''; ?>>
         <?php if ($drawn) : ?>
-            <div class="alfa-card-chart" data-alfa-chart="<?php echo $e((string) $chart['key']); ?>"
+            <div class="dash-card-chart" data-chart-key="<?php echo $e((string) $chart['key']); ?>"
                  role="img" aria-label="<?php echo $e((string) ($chart['title'] ?? Text::_($displayData['title']))); ?>"></div>
         <?php endif; ?>
 
         <?php if ($rows !== [] && $columns !== []) : ?>
-            <table class="alfa-chart-table">
+            <table class="chart-table">
                 <thead>
                     <tr>
                         <?php foreach ($columns as $column) : ?>
@@ -190,6 +190,6 @@ $cell = static function (array $row, array $column) use ($e): string {
         <?php // Figures alone leave a hole where the chart belongs, and a reader who is
               // not told why assumes something failed. Every caller states its own
               // sentence for this, so the card says what the silence means. ?>
-        <p class="alfa-chart-empty"><?php echo Text::_($empty); ?></p>
+        <p class="chart-empty"><?php echo Text::_($empty); ?></p>
     <?php endif; ?>
 </div>

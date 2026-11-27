@@ -44,7 +44,7 @@ $renderRow = static fn (string $base, array $row) => $rowLayout->render([
     'itemId' => (int) ($displayData['itemId'] ?? 0),
 ]);
 ?>
-<div class="alfa-prices" data-control="<?php echo htmlspecialchars($controlBase, ENT_QUOTES, 'UTF-8'); ?>"
+<div class="prices" data-control="<?php echo htmlspecialchars($controlBase, ENT_QUOTES, 'UTF-8'); ?>"
      data-item-id="<?php echo (int) ($displayData['itemId'] ?? 0); ?>"<?php if (\is_array($stored)) : ?>
      data-item-categories="<?php echo htmlspecialchars((string) $stored['categories'], ENT_QUOTES, 'UTF-8'); ?>"
      data-item-manufacturers="<?php echo htmlspecialchars((string) $stored['manufacturers'], ENT_QUOTES, 'UTF-8'); ?>"

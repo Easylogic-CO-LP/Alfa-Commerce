@@ -40,7 +40,7 @@ $renderValueRow = function ($idx, $row = null) {
     $idBase = preg_replace('#\W#', '_', $base);
     $valueId = (int) ($row->id ?? 0);
     ?>
-    <div class="card mb-2 alfa-value-row" data-value-id="<?php echo $valueId; ?>">
+    <div class="card mb-2 value-row" data-value-id="<?php echo $valueId; ?>">
         <div class="card-body py-2">
             <input type="hidden" name="<?php echo $base; ?>[id]" value="<?php echo $valueId; ?>">
             <div class="d-flex gap-3 flex-wrap align-items-start">
@@ -96,7 +96,7 @@ $renderValueRow = function ($idx, $row = null) {
                     <?php endif; ?>
                 </div>
 
-                <button type="button" class="btn btn-sm btn-outline-danger alfa-value-remove mt-2" aria-label="<?php echo Text::_('JACTION_DELETE'); ?>">
+                <button type="button" class="btn btn-sm btn-outline-danger value-remove mt-2" aria-label="<?php echo Text::_('JACTION_DELETE'); ?>">
                     <span class="icon-trash" aria-hidden="true"></span>
                 </button>
             </div>
@@ -112,19 +112,19 @@ $renderValueRow = function ($idx, $row = null) {
             <legend><?php echo Text::_('COM_ALFA_TAB_ITEMFIELD_VALUES'); ?></legend>
             <p class="text-muted small"><?php echo Text::_('COM_ALFA_ITEMFIELD_VALUES_HELP'); ?></p>
 
-            <input type="hidden" name="jform[deleted_value_ids]" id="alfa-deleted-value-ids" value="">
+            <input type="hidden" name="jform[deleted_value_ids]" id="deleted-value-ids" value="">
 
-            <div id="alfa-value-rows">
+            <div id="value-rows">
                 <?php foreach ($values as $i => $row) : ?>
                     <?php $renderValueRow((string) $i, $row); ?>
                 <?php endforeach; ?>
             </div>
 
-            <template id="alfa-value-row-template">
+            <template id="value-row-template">
                 <?php $renderValueRow('__IDX__', null); ?>
             </template>
 
-            <button type="button" class="btn btn-secondary" id="alfa-value-add">
+            <button type="button" class="btn btn-secondary" id="value-add">
                 <span class="icon-plus" aria-hidden="true"></span> <?php echo Text::_('COM_ALFA_ITEMFIELD_VALUES_ADD'); ?>
             </button>
         </fieldset>
@@ -133,29 +133,29 @@ $renderValueRow = function ($idx, $row = null) {
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const rows       = document.getElementById('alfa-value-rows');
-  const template   = document.getElementById('alfa-value-row-template');
+  const rows       = document.getElementById('value-rows');
+  const template   = document.getElementById('value-row-template');
 
   // Drag to reorder: row order in the form IS the saved ordering
   // (saveValues numbers rows by POST position), so no renumbering needed.
   if (window.Sortable) {
-    window.Sortable.create(document.getElementById('alfa-value-rows'), {
+    window.Sortable.create(document.getElementById('value-rows'), {
       handle: '.sortable-handler',
       animation: 150,
     });
   }
-  const deletedIds = document.getElementById('alfa-deleted-value-ids');
+  const deletedIds = document.getElementById('deleted-value-ids');
   let nextIdx = <?php echo count($values); ?>;
 
-  document.getElementById('alfa-value-add').addEventListener('click', () => {
+  document.getElementById('value-add').addEventListener('click', () => {
     const html = template.innerHTML.replaceAll('__IDX__', String(nextIdx++));
     rows.insertAdjacentHTML('beforeend', html);
   });
 
   document.addEventListener('click', (event) => {
-    const removeBtn = event.target.closest('.alfa-value-remove');
+    const removeBtn = event.target.closest('.value-remove');
     if (removeBtn) {
-      const row = removeBtn.closest('.alfa-value-row');
+      const row = removeBtn.closest('.value-row');
       const id  = parseInt(row.dataset.valueId || '0', 10);
       if (id > 0) {
         deletedIds.value = deletedIds.value ? deletedIds.value + ',' + id : String(id);

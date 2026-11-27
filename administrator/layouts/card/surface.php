@@ -29,7 +29,7 @@ if ($cards === []) {
 }
 
 ?>
-<section class="alfa-cards <?php echo htmlspecialchars($class, ENT_QUOTES, 'UTF-8'); ?>"
+<section class="dash-cards <?php echo htmlspecialchars($class, ENT_QUOTES, 'UTF-8'); ?>"
     data-screen="<?php echo htmlspecialchars($screen, ENT_QUOTES, 'UTF-8'); ?>"
     data-surface="<?php echo htmlspecialchars($surface, ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -52,7 +52,7 @@ if ($cards === []) {
         }
         ?>
         <?php // The width is a percentage the card asked for; the grid does the arithmetic. ?>
-        <div class="alfa-card" style="--alfa-card-width: <?php echo (int) $card['width']; ?>%"
+        <div class="dash-card" style="--alfa-card-width: <?php echo (int) $card['width']; ?>%"
             data-card="<?php echo htmlspecialchars($card['id'], ENT_QUOTES, 'UTF-8'); ?>"
             data-width="<?php echo (int) $card['width']; ?>"
             data-owner="<?php echo htmlspecialchars($card['owner_group'] . ':' . $card['owner_name'], ENT_QUOTES, 'UTF-8'); ?>"

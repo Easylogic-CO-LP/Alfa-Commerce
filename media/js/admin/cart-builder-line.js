@@ -15,7 +15,7 @@
     'use strict';
 
     const options = (window.Joomla && Joomla.getOptions('com_alfa.cartBuilderLine')) || {};
-    const form = document.getElementById('alfa-builder-line-form');
+    const form = document.getElementById('builder-line-form');
     const figures = document.querySelector('[data-builder-quote-figures]');
     const error = document.querySelector('[data-builder-quote-error]');
 

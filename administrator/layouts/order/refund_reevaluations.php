@@ -52,7 +52,7 @@ foreach ($reevaluated as $entry) {
     );
 }
 ?>
-<div class="alert alert-warning" role="alert" data-alfa-refund-reevaluated>
+<div class="alert alert-warning" role="alert" data-refund-reevaluated>
     <h4 class="alert-heading h6 mb-2"><?php echo $escape(Text::_('COM_ALFA_REFUND_REEVALUATED_TITLE')); ?></h4>
     <ul class="mb-0">
         <?php foreach ($lines as $line) : ?>

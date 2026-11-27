@@ -75,7 +75,7 @@ class Storage
      * The store's folder in the site root, used when an install finds no
      * recorded path and no Options path.
      */
-    public const DEFAULT_FOLDER = 'alfa-downloads';
+    public const DEFAULT_FOLDER = 'downloads';
 
     /**
      * The recorded root, read once per request; false = not read yet.

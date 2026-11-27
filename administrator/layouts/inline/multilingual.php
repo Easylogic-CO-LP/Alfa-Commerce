@@ -32,7 +32,7 @@ $single    = !empty($displayData['single']) || \count($languages) <= 1;
             $flag  = $language['flag'] ?? [];
         ?>
         <div class="ml-field-item">
-            <input type="text" class="form-control form-control-sm alfa-inline-input"
+            <input type="text" class="form-control form-control-sm inline-input"
                    data-name="<?php echo htmlspecialchars($tag, ENT_QUOTES, 'UTF-8'); ?>"
                    value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>">
             <?php if (!$single) : ?>

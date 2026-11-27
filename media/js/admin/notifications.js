@@ -1,7 +1,7 @@
 /**
  * Alfa Admin: Notification Center (toolbar badge + quick panel)
  * LAYOUT-DRIVEN component. The whole thing (button + panel) is server-rendered as one
- * `.alfa-notify` node by the badge layout; this script never builds content; on refresh
+ * `.notify` node by the badge layout; this script never builds content; on refresh
  * it re-fetches that same layout and swaps the node in place. All state is declarative:
  * the panel carries `data-open`, so the server renders it open/closed and the JS only
  * re-positions. The panel is position:fixed and rendered in place (not moved to <body>);
@@ -30,7 +30,7 @@
      * and state token the script touches lives here: change the markup, change one line.
      */
     var SEL = {
-        root:      '.alfa-notify',              // component wrapper (the swapped node)
+        root:      '.notify',              // component wrapper (the swapped node)
         button:    '[data-region="badge"]',     // the bell button (toggles + anchors)
         panel:     '[data-region="panel"]',     // the dropdown (carries open state)
         read:      '[data-action="read"]',       // per-item "mark read" action
@@ -41,7 +41,7 @@
     };
 
     var opts; // resolved script options (panelUrl, markUrl, dismissUrl, token, poll)
-    var root; // current `.alfa-notify` node (reassigned on every refresh swap)
+    var root; // current `.notify` node (reassigned on every refresh swap)
 
     /**
      * The panel (dropdown) element within the current component.
@@ -209,7 +209,7 @@
 
     /**
      * Re-fetch the badge layout (passing the current open state so it comes back open if
-     * it was open) and swap the whole `.alfa-notify` node in place. This is the only way
+     * it was open) and swap the whole `.notify` node in place. This is the only way
      * content changes; no DOM is built here. The endpoint also runs the integrity sync.
      */
     function refresh() {

@@ -29,31 +29,31 @@ $e      = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF
 $iconStyle = static fn (string $path): string => $path === '' ? ''
     : ' style="--alfa-icon:url(\'' . $e($root . '/' . ltrim($path, '/')) . '\')"';
 ?>
-<style>#sidebarmenu ul.main-nav:not(.alfa-nav){display:none;}/* FOUC guard: hide CMS nav until the menu is placed */</style>
+<style>#sidebarmenu ul.main-nav:not(.app-nav){display:none;}/* FOUC guard: hide CMS nav until the menu is placed */</style>
 
 <?php // A stub placed into the CMS menu, so from Joomla's own nav you can jump into Alfa. ?>
-<div data-alfa-back hidden>
-    <li class="item item-level-1 alfa-jump">
-        <a class="no-dropdown" href="<?php echo Route::_('index.php?option=com_alfa'); ?>" data-alfa-to-app aria-label="<?php echo $e(Text::_('COM_ALFA')); ?>">
-            <span class="alfa-menu-icon"<?php echo $iconStyle('media/com_alfa/images/admin/menu/alfa.svg'); ?>></span>
+<div data-back-link hidden>
+    <li class="item item-level-1 jump">
+        <a class="no-dropdown" href="<?php echo Route::_('index.php?option=com_alfa'); ?>" data-to-app aria-label="<?php echo $e(Text::_('COM_ALFA')); ?>">
+            <span class="menu-icon"<?php echo $iconStyle('media/com_alfa/images/admin/menu/alfa.svg'); ?>></span>
             <span class="sidebar-item-title"><?php echo $e(Text::_('COM_ALFA')); ?></span>
-            <span class="alfa-menu-arrow"<?php echo $iconStyle('media/com_alfa/images/admin/menu/forward.svg'); ?>></span>
+            <span class="menu-arrow"<?php echo $iconStyle('media/com_alfa/images/admin/menu/forward.svg'); ?>></span>
         </a>
     </li>
 </div>
 
-<div data-alfa-sidebar hidden>
-    <ul class="nav flex-column main-nav alfa-nav">
-        <li class="item item-level-1 alfa-back">
-            <a class="no-dropdown" href="#" data-alfa-to-joomla aria-label="<?php echo $e(Text::_('JTOOLBAR_BACK')); ?>">
-                <span class="alfa-menu-icon"<?php echo $iconStyle('media/com_alfa/images/admin/menu/back.svg'); ?>></span>
+<div data-sidebar-menu hidden>
+    <ul class="nav flex-column main-nav app-nav">
+        <li class="item item-level-1 back">
+            <a class="no-dropdown" href="#" data-to-joomla aria-label="<?php echo $e(Text::_('JTOOLBAR_BACK')); ?>">
+                <span class="menu-icon"<?php echo $iconStyle('media/com_alfa/images/admin/menu/back.svg'); ?>></span>
                 <span class="sidebar-item-title"><?php echo $e(Text::_('JTOOLBAR_BACK')); ?></span>
             </a>
         </li>
 
         <?php foreach ($groups as $group) : ?>
             <?php if ($group['label'] !== '') : ?>
-                <li class="alfa-menu-header item-level-1" role="presentation">
+                <li class="menu-header item-level-1" role="presentation">
                     <span><?php echo $e(Text::_($group['label'])); ?></span>
                 </li>
             <?php endif; ?>
@@ -62,7 +62,7 @@ $iconStyle = static fn (string $path): string => $path === '' ? ''
                     <a class="no-dropdown<?php echo $item->active ? ' mm-active' : ''; ?>"
                        href="<?php echo Route::_($item->link); ?>"
                        aria-label="<?php echo $e(Text::_($item->title)); ?>">
-                        <span class="alfa-menu-icon"<?php echo $iconStyle($item->icon); ?>></span>
+                        <span class="menu-icon"<?php echo $iconStyle($item->icon); ?>></span>
                         <span class="sidebar-item-title"><?php echo $e(Text::_($item->title)); ?></span>
                     </a>
                 </li>

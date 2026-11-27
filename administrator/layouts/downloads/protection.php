@@ -84,7 +84,7 @@ if ($failed) {
     $text = Text::sprintf('COM_ALFA_DOWNLOADS_PROTECTION_VERIFIED', htmlspecialchars((string) $result->root, ENT_QUOTES, 'UTF-8'), htmlspecialchars($result->checked_at . ' UTC', ENT_QUOTES, 'UTF-8'));
 }
 ?>
-<div class="alert <?php echo $class; ?> alfa-download-protection" data-state="<?php echo htmlspecialchars($failed ? 'failed' : (string) ($result->state ?? 'none'), ENT_QUOTES, 'UTF-8'); ?>">
+<div class="alert <?php echo $class; ?> download-protection" data-state="<?php echo htmlspecialchars($failed ? 'failed' : (string) ($result->state ?? 'none'), ENT_QUOTES, 'UTF-8'); ?>">
     <?php if ($notice !== null) : ?>
         <p class="mb-2"><?php echo $notice; ?></p>
     <?php endif; ?>

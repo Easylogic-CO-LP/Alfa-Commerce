@@ -79,8 +79,8 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
 <div class="card mb-3">
     <div class="card-body p-0">
         <div class="table-responsive">
-        <?php // Below 480 px a line folds (alfa-fold): its figures wrap under its name, each named. ?>
-        <table class="table table-striped mb-0 align-middle alfa-builder-statement alfa-fold">
+        <?php // Below 480 px a line folds (fold): its figures wrap under its name, each named. ?>
+        <table class="table table-striped mb-0 align-middle builder-statement fold">
             <thead>
                 <tr>
                     <th><?php echo Text::_('COM_ALFA_CART_TABLE_NAME'); ?></th>
@@ -130,21 +130,21 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
                         <?php endif; ?>
                     </td>
 
-                    <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_QUANTITY')); ?>"><?php echo (int) $line->quantity; ?></td>
+                    <td class="text-center" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_QUANTITY')); ?>"><?php echo (int) $line->quantity; ?></td>
 
                     <?php // Each unit by the one unit rule, from the line's own whole amount and quantity; on a
                           // negotiated line the gross unit is the agreed rate. ?>
-                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_COL_UNIT_EXCL')); ?>"><?php echo $price !== null ? $this->escape(PriceUnits::line(price: $price, withTax: false)) : $dash; ?></td>
-                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_COL_UNIT_INCL')); ?>"><?php echo $price !== null ? $this->escape(PriceUnits::line(price: $price, withTax: true)) : $dash; ?></td>
-                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_TAX')); ?>"><?php echo $price !== null ? $this->escape($price->getTaxTotal()->format()) : $dash; ?></td>
+                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_COL_UNIT_EXCL')); ?>"><?php echo $price !== null ? $this->escape(PriceUnits::line(price: $price, withTax: false)) : $dash; ?></td>
+                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_COL_UNIT_INCL')); ?>"><?php echo $price !== null ? $this->escape(PriceUnits::line(price: $price, withTax: true)) : $dash; ?></td>
+                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_TAX')); ?>"><?php echo $price !== null ? $this->escape($price->getTaxTotal()->format()) : $dash; ?></td>
 
-                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_DISCOUNT')); ?>">
+                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_DISCOUNT')); ?>">
                         <?php echo $price !== null
                             ? LayoutHelper::render('cart.line_discount', ['price' => $price], null, $layouts)
                             : $dash; ?>
                     </td>
 
-                    <td class="text-end fw-semibold" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_TOTAL')); ?>">
+                    <td class="text-end fw-semibold" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_TABLE_TOTAL')); ?>">
                         <?php echo $price !== null
                             ? LayoutHelper::render('cart.line_total', ['price' => $price], null, $layouts)
                             : $dash; ?>
@@ -153,7 +153,7 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
                     <?php // The builder_line popup (403 otherwise) and the line mutations ask carts checkout, and
                           // Carts: Edit on a shopper's cart. ?>
                     <?php if ($this->canOperate) : ?>
-                        <td class="text-end alfa-fold-line">
+                        <td class="text-end fold-line">
                             <a href="#<?php echo $modalId; ?>" data-bs-toggle="modal" role="button"
                                class="btn btn-sm btn-primary">
                                 <span class="icon-edit" aria-hidden="true"></span>
@@ -304,8 +304,8 @@ $popupUrl = static fn (int $lineId): string => Route::_(sprintf(
 <?php if ($this->canOperate) : ?>
 <form action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post" class="row g-2 align-items-end mb-3">
     <div class="col-auto">
-        <label class="form-label" for="alfa-builder-coupon"><?php echo Text::_('COM_ALFA_CART_COUPON_LABEL'); ?></label>
-        <input type="text" class="form-control" id="alfa-builder-coupon" name="code"
+        <label class="form-label" for="builder-coupon"><?php echo Text::_('COM_ALFA_CART_COUPON_LABEL'); ?></label>
+        <input type="text" class="form-control" id="builder-coupon" name="code"
                placeholder="<?php echo Text::_('COM_ALFA_CART_COUPON_PLACEHOLDER'); ?>" required>
     </div>
     <div class="col-auto">

@@ -1,5 +1,5 @@
 /* The upload zone draws its boxes with the admin's own corner (Atum's token) and its buttons as the admin's. */
-.media-dropzone {
+:where(#alfa-app) .media-dropzone {
     --media-radius: var(--border-radius, 0.25rem);
 }
 
@@ -7,7 +7,7 @@
    Dropzone
    */
 
-.media-dropzone {
+:where(#alfa-app) .media-dropzone {
     position: relative;
     display: flex;
     align-items: center;
@@ -17,7 +17,7 @@
     padding: 1.5rem;
 }
 
-.media-dropzone-inner {
+:where(#alfa-app) .media-dropzone-inner {
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -27,21 +27,21 @@
     border-radius: var(--media-radius);
 }
 
-.media-dropzone-icon {
+:where(#alfa-app) .media-dropzone-icon {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
 }
 
-.media-dropzone-icon > span {
+:where(#alfa-app) .media-dropzone-icon > span {
     font-size: 4rem;
     color: var(--body-color, #1c3d5c);
 }
 
 /* Dropzone overlay (drag hover) */
 
-.media-dropzone-overlay {
+:where(#alfa-app) .media-dropzone-overlay {
     position: absolute;
     z-index: 1000;
     display: flex;
@@ -57,7 +57,7 @@
     transition: all 0.25s ease-in-out;
 }
 
-.media-dropzone-overlay.hovered {
+:where(#alfa-app) .media-dropzone-overlay.hovered {
     visibility: visible;
     opacity: 1;
 }
@@ -66,7 +66,7 @@
    Media grid
    */
 
-.media-grid {
+:where(#alfa-app) .media-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     grid-gap: 1rem;
@@ -77,7 +77,7 @@
    Media card: a card of the admin's
    */
 
-.media-card {
+:where(#alfa-app) .media-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -93,7 +93,7 @@
 
 /* Card header (type tag + actions) */
 
-.media-header {
+:where(#alfa-app) .media-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -102,7 +102,7 @@
 
 /* Type tag: a badge of the admin's (the layout sets its colour). */
 
-.media-type-tag > span {
+:where(#alfa-app) .media-type-tag > span {
     cursor: default;
 }
 
@@ -110,17 +110,17 @@
    MEDIA ACTIONS (delete, drag): the admin's small buttons
    */
 
-.media-actions {
+:where(#alfa-app) .media-actions {
     display: flex;
     flex-direction: row;
     gap: 0.25rem;
 }
 
-.media-actions .drag-handle {
+:where(#alfa-app) .media-actions .drag-handle {
     cursor: grab;
 }
 
-.media-actions .drag-handle:active {
+:where(#alfa-app) .media-actions .drag-handle:active {
     cursor: grabbing;
 }
 
@@ -128,7 +128,7 @@
    Media preview
    */
 
-.media-preview {
+:where(#alfa-app) .media-preview {
     position: relative;
     display: flex;
     align-items: center;
@@ -139,7 +139,7 @@
 
 /* Image preview */
 
-.media-preview-img {
+:where(#alfa-app) .media-preview-img {
     display: block;
     width: 100%;
     height: 100%;
@@ -149,7 +149,7 @@
 
 /* URL preview */
 
-.media-preview > a {
+:where(#alfa-app) .media-preview > a {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -160,13 +160,13 @@
    Media thumbnail
    */
 
-.media-thumbnail {
+:where(#alfa-app) .media-thumbnail {
     position: absolute;
     bottom: -30px;
     right: 0;
 }
 
-.media-thumbnail-btn {
+:where(#alfa-app) .media-thumbnail-btn {
     width: 60px;
     height: 60px;
     padding: 5px;
@@ -178,18 +178,18 @@
     transition: all ease-in-out 0.15s;
 }
 
-.media-thumbnail-btn:hover {
+:where(#alfa-app) .media-thumbnail-btn:hover {
     transform: scale(1.05);
     opacity: 0.8;
 }
 
-.media-thumbnail-img {
+:where(#alfa-app) .media-thumbnail-img {
     width: 100%;
     height: 100%;
     object-fit: contain;
 }
 
-#thumbnail-container {
+:where(#alfa-app) #thumbnail-container {
     display: flex;
     flex-direction: row;
     gap: 0.6rem;
@@ -199,7 +199,7 @@
    MEDIA FIELDS (alt, path)
    */
 
-.media-fields {
+:where(#alfa-app) .media-fields {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -208,7 +208,7 @@
     gap: 0.6rem;
 }
 
-.media-field > label {
+:where(#alfa-app) .media-field > label {
     color: var(--secondary-color, #6c757d);
 }
 
@@ -216,11 +216,11 @@
    URL error
    */
 
-[data-media-url-error] {
+:where(#alfa-app) [data-media-url-error] {
     display: none;
 }
 
-[data-media-url-error].visible {
+:where(#alfa-app) [data-media-url-error].visible {
     display: inline-block;
     background-color: var(--danger, #c52827);
     color: #fff;
@@ -233,7 +233,7 @@
    Placeholder
    */
 
-.media-placeholder {
+:where(#alfa-app) .media-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -242,7 +242,7 @@
     grid-column: 1 / -1; /* span full grid width */
 }
 
-.media-placeholder-icon {
+:where(#alfa-app) .media-placeholder-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -253,23 +253,23 @@
     margin-bottom: 1rem;
 }
 
-.media-placeholder-icon > span {
+:where(#alfa-app) .media-placeholder-icon > span {
     font-size: 2rem;
     color: var(--secondary-color, #adb5bd);
 }
 
-.media-placeholder > p {
+:where(#alfa-app) .media-placeholder > p {
     margin: 0;
     text-align: center;
 }
 
-.media-placeholder > p:first-of-type {
+:where(#alfa-app) .media-placeholder > p:first-of-type {
     font-size: 1rem;
     font-weight: 600;
     color: var(--body-color, #495057);
 }
 
-.media-placeholder > p.text-muted {
+:where(#alfa-app) .media-placeholder > p.text-muted {
     font-size: 0.85rem;
     margin-top: 0.3rem;
 }
@@ -278,11 +278,11 @@
    Misc
    */
 
-.url-thumbnail-icon {
+:where(#alfa-app) .url-thumbnail-icon {
     width: 18px;
 }
 
-.media-card.is-deleted {
+:where(#alfa-app) .media-card.is-deleted {
     display: none;
 }
 
@@ -290,7 +290,7 @@
    Media error styling
    */
 
-.errors-container {
+:where(#alfa-app) .errors-container {
     display: none;
 
     position: absolute;
@@ -309,25 +309,25 @@
     border-radius: var(--media-radius);
 }
 
-.media-card.has-thumbnail-error .errors-container {
+:where(#alfa-app) .media-card.has-thumbnail-error .errors-container {
     display: block;
 }
 
-.media-card.has-thumbnail-error,
-.media-card.has-thumbnail-error .media-thumbnail-btn
+:where(#alfa-app) .media-card.has-thumbnail-error,
+:where(#alfa-app) .media-card.has-thumbnail-error .media-thumbnail-btn
 {
     border: 2px solid var(--danger, #c52827);
 }
 
-.media-card.has-thumbnail-error .media-thumbnail-img {
+:where(#alfa-app) .media-card.has-thumbnail-error .media-thumbnail-img {
     display: none;
 }
 
-.media-thumbnail-btn .select-thumbnail-btn-msg {
+:where(#alfa-app) .media-thumbnail-btn .select-thumbnail-btn-msg {
     display: none;
 }
 
-.media-card.has-thumbnail-error .media-thumbnail-btn .select-thumbnail-btn-msg {
+:where(#alfa-app) .media-card.has-thumbnail-error .media-thumbnail-btn .select-thumbnail-btn-msg {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -346,36 +346,36 @@
    */
 
 @media only screen and (max-width: 992px) {
-    .media-grid {
+    :where(#alfa-app) .media-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
 
-    .media-dropzone-inner {
+    :where(#alfa-app) .media-dropzone-inner {
         padding: 1rem;
     }
 
-    .media-dropzone {
+    :where(#alfa-app) .media-dropzone {
         padding: 0.5rem;
     }
 }
 
 @media only screen and (max-width: 511px) {
-    .media-grid {
+    :where(#alfa-app) .media-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 }
 /* URL thumbnail picker (media zone) */
-.media-url-thumb {
+:where(#alfa-app) .media-url-thumb {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: .5rem;
 }
-.media-url-thumb-hint {
+:where(#alfa-app) .media-url-thumb-hint {
     font-size: .8rem;
     color: var(--secondary-color, #6c757d);
 }
-.media-url-thumb-preview {
+:where(#alfa-app) .media-url-thumb-preview {
     width: 96px;
     height: 96px;
     object-fit: cover;

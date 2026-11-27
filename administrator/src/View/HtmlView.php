@@ -22,8 +22,9 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 class HtmlView extends BaseHtmlView
 {
     /**
-     * Render the view wrapped in the shared <div id="alfa-app"> container,
-     * tagged with the lower-cased view name for the front-end app to hook into.
+     * Render the view wrapped in the shared <div id="alfa-app"> container: the one element that carries the
+     * component's name, the root every administrator rule is scoped under (:where(#alfa-app)), tagged with the
+     * lower-cased view name for the scripts to hook into.
      *
      * @param string|null $tpl The name of the template file to parse
      *

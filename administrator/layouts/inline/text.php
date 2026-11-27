@@ -14,7 +14,7 @@
  * the cell by media/com_alfa/js/admin/inline-edit.js.
  *
  * Two contracts the markup must honour, both read by that script:
- *   - class "alfa-inline-input"  - how the editor's inputs are collected;
+ *   - class "inline-input"  - how the editor's inputs are collected;
  *   - data-name "__value"        - the key the scalar branch prefers, so the
  *                                  posted payload is {id, field, value}.
  * A single input also makes Enter save (the script binds it only when the
@@ -38,7 +38,7 @@ $min       = $displayData['min'] ?? null;
 $maxlength = (int) ($displayData['maxlength'] ?? 0);
 $hint      = (string) ($displayData['hint'] ?? '');
 ?>
-<input type="<?php echo $type; ?>" class="form-control form-control-sm alfa-inline-input"
+<input type="<?php echo $type; ?>" class="form-control form-control-sm inline-input"
        data-name="__value"
        value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"
     <?php if ($maxlength > 0) : ?>
@@ -52,5 +52,5 @@ $hint      = (string) ($displayData['hint'] ?? '');
     <?php endif; ?>
 >
 <?php if ($hint !== '') : ?>
-    <div class="alfa-inline-hint"><?php echo htmlspecialchars($hint, ENT_QUOTES, 'UTF-8'); ?></div>
+    <div class="inline-hint"><?php echo htmlspecialchars($hint, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>

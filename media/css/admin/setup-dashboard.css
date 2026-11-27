@@ -17,24 +17,24 @@
  * Nothing here hardcodes a colour that the theme is entitled to decide.
  */
 
-.dash-head {
+:where(#alfa-app) .dash-head {
     margin: 0.5rem 0 1.25rem;
 }
 
-.dash-title {
+:where(#alfa-app) .dash-title {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
 }
 
-.dash-sub {
+:where(#alfa-app) .dash-sub {
     margin: 0.25rem 0 0;
     color: var(--secondary-color, #6c757d);
 }
 
 /* card shell */
 
-.setup-card {
+:where(#alfa-app) .setup-card {
     background: var(--card-bg, #fff);
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 0.5rem;
@@ -42,12 +42,12 @@
     overflow: hidden;
 }
 
-.setup-card.is-busy {
+:where(#alfa-app) .setup-card.is-busy {
     opacity: 0.6;
     pointer-events: none;
 }
 
-.setup-head {
+:where(#alfa-app) .setup-head {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 0.5rem 1rem;
@@ -56,25 +56,25 @@
     border-bottom: 1px solid var(--border-color, #dee2e6);
 }
 
-.setup-title {
+:where(#alfa-app) .setup-title {
     margin: 0;
     font-size: 1.15rem;
     font-weight: 600;
 }
 
-.setup-progress-text {
+:where(#alfa-app) .setup-progress-text {
     display: block;
     margin-top: 0.15rem;
     font-size: 0.85rem;
     color: var(--secondary-color, #6c757d);
 }
 
-.setup-card[data-ready="1"] .setup-progress-text {
+:where(#alfa-app) .setup-card[data-ready="1"] .setup-progress-text {
     color: var(--success-text-emphasis, #1c3222);
     font-weight: 600;
 }
 
-.setup-progress {
+:where(#alfa-app) .setup-progress {
     grid-column: 1 / -1;
     height: 6px;
     border-radius: 3px;
@@ -82,7 +82,7 @@
     overflow: hidden;
 }
 
-.setup-progress-fill {
+:where(#alfa-app) .setup-progress-fill {
     display: block;
     height: 100%;
     border-radius: 3px;
@@ -90,11 +90,11 @@
     transition: width 0.3s ease;
 }
 
-.setup-card[data-ready="1"] .setup-progress-fill {
+:where(#alfa-app) .setup-card[data-ready="1"] .setup-progress-fill {
     background: var(--success, #2f7d32);
 }
 
-.setup-head-actions {
+:where(#alfa-app) .setup-head-actions {
     grid-row: 1;
     grid-column: 2;
     display: flex;
@@ -107,13 +107,13 @@
 /* Layout stays on the bare class so the collapse rules below (which are only
    class+attribute) keep deciding which of expand/collapse is on screen. Only the
    painting is scoped higher, to outrank Atum's own `.btn.btn-sm`. */
-.setup-act {
+:where(#alfa-app) .setup-act {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
 }
 
-.setup-head-actions .btn.setup-act {
+:where(#alfa-app) .setup-head-actions .btn.setup-act {
     padding: 0.28rem 0.65rem;
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 0.25rem;
@@ -125,67 +125,67 @@
     transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
 
-.setup-head-actions .btn.setup-act:hover,
-.setup-head-actions .btn.setup-act:focus-visible {
+:where(#alfa-app) .setup-head-actions .btn.setup-act:hover,
+:where(#alfa-app) .setup-head-actions .btn.setup-act:focus-visible {
     background: var(--secondary-bg, #e9ecef);
     border-color: var(--secondary-color, #6c757d);
     color: var(--emphasis-color, #000);
 }
 
 /* Our own inline SVG glyphs: sized here, coloured by currentColor. */
-.setup-act svg {
+:where(#alfa-app) .setup-act svg {
     width: 1rem;
     height: 1rem;
     flex: 0 0 auto;
 }
 
-.setup-state svg {
+:where(#alfa-app) .setup-state svg {
     width: 0.95rem;
     height: 0.95rem;
 }
 
 /* finished setup: the quiet chip */
 
-.setup-card[data-ready="1"][data-state="collapsed"] {
+:where(#alfa-app) .setup-card[data-ready="1"][data-state="collapsed"] {
     box-shadow: none;
 }
 
-.setup-card[data-ready="1"][data-state="collapsed"] .setup-head {
+:where(#alfa-app) .setup-card[data-ready="1"][data-state="collapsed"] .setup-head {
     padding: 0.55rem 1rem;
     border-bottom: 0;
 }
 
-.setup-card[data-ready="1"][data-state="collapsed"] .setup-title {
+:where(#alfa-app) .setup-card[data-ready="1"][data-state="collapsed"] .setup-title {
     font-size: 0.95rem;
 }
 
-.setup-card[data-ready="1"][data-state="collapsed"] .setup-progress {
+:where(#alfa-app) .setup-card[data-ready="1"][data-state="collapsed"] .setup-progress {
     display: none;
 }
 
 /* collapse state */
 
-.setup-card [data-action="expand"] {
+:where(#alfa-app) .setup-card [data-action="expand"] {
     display: none;
 }
 
-.setup-card[data-state="collapsed"] [data-action="expand"] {
+:where(#alfa-app) .setup-card[data-state="collapsed"] [data-action="expand"] {
     display: inline-flex;
 }
 
-.setup-card[data-state="collapsed"] [data-action="collapse"],
-.setup-card[data-state="collapsed"] .setup-body,
-.setup-card[data-state="collapsed"] .setup-foot {
+:where(#alfa-app) .setup-card[data-state="collapsed"] [data-action="collapse"],
+:where(#alfa-app) .setup-card[data-state="collapsed"] .setup-body,
+:where(#alfa-app) .setup-card[data-state="collapsed"] .setup-foot {
     display: none;
 }
 
 /* rows */
 
-.setup-body {
+:where(#alfa-app) .setup-body {
     padding: 0.5rem 1.25rem 1rem;
 }
 
-.setup-tier {
+:where(#alfa-app) .setup-tier {
     margin: 1rem 0 0.35rem;
     font-size: 0.72rem;
     font-weight: 700;
@@ -194,13 +194,13 @@
     color: var(--secondary-color, #6c757d);
 }
 
-.setup-list {
+:where(#alfa-app) .setup-list {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.setup-item {
+:where(#alfa-app) .setup-item {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
@@ -208,11 +208,11 @@
     border-bottom: 1px solid var(--border-color-translucent, #f1f3f5);
 }
 
-.setup-item:last-child {
+:where(#alfa-app) .setup-item:last-child {
     border-bottom: 0;
 }
 
-.setup-state {
+:where(#alfa-app) .setup-state {
     flex: 0 0 auto;
     width: 1.5rem;
     height: 1.5rem;
@@ -224,12 +224,12 @@
     margin-top: 0.1rem;
 }
 
-.setup-item.is-pass .setup-state {
+:where(#alfa-app) .setup-item.is-pass .setup-state {
     background: var(--success-bg-subtle, #e7f1e9);
     color: var(--success-text-emphasis, #1c3222);
 }
 
-.setup-item.is-fail .setup-state {
+:where(#alfa-app) .setup-item.is-fail .setup-state {
     background: var(--tertiary-bg, #f1f3f5);
     color: var(--secondary-color, #6c757d);
 }
@@ -237,55 +237,55 @@
 /* Tier decides how loud "not done" looks: a missing REQUIRED step is work the
    shop is waiting on, so it warms to amber; recommended and optional stay the
    quiet grey above, because nothing is wrong with a shop that skips them. */
-.setup-item.is-fail.tier-required .setup-state {
+:where(#alfa-app) .setup-item.is-fail.tier-required .setup-state {
     background: var(--warning-bg-subtle, #fcefdc);
     color: var(--warning-text-emphasis, #60451f);
 }
 
-.setup-item.is-fail.tier-recommended .setup-item-label,
-.setup-item.is-fail.tier-optional .setup-item-label {
+:where(#alfa-app) .setup-item.is-fail.tier-recommended .setup-item-label,
+:where(#alfa-app) .setup-item.is-fail.tier-optional .setup-item-label {
     font-weight: 400;
 }
 
-.setup-item-choice {
+:where(#alfa-app) .setup-item-choice {
     display: inline-flex;
     align-items: center;
     margin-inline-end: 0.35rem;
 }
 
-.setup-item-choice select {
+:where(#alfa-app) .setup-item-choice select {
     max-width: 14rem;
 }
 
-.setup-item.is-warn .setup-state {
+:where(#alfa-app) .setup-item.is-warn .setup-state {
     background: var(--warning-bg-subtle, #fcefdc);
     color: var(--warning-text-emphasis, #60451f);
 }
 
-.setup-item-body {
+:where(#alfa-app) .setup-item-body {
     flex: 1 1 auto;
     min-width: 0;
 }
 
-.setup-item-label {
+:where(#alfa-app) .setup-item-label {
     display: block;
     font-weight: 500;
 }
 
-.setup-item.is-pass .setup-item-label {
+:where(#alfa-app) .setup-item.is-pass .setup-item-label {
     color: var(--secondary-color, #6c757d);
     font-weight: 400;
 }
 
-.setup-item-reason,
-.setup-item-note {
+:where(#alfa-app) .setup-item-reason,
+:where(#alfa-app) .setup-item-note {
     display: block;
     margin-top: 0.1rem;
     font-size: 0.85rem;
     color: var(--secondary-color, #6c757d);
 }
 
-.setup-item-actions {
+:where(#alfa-app) .setup-item-actions {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -297,7 +297,7 @@
    a second-class citizen. On a row that still needs work the secondary action is a
    plain neutral button; on a finished row BOTH actions go quiet grey, so the eye
    skips them while they stay perfectly clickable (nothing ever disappears). */
-.setup-item-alt {
+:where(#alfa-app) .setup-item-alt {
     display: inline-flex;
     align-items: center;
     padding: 0.2rem 0.55rem;
@@ -312,29 +312,29 @@
     transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
 
-.setup-item-alt:hover,
-.setup-item-alt:focus-visible {
+:where(#alfa-app) .setup-item-alt:hover,
+:where(#alfa-app) .setup-item-alt:focus-visible {
     background: var(--secondary-bg, #e9ecef);
     border-color: var(--secondary-color, #6c757d);
     color: var(--emphasis-color, #000);
     text-decoration: none;
 }
 
-.setup-item.is-pass .setup-item-alt {
+:where(#alfa-app) .setup-item.is-pass .setup-item-alt {
     background: var(--tertiary-bg, #f8f9fa);
     border-color: var(--border-color-translucent, #e9ecef);
     color: var(--secondary-color, #6c757d);
 }
 
-.setup-item.is-pass .setup-item-alt:hover,
-.setup-item.is-pass .setup-item-alt:focus-visible {
+:where(#alfa-app) .setup-item.is-pass .setup-item-alt:hover,
+:where(#alfa-app) .setup-item.is-pass .setup-item-alt:focus-visible {
     background: var(--secondary-bg, #e9ecef);
     color: var(--body-color, #212529);
 }
 
 /* footer */
 
-.setup-foot {
+:where(#alfa-app) .setup-foot {
     padding: 0.7rem 1.25rem;
     border-top: 1px solid var(--border-color, #dee2e6);
     background: var(--warning-bg-subtle, #fcefdc);
@@ -342,11 +342,11 @@
 }
 
 @media (max-width: 640px) {
-    .setup-item {
+    :where(#alfa-app) .setup-item {
         flex-wrap: wrap;
     }
 
-    .setup-item-actions {
+    :where(#alfa-app) .setup-item-actions {
         width: 100%;
         justify-content: flex-end;
     }
@@ -354,7 +354,7 @@
 
 /* admin cards: a position is a row, a card asks for a % of it */
 
-.alfa-cards {
+:where(#alfa-app) .dash-cards {
     --alfa-cards-gap: 0.75rem;
 
     display: flex;
@@ -364,14 +364,14 @@
 }
 
 /* Top and Bottom are announcement strips: one card per row unless it says otherwise. */
-.alfa-cards--top .alfa-card,
-.alfa-cards--bottom .alfa-card {
+:where(#alfa-app) .dash-cards--top .dash-card,
+:where(#alfa-app) .dash-cards--bottom .dash-card {
     --alfa-card-width: 100%;
 }
 
 /* The card asked for a percentage; the gap is taken off it here so any number
    from 5 to 100 lands on the row without the grid having to know about it. */
-.alfa-card {
+:where(#alfa-app) .dash-card {
     flex: 1 1 calc(var(--alfa-card-width, 25%) - var(--alfa-cards-gap));
     max-width: calc(var(--alfa-card-width, 25%) - var(--alfa-cards-gap));
     display: flex;
@@ -383,7 +383,7 @@
     border-radius: 0.5rem;
 }
 
-.alfa-card-metric {
+:where(#alfa-app) .dash-card-metric {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -391,15 +391,15 @@
     text-decoration: none;
 }
 
-a.alfa-card-metric:hover {
+:where(#alfa-app) a.dash-card-metric:hover {
     text-decoration: none;
 }
 
-.alfa-card:has(a.alfa-card-metric:hover) {
+:where(#alfa-app) .dash-card:has(a.dash-card-metric:hover) {
     border-color: var(--primary, #006898);
 }
 
-.alfa-card-head {
+:where(#alfa-app) .dash-card-head {
     display: flex;
     align-items: center;
     gap: 0.45rem;
@@ -407,34 +407,34 @@ a.alfa-card-metric:hover {
     font-size: 0.85rem;
 }
 
-.alfa-card-icon svg {
+:where(#alfa-app) .dash-card-icon svg {
     width: 1.05rem;
     height: 1.05rem;
     display: block;
 }
 
-.alfa-card-value {
+:where(#alfa-app) .dash-card-value {
     font-size: 1.9rem;
     font-weight: 600;
     line-height: 1.1;
 }
 
-.alfa-card-sub {
+:where(#alfa-app) .dash-card-sub {
     font-size: 0.8rem;
     color: var(--secondary-color, #6c757d);
 }
 
-.alfa-card-more {
+:where(#alfa-app) .dash-card-more {
     margin-left: auto;
     font-size: 0.8rem;
 }
 
-.alfa-card-empty {
+:where(#alfa-app) .dash-card-empty {
     margin: 0.5rem 0 0;
     color: var(--secondary-color, #6c757d);
 }
 
-.alfa-card-notes {
+:where(#alfa-app) .dash-card-notes {
     margin: 0.6rem 0 0;
     padding-left: 1.1rem;
     font-size: 0.85rem;
@@ -443,13 +443,13 @@ a.alfa-card-metric:hover {
 
 /* the orders card */
 
-.alfa-card-orders {
+:where(#alfa-app) .dash-card-orders {
     list-style: none;
     margin: 0.5rem 0 0;
     padding: 0;
 }
 
-.alfa-card-order {
+:where(#alfa-app) .dash-card-order {
     display: grid;
     grid-template-columns: 7rem 1fr auto auto;
     gap: 0.75rem;
@@ -458,23 +458,23 @@ a.alfa-card-metric:hover {
     border-bottom: 1px solid var(--border-color-translucent, #f1f3f5);
 }
 
-.alfa-card-order:last-child {
+:where(#alfa-app) .dash-card-order:last-child {
     border-bottom: 0;
 }
 
-.alfa-card-order-customer {
+:where(#alfa-app) .dash-card-order-customer {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.alfa-card-order-date {
+:where(#alfa-app) .dash-card-order-date {
     color: var(--secondary-color, #6c757d);
     font-size: 0.85rem;
 }
 
-.alfa-card-order-status {
+:where(#alfa-app) .dash-card-order-status {
     padding: 0.1rem 0.5rem;
     border-radius: 1rem;
     background: var(--tertiary-bg, #f1f3f5);
@@ -483,23 +483,23 @@ a.alfa-card-metric:hover {
 }
 
 @media (max-width: 1200px) {
-    .alfa-card {
+    :where(#alfa-app) .dash-card {
         flex-basis: calc(max(var(--alfa-card-width, 25%), 50%) - var(--alfa-cards-gap));
         max-width: calc(max(var(--alfa-card-width, 25%), 50%) - var(--alfa-cards-gap));
     }
 }
 
 @media (max-width: 640px) {
-    .alfa-card {
+    :where(#alfa-app) .dash-card {
         flex-basis: 100%;
         max-width: 100%;
     }
 
-    .alfa-card-order {
+    :where(#alfa-app) .dash-card-order {
         grid-template-columns: 1fr auto;
     }
 
-    .alfa-card-order-date {
+    :where(#alfa-app) .dash-card-order-date {
         display: none;
     }
 }
@@ -514,7 +514,7 @@ a.alfa-card-metric:hover {
    The current option is painted from `aria-current`, not from a class of its own, so
    the thing a screen reader announces and the thing an eye sees can never disagree. */
 
-.dash-period {
+:where(#alfa-app) .dash-period {
     display: flex;
     align-items: center;
     gap: 0.15rem;
@@ -529,7 +529,7 @@ a.alfa-card-metric:hover {
 /* Says what the control governs. Without it a segmented control floating above a
    screen of numbers claims all of them, and the four "right now" tiles above (which
    it does not touch) made it look broken. */
-.dash-period-label {
+:where(#alfa-app) .dash-period-label {
     margin-right: 0.5rem;
     color: var(--secondary-color, #6c757d);
     font-size: 0.78rem;
@@ -537,7 +537,7 @@ a.alfa-card-metric:hover {
     letter-spacing: 0.04em;
 }
 
-.dash-period-option {
+:where(#alfa-app) .dash-period-option {
     padding: 0.2rem 0.85rem;
     border-radius: 2rem;
     color: var(--secondary-color, #6c757d);
@@ -547,13 +547,13 @@ a.alfa-card-metric:hover {
     transition: color 0.15s ease-out, background-color 0.15s ease-out;
 }
 
-.dash-period-option:hover,
-.dash-period-option:focus-visible {
+:where(#alfa-app) .dash-period-option:hover,
+:where(#alfa-app) .dash-period-option:focus-visible {
     color: var(--body-color, #212529);
     text-decoration: none;
 }
 
-.dash-period-option[aria-current="page"] {
+:where(#alfa-app) .dash-period-option[aria-current="page"] {
     background: var(--secondary-bg, #e9ecef);
     color: var(--body-color, #212529);
     font-weight: 600;
@@ -571,11 +571,11 @@ a.alfa-card-metric:hover {
    should be findable when looked for and unnoticed when not. The only change is
    under the pointer, where it firms up to say it can be pressed. */
 
-.setup-card[data-state="done"] {
+:where(#alfa-app) .setup-card[data-state="done"] {
     display: none;
 }
 
-.dash-ready {
+:where(#alfa-app) .dash-ready {
     display: none;
     padding: 0;
     margin-left: 0.15em;
@@ -591,27 +591,27 @@ a.alfa-card-metric:hover {
     transition: opacity 0.2s ease-out, color 0.2s ease-out;
 }
 
-.alfa-dashboard:has(.setup-card[data-state="done"]) .dash-ready {
+:where(#alfa-app) .dashboard:has(.setup-card[data-state="done"]) .dash-ready {
     display: inline-flex;
 }
 
-.dash-ready-mark {
+:where(#alfa-app) .dash-ready-mark {
     width: 0.78em;
     height: 0.78em;
     overflow: visible;
 }
 
-.dash-ready-ring {
+:where(#alfa-app) .dash-ready-ring {
     opacity: 0.7;
 }
 
-.dash-ready:hover,
-.dash-ready:focus-visible {
+:where(#alfa-app) .dash-ready:hover,
+:where(#alfa-app) .dash-ready:focus-visible {
     opacity: 1;
     color: var(--body-color, #212529);
 }
 
-.dash-ready:focus-visible {
+:where(#alfa-app) .dash-ready:focus-visible {
     outline: 2px solid var(--link-color, #2a69b8);
     outline-offset: 0.35em;
     border-radius: 50%;
@@ -624,7 +624,7 @@ a.alfa-card-metric:hover {
    rhythm, so the classes live here with the rest of the card chrome rather than
    in whichever plugin needed them first. */
 
-.alfa-card-split {
+:where(#alfa-app) .dash-card-split {
     display: grid;
     grid-template-columns: minmax(150px, 0.8fr) minmax(260px, 2fr) minmax(220px, 1.3fr);
     gap: 1.5rem;
@@ -632,31 +632,31 @@ a.alfa-card-metric:hover {
 }
 
 @media (max-width: 1100px) {
-    .alfa-card-split {
+    :where(#alfa-app) .dash-card-split {
         grid-template-columns: 1fr;
     }
 }
 
 /* Figures: the numeral carries the weight, the label stays out of its way. */
-.alfa-card-figures {
+:where(#alfa-app) .dash-card-figures {
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 0.9rem;
 }
 
-.alfa-card-figure .alfa-card-value {
+:where(#alfa-app) .dash-card-figure .dash-card-value {
     display: block;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
 }
 
-.alfa-card-figure.is-flagged .alfa-card-value {
+:where(#alfa-app) .dash-card-figure.is-flagged .dash-card-value {
     color: var(--warning-text-emphasis, #b4762a);
 }
 
-.alfa-card-unit {
+:where(#alfa-app) .dash-card-unit {
     margin-left: 0.4rem;
     font-size: 0.5em;
     font-weight: 600;
@@ -665,13 +665,13 @@ a.alfa-card-metric:hover {
     opacity: 0.75;
 }
 
-/* `.alfa-card-chart` (the chart frame) lives in charts.css, which travels with the
+/* `.dash-card-chart` (the chart frame) lives in charts.css, which travels with the
    chart renderer: a chart drawn on a screen that never loads this stylesheet still has
    a container with a resolvable height. */
 
 /* Ranked terms: the bar is the term's share of the busiest one, so the order is
    readable before a single number is. */
-.alfa-card-rank {
+:where(#alfa-app) .dash-card-rank {
     list-style: none;
     margin: 0.5rem 0 0;
     padding: 0;
@@ -680,7 +680,7 @@ a.alfa-card-metric:hover {
     gap: 0.35rem;
 }
 
-.alfa-card-rank li {
+:where(#alfa-app) .dash-card-rank li {
     position: relative;
     display: flex;
     align-items: baseline;
@@ -691,7 +691,7 @@ a.alfa-card-metric:hover {
     isolation: isolate;
 }
 
-.alfa-card-rank-bar {
+:where(#alfa-app) .dash-card-rank-bar {
     position: absolute;
     inset: 0 auto 0 0;
     z-index: -1;
@@ -701,38 +701,38 @@ a.alfa-card-metric:hover {
     opacity: 0.12;
 }
 
-.alfa-card-rank li.is-unclicked .alfa-card-rank-bar {
+:where(#alfa-app) .dash-card-rank li.is-unclicked .dash-card-rank-bar {
     background: var(--warning-text-emphasis, #b4762a);
     opacity: 0.16;
 }
 
-.alfa-card-rank-term {
+:where(#alfa-app) .dash-card-rank-term {
     flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.alfa-card-rank-count {
+:where(#alfa-app) .dash-card-rank-count {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
 
-.alfa-card-rank-flag {
+:where(#alfa-app) .dash-card-rank-flag {
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--warning-text-emphasis, #b4762a);
 }
 
-.alfa-card-meta {
+:where(#alfa-app) .dash-card-meta {
     color: var(--secondary-color, #6c757d);
     font-size: 0.82em;
 }
 
 /* A card link that deserves to look pressable: for the card whose detail lives on
    a whole screen of its own, not one row further down. */
-.alfa-card-more--button {
+:where(#alfa-app) .dash-card-more--button {
     padding: 0.22rem 0.6rem;
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 0.25rem;
@@ -744,8 +744,8 @@ a.alfa-card-metric:hover {
     transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
 }
 
-.alfa-card-more--button:hover,
-.alfa-card-more--button:focus-visible {
+:where(#alfa-app) .dash-card-more--button:hover,
+:where(#alfa-app) .dash-card-more--button:focus-visible {
     background: var(--secondary-bg, #e9ecef);
     border-color: var(--secondary-color, #6c757d);
     color: var(--emphasis-color, #000);
@@ -753,16 +753,16 @@ a.alfa-card-metric:hover {
 }
 
 /* The steps the merchant ignored: listed at the end, their tier named, read quieter than the rest. */
-.setup-ignored-text,
-.setup-item-tier {
+:where(#alfa-app) .setup-ignored-text,
+:where(#alfa-app) .setup-item-tier {
     font-size: 0.85rem;
     color: var(--secondary-color, #6c757d);
 }
 
-.setup-item-tier {
+:where(#alfa-app) .setup-item-tier {
     margin-inline-start: 0.4rem;
 }
 
-.setup-item.is-ignored .setup-item-label {
+:where(#alfa-app) .setup-item.is-ignored .setup-item-label {
     color: var(--secondary-color, #6c757d);
 }

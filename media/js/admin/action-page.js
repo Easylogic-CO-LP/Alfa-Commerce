@@ -11,11 +11,11 @@
  *                                 (e.g. the "Yes" of a confirm dialog)
  *
  * Or, declaratively, on any element:
- *   data-alfa-close            click -> close
- *   data-alfa-reload           click -> close + refresh
- *   data-alfa-run="actionId"   click -> run that action (optional data-alfa-data='{...}')
- *   data-alfa-form             a block whose named controls (select, radio,
- *                              text) travel with a data-alfa-run click inside
+ *   data-action-close            click -> close
+ *   data-action-reload           click -> close + refresh
+ *   data-action-run="actionId"   click -> run that action (optional data-action-data='{...}')
+ *   data-action-form             a block whose named controls (select, radio,
+ *                              text) travel with a data-action-run click inside
  *                              it: a layout hands a choice to its next arm
  *                              without a script of its own
  *
@@ -138,20 +138,20 @@
 
     // Declarative hooks so a layout needs zero JS to close / refresh / run.
     document.addEventListener('click', function (event) {
-        var el = event.target.closest('[data-alfa-close], [data-alfa-reload], [data-alfa-run]');
+        var el = event.target.closest('[data-action-close], [data-action-reload], [data-action-run]');
         if (!el) { return; }
 
         event.preventDefault();
 
-        if (el.hasAttribute('data-alfa-run')) {
+        if (el.hasAttribute('data-action-run')) {
             var data = {};
-            try { data = JSON.parse(el.getAttribute('data-alfa-data') || '{}'); } catch (e) { data = {}; }
+            try { data = JSON.parse(el.getAttribute('data-action-data') || '{}'); } catch (e) { data = {}; }
 
             // WHAT THE OPERATOR CHOSE TRAVELS WITH THE CLICK. Every named,
-            // enabled control in the enclosing [data-alfa-form] is posted;
+            // enabled control in the enclosing [data-action-form] is posted;
             // an unchecked radio or box stays out, as it would from a form,
             // so a layout needs no script to hand a choice to its next arm.
-            var scope = el.closest('[data-alfa-form]');
+            var scope = el.closest('[data-action-form]');
 
             if (scope) {
                 scope.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (control) {
@@ -165,8 +165,8 @@
             // twice: for a booking, that is a second parcel.
             el.disabled = true;
 
-            AlfaAction.run(el.getAttribute('data-alfa-run'), data);
-        } else if (el.hasAttribute('data-alfa-reload')) {
+            AlfaAction.run(el.getAttribute('data-action-run'), data);
+        } else if (el.hasAttribute('data-action-reload')) {
             AlfaAction.reload();
         } else {
             AlfaAction.close();

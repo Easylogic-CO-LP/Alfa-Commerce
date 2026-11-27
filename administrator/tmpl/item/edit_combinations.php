@@ -360,7 +360,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
 
             <input type="hidden" name="jform[deleted_combination_ids]" id="deleted-combination-ids" value="">
 
-            <div class="alfa-combi-tools" data-field-settings data-item-id="<?php echo (int) $this->item->id; ?>">
+            <div class="combi-tools" data-field-settings data-item-id="<?php echo (int) $this->item->id; ?>">
 
                 <!-- Variations -->
                 <?php // data-variations-panel: the stable anchor the product tour highlights,
@@ -450,7 +450,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                     <?php else : ?>
                         <?php // Only the table scrolls sideways on a narrow screen, not the page. ?>
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0 alfa-combinations">
+                            <table class="table table-sm align-middle mb-0 combinations">
                                 <thead>
                                 <tr>
                                     <th class="w-1"></th>
@@ -459,14 +459,14 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                     <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_VARIANT'); ?></th>
                                     <th class="w-15">
                                         <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_NAME'); ?>
-                                        <span class="icon-info-circle alfa-quick-info" aria-hidden="true"
+                                        <span class="icon-info-circle quick-info" aria-hidden="true"
                                               title="<?php echo $this->escape(Text::_('COM_ALFA_COMBINATION_NAME_TIP')); ?>"></span>
                                     </th>
                                     <th class="w-15"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_SKU'); ?></th>
                                     <th class="w-10"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_STOCK'); ?></th>
                                     <th class="w-10">
                                         <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_ADJUST'); ?>
-                                        <span class="icon-info-circle alfa-quick-info" aria-hidden="true"
+                                        <span class="icon-info-circle quick-info" aria-hidden="true"
                                               title="<?php echo $this->escape(Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_ANYCONTEXT_DESC')); ?>"></span>
                                     </th>
                                     <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_CUSTOMIZED'); ?></th>
@@ -1017,16 +1017,16 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
 
             <?php // The body of the guard dialog: the product has unsaved changes, so an editor that saves
                   // directly cannot open yet. The script lists the changed fields in it. ?>
-            <template id="alfa-dialog-save-first">
-                <div class="alfa-dialog-body">
+            <template id="dialog-save-first">
+                <div class="dialog-body">
                     <p><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_GUARD'); ?></p>
                     <p class="mb-1"><?php echo Text::_('COM_ALFA_COMBINATION_DIRTY_CHANGED'); ?></p>
                     <ul data-changed-fields></ul>
                 </div>
             </template>
             <?php // The body of a refusal: the endpoint's words, a long list of order lines scrolling inside it. ?>
-            <template id="alfa-dialog-refused">
-                <div class="alfa-dialog-body alfa-dialog-refusal" data-refusal-text></div>
+            <template id="dialog-refused">
+                <div class="dialog-body dialog-refusal" data-refusal-text></div>
             </template>
         </fieldset>
     </div>

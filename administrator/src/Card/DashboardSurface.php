@@ -50,6 +50,6 @@ enum DashboardSurface: string
      */
     public function cssClass(): string
     {
-        return 'alfa-cards--' . $this->value;
+        return 'dash-cards--' . $this->value;
     }
 }

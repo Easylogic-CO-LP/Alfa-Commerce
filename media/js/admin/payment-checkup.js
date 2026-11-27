@@ -17,14 +17,14 @@
     'use strict';
 
     document.addEventListener('click', function (event) {
-        var button = event.target.closest('[data-alfa-checkup-run]');
+        var button = event.target.closest('[data-checkup-run]');
 
         if (!button || button.disabled) {
             return;
         }
 
-        var card = button.closest('[data-alfa-checkup]');
-        var state = card ? card.querySelector('[data-alfa-checkup-state]') : null;
+        var card = button.closest('[data-checkup]');
+        var state = card ? card.querySelector('[data-checkup-state]') : null;
         var body = new FormData();
 
         body.append('method', button.dataset.method || '0');
@@ -48,7 +48,7 @@
 
                 holder.innerHTML = html.trim();
 
-                var fresh = holder.content.querySelector('[data-alfa-checkup]');
+                var fresh = holder.content.querySelector('[data-checkup]');
 
                 if (!card || !fresh) {
                     throw new Error('No checkup card in the answer');

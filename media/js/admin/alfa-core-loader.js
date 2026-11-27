@@ -249,7 +249,7 @@
                 + '<style>'
                 + ':host{z-index:10000;display:flex;align-items:center;justify-content:center;overflow:visible;line-height:0}'
                 + ':host([hidden]){display:none}'
-                + ':host(.alfa-loader-fullscreen){position:fixed;top:0;left:0;width:100%;height:100%}'
+                + ':host(.loader-fullscreen){position:fixed;top:0;left:0;width:100%;height:100%}'
                 + '</style>'
                 + '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + VIEW_BOX + '" width="' + width + '" height="' + height + '"'
                 + ' overflow="visible" aria-hidden="true" focusable="false">'
@@ -269,9 +269,9 @@
             }
 
             if (this.inline) {
-                this.classList.remove('alfa-loader-fullscreen');
+                this.classList.remove('loader-fullscreen');
             } else {
-                this.classList.add('alfa-loader-fullscreen');
+                this.classList.add('loader-fullscreen');
                 this.style.backgroundColor = this.color ? this.color : backdropColor();
                 darkModeQuery.addEventListener('change', this.systemQuery);
             }
@@ -306,10 +306,10 @@
 
                 case 'inline':
                     if (this.inline) {
-                        this.classList.remove('alfa-loader-fullscreen');
+                        this.classList.remove('loader-fullscreen');
                         this.style.backgroundColor = '';
                     } else {
-                        this.classList.add('alfa-loader-fullscreen');
+                        this.classList.add('loader-fullscreen');
                         this.style.backgroundColor = this.color ? this.color : backdropColor();
                     }
 
@@ -373,12 +373,12 @@
      * @param {string}  [slot] CSS selector for the node to stand in for.
      */
     function paint(el, slot) {
-        if (el.classList.contains('alfa-is-busy')) {
+        if (el.classList.contains('is-busy')) {
             return;
         }
 
-        el.dataset.alfaBusyMarkup = el.innerHTML;
-        el.classList.add('alfa-is-busy');
+        el.dataset.busyMarkup = el.innerHTML;
+        el.classList.add('is-busy');
 
         var loader = document.createElement('alfa-core-loader');
 
@@ -430,7 +430,7 @@
 
         if (box.width) {
             el.style.minWidth = Math.ceil(box.width) + 'px';
-            el.dataset.alfaBusyWidth = '1';
+            el.dataset.busyWidth = '1';
         }
 
         el.innerHTML = '';
@@ -443,23 +443,23 @@
      * @param {Element} el The control.
      */
     function release(el) {
-        el.classList.remove('alfa-is-busy');
+        el.classList.remove('is-busy');
         el.removeAttribute('aria-busy');
 
-        if (el.dataset.alfaBusyMarkup !== undefined) {
-            el.innerHTML = el.dataset.alfaBusyMarkup;
-            delete el.dataset.alfaBusyMarkup;
+        if (el.dataset.busyMarkup !== undefined) {
+            el.innerHTML = el.dataset.busyMarkup;
+            delete el.dataset.busyMarkup;
         }
 
-        if (el.dataset.alfaBusyWidth === '1') {
+        if (el.dataset.busyWidth === '1') {
             el.style.minWidth = '';
-            delete el.dataset.alfaBusyWidth;
+            delete el.dataset.busyWidth;
         }
 
         // Only re-enable what WE disabled: a control the page meant to keep locked
         // must stay locked.
-        if (el.dataset.alfaBusyDisabled === '1') {
-            delete el.dataset.alfaBusyDisabled;
+        if (el.dataset.busyDisabled === '1') {
+            delete el.dataset.busyDisabled;
         } else {
             el.removeAttribute('disabled');
         }
@@ -588,7 +588,7 @@
             // Remember whether it was ALREADY disabled, so restoring never enables
             // a control the page meant to keep locked.
             if (el.hasAttribute('disabled')) {
-                el.dataset.alfaBusyDisabled = '1';
+                el.dataset.busyDisabled = '1';
             }
 
             el.setAttribute('aria-busy', 'true');

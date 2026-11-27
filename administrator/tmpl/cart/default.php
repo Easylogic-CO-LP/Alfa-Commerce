@@ -39,22 +39,22 @@ $badge     = ['active' => 'bg-primary', 'abandoned' => 'bg-warning text-dark', '
 $statusKey = ['active' => 'COM_ALFA_CARTS_STATUS_ACTIVE', 'abandoned' => 'COM_ALFA_CARTS_STATUS_ABANDONED', 'empty' => 'COM_ALFA_CARTS_STATUS_EMPTY'];
 ?>
 
-<div id="alfa-cart-builder" class="alfa-cart-builder" data-cart-id="<?php echo $cartId; ?>">
+<div id="cart-builder" class="cart-builder" data-cart-id="<?php echo $cartId; ?>">
 
     <?php // A cart a storefront shopper created says so, above everything else. ?>
     <?php echo $this->loadTemplate('shopper'); ?>
 
-    <section id="alfa-builder-customer" class="alfa-builder-section" aria-labelledby="alfa-builder-customer-title">
-        <h2 class="h3 mb-3" id="alfa-builder-customer-title">
+    <section id="builder-customer" class="builder-section" aria-labelledby="builder-customer-title">
+        <h2 class="h3 mb-3" id="builder-customer-title">
             <span class="icon-user me-2" aria-hidden="true"></span>
             <?php echo Text::_('COM_ALFA_CART_BUILDER_TAB_CUSTOMER'); ?>
         </h2>
         <?php echo $this->loadTemplate('customer'); ?>
     </section>
 
-    <section id="alfa-builder-lines" class="alfa-builder-section" aria-labelledby="alfa-builder-lines-title">
+    <section id="builder-lines" class="builder-section" aria-labelledby="builder-lines-title">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h3 mb-0" id="alfa-builder-lines-title">
+            <h2 class="h3 mb-0" id="builder-lines-title">
                 <span class="icon-cube me-2" aria-hidden="true"></span>
                 <?php echo Text::_('COM_ALFA_CART_BUILDER_TAB_ITEMS'); ?>
             </h2>
@@ -70,17 +70,17 @@ $statusKey = ['active' => 'COM_ALFA_CARTS_STATUS_ACTIVE', 'abandoned' => 'COM_AL
         <?php echo $this->loadTemplate('lines'); ?>
     </section>
 
-    <section id="alfa-builder-methods" class="alfa-builder-section" aria-labelledby="alfa-builder-methods-title">
-        <h2 class="h3 mb-3" id="alfa-builder-methods-title">
+    <section id="builder-methods" class="builder-section" aria-labelledby="builder-methods-title">
+        <h2 class="h3 mb-3" id="builder-methods-title">
             <span class="icon-credit me-2" aria-hidden="true"></span>
             <?php echo Text::_('COM_ALFA_CART_BUILDER_TAB_METHODS'); ?>
         </h2>
         <?php echo $this->loadTemplate('methods'); ?>
     </section>
 
-    <section id="alfa-builder-summary" class="alfa-builder-section" aria-labelledby="alfa-builder-summary-title">
+    <section id="builder-summary" class="builder-section" aria-labelledby="builder-summary-title">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <h2 class="h3 mb-0 me-2" id="alfa-builder-summary-title">
+            <h2 class="h3 mb-0 me-2" id="builder-summary-title">
                 <span class="icon-checkmark me-2" aria-hidden="true"></span>
                 <?php echo Text::_('COM_ALFA_CART_BUILDER_TAB_SUMMARY'); ?>
             </h2>
@@ -138,9 +138,9 @@ $statusKey = ['active' => 'COM_ALFA_CARTS_STATUS_ACTIVE', 'abandoned' => 'COM_AL
             $fieldsetLabel = !empty($fieldset->label)
                 ? Text::_($fieldset->label)
                 : ucwords(str_replace('_', ' ', $fieldsetName));
-            $sectionId = 'alfa-builder-plg-' . $fieldsetName;
+            $sectionId = 'builder-plg-' . $fieldsetName;
             ?>
-            <section id="<?php echo $this->escape($sectionId); ?>" class="alfa-builder-section"
+            <section id="<?php echo $this->escape($sectionId); ?>" class="builder-section"
                      aria-labelledby="<?php echo $this->escape($sectionId); ?>-title">
                 <h2 class="h3 mb-3" id="<?php echo $this->escape($sectionId); ?>-title">
                     <span class="icon-puzzle me-2" aria-hidden="true"></span>

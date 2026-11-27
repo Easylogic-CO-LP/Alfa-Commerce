@@ -374,12 +374,12 @@ echo LayoutHelper::render(
 ?>
 
 <!--  PAYMENTS TABLE                                                -->
-<?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a line
+<?php // Below 480 px a row folds (fold): its cells wrap, each named by its column, the actions on a line
       // of their own. ?>
 <?php if (!empty($payments)): ?>
     <?php // Wider than the screen (from 480 px up, where it no longer folds), it scrolls in its own box. ?>
     <div class="table-responsive">
-    <table class="table table-striped table-bordered alfa-fold">
+    <table class="table table-striped table-bordered fold">
 
         <!-- Table header -->
         <!-- Auto-generated from XML fields.                        -->
@@ -430,7 +430,7 @@ echo LayoutHelper::render(
 			// fact: never edited, so it has no Edit popup.
 			$isFact = \in_array((string) ($payment->payment_type ?? ''), PaymentLedger::FACT_TYPES, true);
 			?>
-            <tr class="<?php echo $isRefund ? 'alfa-row-refund' : ''; ?>">
+            <tr class="<?php echo $isRefund ? 'row-refund' : ''; ?>">
 
 				<?php foreach ($payments_subform->getGroup('') as $field): ?>
 					<?php
@@ -445,7 +445,7 @@ echo LayoutHelper::render(
 					// Get the field value from the payment object
 					$value = $payment->{$fieldName} ?? '';
 					?>
-                    <td data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
+                    <td data-cell-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
 						<?php
 						// STEP 1: Render the primary field
 						// Check renderMap for custom rendering, otherwise
@@ -485,7 +485,7 @@ echo LayoutHelper::render(
 				<?php endforeach; ?>
 
                 <!-- Actions cell -->
-                <td class="alfa-fold-line">
+                <td class="fold-line">
                     <!-- Edit button (icon-only to save space) -->
                     <?php if ($canEditOrder && !$isFact) : ?>
                     <div class="btn-group me-1" role="group">
@@ -518,7 +518,7 @@ echo LayoutHelper::render(
 					<?php // Where its buttons would be: why this payment's plugin offers none. ?>
 					<?php $refusal = $canEditOrder ? ActionRegistry::refusal($payment, 'alfa-payments') : ''; ?>
 					<?php if ($refusal !== '') : ?>
-                        <p class="small text-muted mt-1 mb-0" data-alfa-plugin-refusal><?php echo $this->escape($refusal); ?></p>
+                        <p class="small text-muted mt-1 mb-0" data-plugin-refusal><?php echo $this->escape($refusal); ?></p>
 					<?php endif; ?>
 
                     <!-- Bootstrap modal for the Edit popup (iframe-based) -->
@@ -679,7 +679,7 @@ if ($payLinkTo !== '') : ?>
     <div class="card-body">
         <h6 class="card-title"><?php echo Text::_('COM_ALFA_ORDER_PAYMENT_LINK_TITLE'); ?></h6>
         <p class="small text-muted mb-2"><?php echo Text::sprintf('COM_ALFA_ORDER_PAYMENT_LINK_HINT', $this->escape($payLinkTo)); ?></p>
-        <button type="submit" class="btn btn-primary btn-sm" form="alfa-order-credit-form"
+        <button type="submit" class="btn btn-primary btn-sm" form="order-credit-form"
                 formaction="<?php echo Route::_('index.php?option=com_alfa', false); ?>&task=order.sendPaymentLink&id_order=<?php echo (int) $this->order->id; ?>">
             <?php echo Text::_('COM_ALFA_ORDER_PAYMENT_LINK_BUTTON'); ?>
         </button>
@@ -745,9 +745,9 @@ if ($creditSpendUser > 0 && $canEditOrder) {
             <input type="number" step="<?php echo $creditStep; ?>" min="<?php echo $creditStep; ?>"
                    max="<?php echo number_format($creditSuggest, $creditWallet->getDecimalPlaces(), '.', ''); ?>"
                    class="form-control form-control-sm" style="max-width: 9rem;"
-                   name="credit_spend_amount" form="alfa-order-credit-form"
+                   name="credit_spend_amount" form="order-credit-form"
                    value="<?php echo number_format($creditSuggest, $creditWallet->getDecimalPlaces(), '.', ''); ?>"/>
-            <button type="submit" class="btn btn-success btn-sm" form="alfa-order-credit-form"
+            <button type="submit" class="btn btn-success btn-sm" form="order-credit-form"
                     formaction="<?php echo Route::_('index.php?option=com_alfa', false); ?>&task=order.payFromCredit&id_order=<?php echo (int) $this->order->id; ?>">
                 <?php echo Text::_('COM_ALFA_ORDER_CREDIT_PAY_BUTTON'); ?>
             </button>

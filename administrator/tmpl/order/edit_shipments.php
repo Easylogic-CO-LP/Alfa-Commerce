@@ -250,12 +250,12 @@ foreach ($mergeMap as $primary => $children) {
 </div>
 
 <!--  SHIPMENTS TABLE                                               -->
-<?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a line
+<?php // Below 480 px a row folds (fold): its cells wrap, each named by its column, the actions on a line
       // of their own. ?>
 <?php if (!empty($shipments)): ?>
     <?php // Wider than the screen (from 480 px up, where it no longer folds), it scrolls in its own box. ?>
     <div class="table-responsive">
-    <table class="table table-striped table-bordered alfa-fold">
+    <table class="table table-striped table-bordered fold">
 
         <!-- Table header -->
         <!-- Auto-generated from XML fields.                        -->
@@ -310,7 +310,7 @@ foreach ($mergeMap as $primary => $children) {
 					// Get the field value from the shipment object
 					$value = $shipment->{$fieldName} ?? '';
 					?>
-                    <td data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
+                    <td data-cell-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
 						<?php
 						// STEP 1: Render the primary field
 						// Check renderMap for custom rendering, otherwise
@@ -350,7 +350,7 @@ foreach ($mergeMap as $primary => $children) {
 				<?php endforeach; ?>
 
                 <!-- Actions cell -->
-                <td class="alfa-fold-line">
+                <td class="fold-line">
                     <!-- Edit button (icon-only to save space) -->
                     <?php if ($canEditOrder) : ?>
                     <div class="btn-group me-1" role="group">
@@ -382,7 +382,7 @@ foreach ($mergeMap as $primary => $children) {
 					<?php // Where its buttons would be: why this shipment's plugin offers none. ?>
 					<?php $refusal = $canEditOrder ? ActionRegistry::refusal($shipment, 'alfa-shipments') : ''; ?>
 					<?php if ($refusal !== '') : ?>
-                        <p class="small text-muted mt-1 mb-0" data-alfa-plugin-refusal><?php echo $this->escape($refusal); ?></p>
+                        <p class="small text-muted mt-1 mb-0" data-plugin-refusal><?php echo $this->escape($refusal); ?></p>
 					<?php endif; ?>
 
                     <!-- Bootstrap modal for the Edit popup (iframe-based) -->

@@ -26,7 +26,7 @@ use Joomla\CMS\Layout\LayoutHelper;
         <div>
             <h4 class="text-danger mb-2"><?php echo Text::_('COM_ALFA_EXTENSIONS_CLEAR_HEADER'); ?></h4>
             <p><?php echo Text::_('COM_ALFA_EXTENSIONS_CLEAR_CONFIRM'); ?></p>
-            <?php echo LayoutHelper::render('actions.typedconfirm', ['phrase' => ClearDataExtensions::PHRASE, 'id' => 'alfa-extensions-clear-phrase', 'form' => 'adminForm'], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+            <?php echo LayoutHelper::render('actions.typedconfirm', ['phrase' => ClearDataExtensions::PHRASE, 'id' => 'extensions-clear-phrase', 'form' => 'adminForm'], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
         </div>
     </div>
 </div>

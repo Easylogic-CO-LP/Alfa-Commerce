@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
 
-$form = static fn (string $task, int $id): string => '<form id="alfa-task-' . $task . '-' . $id . '" method="post" action="' . Route::_('index.php?option=com_alfa&task=tasks.' . $task) . '">'
+$form = static fn (string $task, int $id): string => '<form id="task-' . $task . '-' . $id . '" method="post" action="' . Route::_('index.php?option=com_alfa&task=tasks.' . $task) . '">'
     . '<input type="hidden" name="id" value="' . $id . '">' . HTMLHelper::_('form.token') . '</form>';
 ?>
 <?php foreach ((array) $this->items as $item) : ?>

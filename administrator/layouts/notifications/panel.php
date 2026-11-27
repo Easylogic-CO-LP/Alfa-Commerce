@@ -6,7 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * The panel region of the badge component: the `.alfa-notify-dropdown` itself (the JS
+ * The panel region of the badge component: the `.notify-dropdown` itself (the JS
  * moves nothing; it's position:fixed and the JS only sets its coordinates). `data-region`
  * lets the JS target it; `data-open` + the `show` class carry the open state so a refresh
  * restores it. Visibility is already filtered upstream; this layout only decides, per row,
@@ -30,8 +30,8 @@ $items     = $displayData['items'] ?? [];
 $isOpen    = !empty($displayData['is_open']);
 $canChange = !empty($displayData['can_change']);
 ?>
-<div class="alfa-notify-dropdown<?php echo $isOpen ? ' show' : ''; ?>" data-region="panel" data-open="<?php echo $isOpen ? '1' : '0'; ?>" role="menu">
-<div class="alfa-notify-head">
+<div class="notify-dropdown<?php echo $isOpen ? ' show' : ''; ?>" data-region="panel" data-open="<?php echo $isOpen ? '1' : '0'; ?>" role="menu">
+<div class="notify-head">
     <span><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
     <?php if (!empty($items)) : ?>
         <?php // The figure says its scope: every notification listed here, read or not, none dismissed. ?>
@@ -40,12 +40,12 @@ $canChange = !empty($displayData['can_change']);
 </div>
 
 <?php if (empty($items)) : ?>
-    <div class="alfa-notify-empty">
-        <span class="alfa-notify-empty-ico icon-checkmark-circle" aria-hidden="true"></span>
+    <div class="notify-empty">
+        <span class="notify-empty-ico icon-checkmark-circle" aria-hidden="true"></span>
         <?php echo Text::_('COM_ALFA_NOTIFY_EMPTY'); ?>
     </div>
 <?php else : ?>
-    <ul class="alfa-notify-list">
+    <ul class="notify-list">
         <?php foreach ($items as $n) : ?>
             <?php
             $severity = \in_array($n->severity, ['success', 'info', 'warning', 'danger'], true) ? $n->severity : 'info';
@@ -57,33 +57,33 @@ $canChange = !empty($displayData['can_change']);
             $title    = NotificationText::title($n);
             $message  = NotificationText::message($n);
             ?>
-            <li class="alfa-notify-item<?php echo $unread ? ' is-unread' : ''; ?>" data-id="<?php echo (int) $n->id; ?>">
-                <span class="alfa-notify-dot sev-<?php echo $severity; ?>" aria-hidden="true"></span>
-                <div class="alfa-notify-body">
-                    <div class="alfa-notify-title"><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></div>
+            <li class="notify-item<?php echo $unread ? ' is-unread' : ''; ?>" data-id="<?php echo (int) $n->id; ?>">
+                <span class="notify-dot sev-<?php echo $severity; ?>" aria-hidden="true"></span>
+                <div class="notify-body">
+                    <div class="notify-title"><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php if ($message !== '') : ?>
-                        <div class="alfa-notify-msg"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="notify-msg"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php endif; ?>
-                    <div class="alfa-notify-meta">
+                    <div class="notify-meta">
                         <?php if ($hasLink) : ?>
-                            <a class="alfa-notify-link" href="<?php echo htmlspecialchars($safeUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                            <a class="notify-link" href="<?php echo htmlspecialchars($safeUrl, ENT_QUOTES, 'UTF-8'); ?>">
                                 <?php echo Text::_('COM_ALFA_NOTIFY_OPEN'); ?>
                             </a>
                         <?php endif; ?>
                         <?php if (!empty($n->created)) : ?>
-                            <span class="alfa-notify-time"><?php echo HTMLHelper::_('date.relative', $n->created); ?></span>
+                            <span class="notify-time"><?php echo HTMLHelper::_('date.relative', $n->created); ?></span>
                         <?php endif; ?>
                     </div>
                 </div>
-                <div class="alfa-notify-actions">
+                <div class="notify-actions">
                     <?php if ($canChange && $unread) : ?>
-                        <button type="button" class="alfa-notify-act" data-action="read" data-id="<?php echo (int) $n->id; ?>"
+                        <button type="button" class="notify-act" data-action="read" data-id="<?php echo (int) $n->id; ?>"
                                 title="<?php echo Text::_('COM_ALFA_NOTIFY_MARK_READ'); ?>">
                             <span class="icon-checkmark" aria-hidden="true"></span>
                         </button>
                     <?php endif; ?>
                     <?php if ($canChange && (int) $n->dismissible === 1) : ?>
-                        <button type="button" class="alfa-notify-act" data-action="dismiss" data-id="<?php echo (int) $n->id; ?>"
+                        <button type="button" class="notify-act" data-action="dismiss" data-id="<?php echo (int) $n->id; ?>"
                                 title="<?php echo Text::_('COM_ALFA_NOTIFY_DISMISS'); ?>">
                             <span class="icon-cancel" aria-hidden="true"></span>
                         </button>
@@ -94,7 +94,7 @@ $canChange = !empty($displayData['can_change']);
     </ul>
 <?php endif; ?>
 
-<div class="alfa-notify-foot">
+<div class="notify-foot">
     <a href="<?php echo Route::_('index.php?option=com_alfa&view=notifications'); ?>">
         <?php echo Text::_('COM_ALFA_NOTIFY_SHOW_ALL'); ?>
     </a>

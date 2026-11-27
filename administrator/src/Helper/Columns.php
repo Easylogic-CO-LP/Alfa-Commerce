@@ -109,7 +109,7 @@ final class Columns
             $data = $column['data'] instanceof Closure ? ($column['data'])($row) : null;
 
             // Named by the column's own title, where a folding table hides the headings on a phone.
-            $html .= '<td class="text-center" data-alfa-label="' . htmlspecialchars(Text::_($column['title']), ENT_QUOTES, 'UTF-8') . '">';
+            $html .= '<td class="text-center" data-cell-label="' . htmlspecialchars(Text::_($column['title']), ENT_QUOTES, 'UTF-8') . '">';
 
             if ($data !== null) {
                 $html .= Layout::render(

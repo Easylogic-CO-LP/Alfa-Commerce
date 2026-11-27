@@ -36,7 +36,7 @@ foreach ((array) $this->order->payments as $payment) {
     $payments[(int) $payment->id] = $payment;
 }
 ?>
-<div class="alfa-disputes mt-4">
+<div class="disputes mt-4">
     <h3>
         <span class="icon-warning me-2" aria-hidden="true"></span>
         <?php echo Text::_('COM_ALFA_DISPUTES'); ?>

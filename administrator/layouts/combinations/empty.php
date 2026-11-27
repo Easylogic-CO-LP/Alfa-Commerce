@@ -38,7 +38,7 @@ $link    = $displayData['link'] ?? true;
             <?php if ($link) : ?>
                 <a class="btn btn-sm btn-primary"
                    href="<?php echo Route::_('index.php?option=com_alfa&view=itemfields', false); ?>"
-                   data-alfa-frame-link
+                   data-action-frame-link
                    data-frame-title="<?php echo $this->escape(Text::_('COM_ALFA_COMBI_EMPTY_OPEN_FIELDS')); ?>">
                     <?php echo Text::_('COM_ALFA_COMBI_EMPTY_OPEN_FIELDS'); ?>
                 </a>

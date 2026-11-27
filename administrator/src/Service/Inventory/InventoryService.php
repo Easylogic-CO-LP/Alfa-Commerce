@@ -5336,13 +5336,13 @@ final class InventoryService
             [],
         );
 
-        // The `alfa-inventory` CAPABILITY group imported, then the event raised on the shared dispatcher (broadcast,
+        // The `inventory` CAPABILITY group imported, then the event raised on the shared dispatcher (broadcast,
         // isolated): an allocation strategy is live checkout-path domain policy, so it ships as a
         // capability provider (like a search engine or payment method), imported only here. Each provider names its
         // plugin; one that fails is logged and the others answer. With no application, no contributed strategy:
         // defaultAllocation() remains in charge.
         $plugins = AlfaPluginHelper::get();
-        $plugins->importGroup('alfa-inventory');
+        $plugins->importGroup('inventory');
 
         foreach ($plugins->dispatchIsolated($event) as $failure) {
             Log::add(

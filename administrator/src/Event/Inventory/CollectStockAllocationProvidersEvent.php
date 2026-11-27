@@ -25,7 +25,7 @@ use Joomla\CMS\Event\AbstractEvent;
  *     public function onCollectStockAllocationProviders(
  *         CollectStockAllocationProvidersEvent $event
  *     ): void {
- *         $event->addProvider('alfa-inventory.mypack', new NearestStoreAllocation(), 100);
+ *         $event->addProvider('inventory.mypack', new NearestStoreAllocation(), 100);
  *     }
  *
  * Same shape as the document type provider collection: the typed

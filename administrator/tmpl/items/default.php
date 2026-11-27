@@ -197,12 +197,12 @@
                                         // codes live, mirroring the Stock column's "per variant".
                                         $variantCount = (int) $item->combination_count;
                                     ?>
-                                    <span class="alfa-cell text-muted"
+                                    <span class="cell text-muted"
                                           title="<?php echo $this->escape(Text::_('COM_ALFA_INLINE_SKU_VARIANT_OWNED')); ?>">
                                         <?php if ((string) $item->sku !== '') : ?>
-                                            <span class="alfa-cell-value"><?php echo $this->escape($item->sku); ?></span>
+                                            <span class="cell-value"><?php echo $this->escape($item->sku); ?></span>
                                         <?php endif; ?>
-                                        <span class="alfa-cell-meta"><?php echo Text::plural('COM_ALFA_ITEMS_SKU_VARIANT_COUNT', $variantCount); ?></span>
+                                        <span class="cell-meta"><?php echo Text::plural('COM_ALFA_ITEMS_SKU_VARIANT_COUNT', $variantCount); ?></span>
                                     </span>
                                 <?php else : ?>
                                     <?php echo LayoutHelper::render('inline.field', [
