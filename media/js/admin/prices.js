@@ -182,9 +182,44 @@
         }
     };
 
+    // Sale on the price: the discount it gives, as a share of the price, under
+    // the sale input. A warning colour when it takes more than half the price, or
+    // when the sale is above the price (the save refuses that).
+    const updateSalePercent = (row) => {
+        const line = row.querySelector('[data-price-sale-percent]');
+
+        if (!line) {
+            return;
+        }
+
+        const type = row.querySelector('[data-price-override-type]:checked')?.value || '';
+        const sale = parseFloat(row.querySelector('[data-price-override]')?.value);
+        const price = parseFloat(row.querySelector('[data-price-value]')?.value);
+
+        if (type !== 'start' || Number.isNaN(sale) || Number.isNaN(price) || price <= 0) {
+            line.hidden = true;
+            line.textContent = '';
+            line.classList.remove('text-warning');
+
+            return;
+        }
+
+        const share = ((price - sale) / price) * 100;
+        const c = calc(row);
+
+        line.textContent = Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT')
+            .replace('%1$s', share.toFixed(1).replace(/\.0$/, ''))
+            .replace('%2$s', price.toFixed(c.dec))
+            .replace('%%', '%');
+        line.classList.toggle('text-warning', share > 50 || share < 0);
+        line.hidden = false;
+    };
+
     // Custom discount hint: the computed other end of the pinned price.
     // Starting shows the resulting final (taxes on top), Final shows the net.
     const updateOverrideHint = (row) => {
+        updateSalePercent(row);
+
         const hint = row.querySelector('[data-price-override-hint]');
 
         if (!hint) {
@@ -244,6 +279,7 @@
                     twin.value = field.value === '' ? '' : convert(parseFloat(field.value), c).toFixed(decimals(c));
                 }
 
+                updateSalePercent(row);
                 refreshCurrent(row);
 
                 return;

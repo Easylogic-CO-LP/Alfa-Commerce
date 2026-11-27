@@ -3117,13 +3117,13 @@ class ItemModel extends AlfaAdminModel
 
     /**
      * The posted price rows a save refuses, each named by its row: a price or custom discount the DECIMAL(24,8)
-     * columns cannot store (not a number, more than eight decimals, or more than sixteen digits before the point), and
-     * a period whose end is not after its start.
+     * columns cannot store (not a number, more than eight decimals, or more than sixteen digits before the point), a
+     * custom discount on the price that is above the price, and a period whose end is not after its start.
      *
      * @param array $rows jform[prices] as the item screen's pre-save hook hands them, or the REST API's rows: the
      *                    dates as stored, UTC text.
      *
-     * @return string[] One refusal per figure or period refused.
+     * @return string[] One refusal per figure, sale or period refused.
      *
      * @since  2.3.0
      */
@@ -3131,19 +3131,33 @@ class ItemModel extends AlfaAdminModel
     {
         $refusals = [];
         $position = 0;
+        $shown = static fn (mixed $typed): string => htmlspecialchars(\is_scalar($typed) ? (string) $typed : '', ENT_QUOTES, 'UTF-8');
 
         foreach ($rows as $row) {
             $position++;
             $row = \is_array($row) ? $row : [];
+            $figures = [];
 
             foreach (['value', 'override_value'] as $column) {
                 $typed = $row[$column] ?? null;
 
                 try {
-                    StoredDecimal::ofTyped($typed);
+                    $figures[$column] = StoredDecimal::ofTyped($typed);
                 } catch (InvalidArgumentException) {
-                    $refusals[] = Text::sprintf('COM_ALFA_ITEM_PRICE_INVALID', $position, htmlspecialchars(\is_scalar($typed) ? (string) $typed : '', ENT_QUOTES, 'UTF-8'));
+                    $refusals[] = Text::sprintf('COM_ALFA_ITEM_PRICE_INVALID', $position, $shown($typed));
                 }
+            }
+
+            // A custom discount on the price is a lower price, so a sale above the price is refused. A pinned final
+            // price is judged on its own, and an adjust row (the variant window's, or the REST API's mode) carries no sale.
+            $mode = ($row['_mode'] ?? $row['mode'] ?? 'price') === 'adjust' ? 'adjust' : 'price';
+            $pins = \in_array($row['override_type'] ?? '', ['start', 'final'], true) ? $row['override_type'] : 'start';
+
+            if (
+                $mode === 'price' && $pins === 'start' && isset($figures['value'], $figures['override_value'])
+                && ExactAmount::of($figures['override_value'])->compare(ExactAmount::of($figures['value'])) > 0
+            ) {
+                $refusals[] = Text::sprintf('COM_ALFA_PRICES_SALE_ABOVE_BASE', $position, $shown($row['override_value']), $shown($row['value']));
             }
 
             if (!PublishPeriod::endsAfterStart(start: $row['publish_up'] ?? null, end: $row['publish_down'] ?? null)) {

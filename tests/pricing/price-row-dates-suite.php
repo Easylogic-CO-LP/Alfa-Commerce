@@ -24,6 +24,10 @@
  *   [PR2] ★ a discount whose period ends before it starts is refused by its table, with its own sentence.
  *   [PR3] ★ a tax whose period ends before it starts is refused by its table, with its own sentence.
  *   [PR4] ★ the item screen's save of such a row is refused with the sentence and writes no product.
+ *   [SA1] ★ a custom discount on the price that is above the price is refused, named by its row; one equal to the
+ *         price, a pinned final price and an adjust row are not.
+ *   [SA2] the editor shows the share a sale takes off the price under the sale input, as a warning above half.
+ *   [SA3] prices.js keeps that line live from the row's own figures.
  *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
  *
  * Fixtures: one unpublished product of this run's own per language, written inside a transaction that is rolled
@@ -64,6 +68,7 @@ use Joomla\Session\SessionInterface;
 
 require_once JPATH_ADMINISTRATOR . '/components/com_alfa/tests/harness/CliSessionRow.php';
 require_once JPATH_ADMINISTRATOR . '/components/com_alfa/tests/harness/MailOff.php';
+require_once JPATH_ADMINISTRATOR . '/components/com_alfa/tests/harness/SourceFile.php';
 CliSessionRow::watch();
 
 $container = Factory::getContainer();
@@ -333,6 +338,51 @@ try {
 check('[PR4] ★ the item screen\'s save of a reversed period is refused with the sentence and writes no product',
     $outcome,
     ['message' => 'save refused: ' . Text::sprintf('COM_ALFA_PRICES_PERIOD_END_BEFORE_START', 1), 'items_added' => 0]);
+
+// A sale on the price.
+echo "\nsale on the price\n";
+
+$saleRefused = ItemModel::priceRefusals(rows: [
+    ['value' => '65', 'override_value' => '70', 'override_type' => 'start'],
+    ['value' => '65', 'override_value' => '65', 'override_type' => 'start'],
+    ['value' => '65', 'override_value' => '70', 'override_type' => 'final'],
+    ['_mode' => 'adjust', 'operation' => '+', 'value' => '5', 'override_value' => '70', 'adjust_target' => 'start'],
+    ['value' => '65', 'override_value' => '26.975'],
+]);
+check('[SA1] ★ a sale above the price is refused for a custom discount on the price; equal to it, a final price and an adjust are not',
+    $saleRefused,
+    [Text::sprintf('COM_ALFA_PRICES_SALE_ABOVE_BASE', 1, '70', '65')]);
+
+/** The rendered sale share line of the first row: its text and whether it warns. */
+$saleLine = static function (array $row): array {
+    $html = AlfapricesField::renderPrices(controlBase: 'jform[prices]', rows: [$row], showModify: false, itemId: 0);
+    $rowsHtml = (string) strstr($html, '<template data-price-template>', true);
+
+    if (!preg_match('~<span([^>]*)data-price-sale-percent([^>]*)>([^<]*)</span>~', $rowsHtml, $m)) {
+        return ['text' => null, 'warns' => null, 'hidden' => null];
+    }
+
+    return [
+        'text' => html_entity_decode($m[3], ENT_QUOTES, 'UTF-8'),
+        'warns' => str_contains($m[1], 'text-warning'),
+        'hidden' => str_contains($m[1] . $m[2], 'hidden'),
+    ];
+};
+
+check('[SA2] the editor shows the share a sale takes off the price, as a warning above half',
+    $saleLine(['id' => 0, 'value' => '65.00000000', 'override_value' => '26.97500000', 'override_type' => 'start', 'state' => 1]),
+    ['text' => Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', '58.5', '65.00'), 'warns' => true, 'hidden' => false]);
+check('[SA2] a share under half is shown without the warning',
+    $saleLine(['id' => 0, 'value' => '100.00000000', 'override_value' => '80.00000000', 'override_type' => 'start', 'state' => 1]),
+    ['text' => Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', '20', '100.00'), 'warns' => false, 'hidden' => false]);
+check('[SA2] a pinned final price shows no share',
+    $saleLine(['id' => 0, 'value' => '100.00000000', 'override_value' => '80.00000000', 'override_type' => 'final', 'state' => 1]),
+    ['text' => '', 'warns' => false, 'hidden' => true]);
+
+$pricesJs = SourceFile::read(JPATH_ROOT . '/media/com_alfa/js/admin/prices.js');
+check('[SA3] prices.js keeps the sale share line live from the row\'s own figures',
+    [str_contains($pricesJs, "row.querySelector('[data-price-sale-percent]')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT')")],
+    [true, true]);
 
 $after = $census();
 $moved = [];

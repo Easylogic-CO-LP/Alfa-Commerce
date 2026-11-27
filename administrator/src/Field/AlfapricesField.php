@@ -152,6 +152,7 @@ class AlfapricesField extends FormField
         Text::script('COM_ALFA_PRICES_DISCOUNTED');
         Text::script('COM_ALFA_PRICES_FINAL');
         Text::script('COM_ALFA_PRICES_PRICE');
+        Text::script('COM_ALFA_PRICES_SALE_PERCENT');
 
         $layout = new FileLayout('prices.editor', JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
 
