@@ -42,7 +42,7 @@ $count = \count($slides);
 <?php if ($count === 1): ?>
     <div class="item-image">
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt=""<?php echo $this->cardImageLoading(); ?> />
+            <img src="<?php echo $this->escape($slides[0]->thumbnail_url); ?>" alt="<?php echo $this->escape($this->cardImageAlt($item, $slides[0])); ?>"<?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>
@@ -50,13 +50,13 @@ $count = \count($slides);
     <div class="item-image card-slider" data-card-slider>
         <?php
             // Every image leads to the product, as the title does, and stays out of the accessibility tree and the
-            // tab order for the same reason as the default card's image. The track takes no focus of its own: the
-            // arrows move it.
+            // tab order for the same reason as the default card's image; each is named as that image is (its own
+            // description, else the product's name). The track takes no focus of its own: the arrows move it.
         ?>
         <div class="card-slider-track" data-card-slider-track tabindex="-1">
             <?php foreach ($slides as $index => $slide): ?>
                 <a class="card-slider-slide" href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true" data-card-slider-slide>
-                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt=""<?php echo $index > 0 ? ' loading="lazy"' : $this->cardImageLoading(); ?> />
+                    <img src="<?php echo $this->escape($slide->thumbnail_url); ?>" alt="<?php echo $this->escape($this->cardImageAlt($item, $slide)); ?>"<?php echo $index > 0 ? ' loading="lazy"' : $this->cardImageLoading(); ?> />
                 </a>
             <?php endforeach; ?>
         </div>

@@ -35,10 +35,11 @@ $item = $this->item;
             // The same destination as the title below it. Kept clickable for the
             // mouse, but taken out of the accessibility tree and the tab order:
             // one card should offer one link, not the same one twice. The image
-            // is decorative for the same reason: the title states the name.
+            // still says what it shows (its own description, else the product's
+            // name), for image search and for a browser that cannot draw it.
         ?>
         <a href="<?php echo $this->escape($item->link); ?>" tabindex="-1" aria-hidden="true">
-            <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt=""<?php echo $this->cardImageLoading(); ?> />
+            <img src="<?php echo $this->escape($item->medias[0]->thumbnail_url); ?>" alt="<?php echo $this->escape($this->cardImageAlt($item, $item->medias[0])); ?>"<?php echo $this->cardImageLoading(); ?> />
         </a>
         <?php echo Surface::render($item, ItemListSurface::Image); ?>
     </div>

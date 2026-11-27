@@ -32,20 +32,13 @@ use Joomla\CMS\HTML\HTMLHelper;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
 use Alfa\Component\Alfa\Site\Helper\Layout;
 use Alfa\Component\Alfa\Site\Helper\Surface;
-use Joomla\CMS\Language\Text;
 
 $item          = $this->item;
 $priceSettings = $this->priceSettings;
 
-// A card's link must always say what it leads to. A name can be missing (an
-// item never translated into the active language has no row to read it from),
-// and an empty <a></a> is a link nobody using a screen reader can identify.
-// The SKU is the next best identifier; failing that, the id at least names it.
-$itemName = trim((string) ($item->name ?? ''));
-
-if ($itemName === '') {
-    $itemName = trim((string) ($item->sku ?? '')) ?: Text::sprintf('COM_ALFA_ITEM_UNNAMED', (int) $item->id);
-}
+// A card's link must always say what it leads to: an empty <a></a> is a link nobody using a screen reader can
+// identify. The name, else the SKU, else the id ($this->cardItemName()); the card's image is named the same way.
+$itemName = $this->cardItemName($item);
 ?>
 <?php // The card's global position through the view's call: only on a result set with a handle, or on a
       // reload that carried it; an override keeps the call. ?>
