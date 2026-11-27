@@ -343,11 +343,27 @@
         currentIndex = index;
         studioDirty = false;
 
-        // The next variant opens on the tab the current one shows: the tab's id travels in the address's
-        // fragment, which Joomla's tab element reads as its page loads.
-        const tab = view.contentDocument ? view.contentDocument.querySelector('joomla-tab-element[active]') : null;
-
         if (view.dataset.current !== trigger.dataset.src) {
+            // The next variant opens on the tab the current one shows, at the same point of the page. The
+            // tab is read from the studio's own tabset, its direct children only: a tab nested in one of
+            // them (a per-language editor has its own tabs) is active too and would be taken for it. The
+            // tab's id travels in the address's fragment, which Joomla's tab element reads as its page
+            // loads; the scroll position is put back once the new document has loaded.
+            const doc = view.contentDocument;
+            const tabset = doc ? doc.getElementById('combinationStudioTabs') : null;
+            const tab = tabset ? tabset.querySelector(':scope > joomla-tab-element[active]') : null;
+            const scrollTop = doc && doc.scrollingElement ? doc.scrollingElement.scrollTop : 0;
+
+            if (scrollTop > 0) {
+                view.addEventListener('load', () => {
+                    const loaded = view.contentDocument;
+
+                    if (loaded && loaded.scrollingElement) {
+                        loaded.scrollingElement.scrollTop = scrollTop;
+                    }
+                }, { once: true });
+            }
+
             view.src = trigger.dataset.src + (tab ? '#' + tab.id : '');
             view.dataset.current = trigger.dataset.src;
         }
