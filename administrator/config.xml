@@ -1269,6 +1269,19 @@
             />
 
             <field
+                    name="item_sections"
+                    type="list"
+                    default="stacked"
+                    label="COM_ALFA_LAYOUT_ITEM_SECTIONS"
+                    description="COM_ALFA_LAYOUT_ITEM_SECTIONS_DESC"
+                    validate="options"
+            >
+                <option value="stacked">COM_ALFA_LAYOUT_ITEM_SECTIONS_STACKED</option>
+                <option value="tabs">COM_ALFA_LAYOUT_ITEM_SECTIONS_TABS</option>
+                <option value="accordion">COM_ALFA_LAYOUT_ITEM_SECTIONS_ACCORDION</option>
+            </field>
+
+            <field
                     name="item_related_layout"
                     type="subtemplate"
                     view="item"

@@ -83,6 +83,12 @@ class HtmlView extends BaseHtmlView
     protected array $relatedCards = [];
 
     /**
+     * @var string How the page sections under the two columns are drawn: stacked, tabs or accordion (the menu item's
+     *             choice, else the Options'); '' on the buy-form reload, which draws none
+     */
+    protected string $sectionsMode = 'stacked';
+
+    /**
      * Display the view
      *
      * @param string $tpl Template name
@@ -169,6 +175,17 @@ class HtmlView extends BaseHtmlView
 
         if ($relatedCount > 0 && RequestScalar::cmd($input, 'tmpl', '') === '' && !empty($this->item->id)) {
             $this->relatedCards = $this->relatedCards(itemId: (int) $this->item->id, count: $relatedCount);
+        }
+
+        // THE PAGE SECTIONS under the two columns: how they are drawn is the menu item's choice (else the Options'),
+        // one of three presentations of the same collection. Not on the buy-form reload: like the related products,
+        // they sit after the product's container, which is all a variant change replaces.
+        $sectionsMode = (string) $this->params->get('item_sections', 'stacked');
+
+        if (RequestScalar::cmd($input, 'tmpl', '') !== '') {
+            $this->sectionsMode = '';
+        } elseif (\in_array($sectionsMode, ['stacked', 'tabs', 'accordion'], true)) {
+            $this->sectionsMode = $sectionsMode;
         }
 
         // Resolve price settings once for all items

@@ -21,6 +21,9 @@
      *   Surface::render($this->item, ItemSurface::Title, only: ['colour'])
      *                                one slot's contributions, or some fields of it (only / except), see Surface.
      *   $this->item->surfaces        every slot's contributions, read-only (SurfaceMap).
+     *   $this->sectionsMode          how the page sections are drawn: stacked, tabs or accordion (the menu item's
+     *                                choice), '' on a buy-form reload. The sections themselves are the layout
+     *                                item.sections (PageSections::collect builds them, common/sections.php draws).
      *
      * A single field's markup is overridden without touching this file: html/layouts/com_alfa/item/field/<field
      * name>.php, or item/field/<field type>.php for every field of a type (see layouts/item/field.php).
@@ -145,16 +148,16 @@
 
         <?php echo $sellsOnline ? '</form>' : '</div>'; ?>
 
-        <div class="item-full-description">
-            <?php echo nl2br($this->item->full_desc); ?>
-        </div>
-        <?php echo Surface::render($this->item, ItemSurface::FullDescription); ?>
-
         <?php echo $this->loadTemplate($this->manufacturersTpl); ?>
         <?php echo $this->loadTemplate($this->categoriesTpl); ?>
 
     </div>
 </div>
+
+<?php // The page sections (the description, the specifications, the shop's and the product's own sections, the fields
+      // placed in a section of their own, the plugins' sections), under the two columns and apart from the product's
+      // container: a variant change replaces the container and leaves them, and the chosen tab, as they are. ?>
+<?php echo Layout::render('item.sections', ['item' => $this->item, 'mode' => $this->sectionsMode]); ?>
 
 <?php // The related products, a part of their own after the product's container: a variant change replaces the
       // container and leaves them as they are. An override of this page shows them where it loads the part. ?>
