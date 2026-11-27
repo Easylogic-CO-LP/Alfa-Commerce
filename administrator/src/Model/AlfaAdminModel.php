@@ -32,6 +32,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Joomla\CMS\Event\Model\AfterDeleteEvent;
 use Joomla\CMS\Event\Model\AfterSaveEvent;
 use Joomla\CMS\Event\Model\BeforeDeleteEvent;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -265,6 +266,17 @@ abstract class AlfaAdminModel extends AdminModel
         if ($form->getField('state') && !$this->canEditState($record ?? (object) $values)) {
             $form->setFieldAttribute('state', 'disabled', 'true');
             $form->setFieldAttribute('state', 'filter', 'unset');
+        }
+
+        // The edit screen's publish calendars follow the operator's language. The REST API has no screen: its publish
+        // dates keep Joomla's Date parsing (text with an offset or Z is that moment, text without one is read in the
+        // API user's time zone), so the bodies the API takes do not change with the shop's language.
+        if (Factory::getApplication()->isClient('api')) {
+            foreach (['publish_up', 'publish_down'] as $name) {
+                if ($form->getFieldAttribute($name, 'translateformat') === 'true') {
+                    $form->setFieldAttribute($name, 'translateformat', 'false');
+                }
+            }
         }
 
         // SCHEMA FIRST. A field must exist before a value can be bound to it, and loadForm() binds

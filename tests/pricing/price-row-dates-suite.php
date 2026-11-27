@@ -28,6 +28,9 @@
  *         price, a pinned final price and an adjust row are not.
  *   [SA2] the editor shows the share a sale takes off the price under the sale input, as a warning above half.
  *   [SA3] prices.js keeps that line live from the row's own figures.
+ *   [API] ★ the item form loaded for the REST API keeps Joomla's Date parsing on its publish dates: an ISO UTC
+ *         value with seconds, T and Z is stored unchanged, an offset is that moment, text without an offset is read
+ *         in the API user's zone, as before; the item screen's own form keeps the operator's language order.
  *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
  *
  * Fixtures: one unpublished product of this run's own per language, written inside a transaction that is rolled
@@ -383,6 +386,37 @@ $pricesJs = SourceFile::read(JPATH_ROOT . '/media/com_alfa/js/admin/prices.js');
 check('[SA3] prices.js keeps the sale share line live from the row\'s own figures',
     [str_contains($pricesJs, "row.querySelector('[data-price-sale-percent]')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT')")],
     [true, true]);
+
+// The REST API's form: no screen, so its publish dates keep Joomla's Date parsing, as the api pages state them.
+echo "\nthe item form loaded for the REST API\n";
+$apiOutcome = ['error' => 'not run'];
+$apiApp = $container->get(\Joomla\CMS\Application\ApiApplication::class);
+
+try {
+    Factory::$application = $apiApp;
+    $apiApp->loadLanguage($english);
+    $apiApp->loadIdentity($operator);
+    $apiModel = $factory->createModel('Item', 'Administrator', ['ignore_request' => true]);
+    $apiForm = $apiModel->getForm([], false);
+    $apiOutcome = [
+        'client' => $apiApp->isClient('api'),
+        'translateformat' => [$apiForm->getFieldAttribute('publish_up', 'translateformat'), $apiForm->getFieldAttribute('publish_down', 'translateformat')],
+        'iso_z' => [$apiForm->getField('publish_up')->filter('2026-12-01T08:00:00Z'), $apiForm->getField('publish_down')->filter('2026-12-31T16:00:00Z')],
+        'offset' => $apiForm->getField('publish_up')->filter('2026-12-01T10:00:00+02:00'),
+        'no_offset' => $apiForm->getField('publish_up')->filter('2026-12-01 08:00:00'),
+    ];
+} catch (\Throwable $e) {
+    $apiOutcome = ['error' => \get_class($e) . ': ' . $e->getMessage()];
+} finally {
+    Factory::$application = $app;
+}
+
+check('[API] ★ the item form loaded for the REST API reads an ISO UTC value with seconds, T and Z unchanged, an offset as that moment, and text without an offset in the API user\'s zone',
+    $apiOutcome,
+    ['client' => true, 'translateformat' => ['false', 'false'], 'iso_z' => ['2026-12-01 08:00:00', '2026-12-31 16:00:00'], 'offset' => '2026-12-01 08:00:00', 'no_offset' => '2026-12-01 06:00:00']);
+check('[API] the item screen\'s own form keeps the operator\'s language order on its publish dates',
+    [$model->getForm([], false)->getFieldAttribute('publish_up', 'translateformat'), $model->getForm([], false)->getFieldAttribute('publish_down', 'translateformat')],
+    ['true', 'true']);
 
 $after = $census();
 $moved = [];
