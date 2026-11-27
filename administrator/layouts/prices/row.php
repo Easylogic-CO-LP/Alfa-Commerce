@@ -158,14 +158,16 @@ if ($overrideOn === 'final') {
     $overrideHint = Text::_('COM_ALFA_PRICES_FINAL') . ': ' . $money((float) $override * $taxFactor, $decimals);
 }
 
-// The discount a sale on the price gives, as a share of the price, shown under the sale input. Drawn as a warning
-// when it takes more than half the price, or when the sale is above the price, which the save refuses.
+// The discount a sale gives, as a share of the price it replaces, shown under the sale input: the net price when
+// the sale pins the net, the price with taxes when it pins the final. Drawn as a warning when it takes more than
+// half the price, or when the sale is above the price (a net sale above the net is what the save refuses).
 $salePercent = '';
 $salePercentWarns = false;
 
-if ($overrideOn === 'start' && $value !== '' && (float) $value > 0) {
-    $share = (((float) $value - (float) $override) / (float) $value) * 100;
-    $salePercent = Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', rtrim(rtrim(number_format($share, 1, '.', ''), '0'), '.'), $money((float) $value, $decimals));
+if (\in_array($overrideOn, ['start', 'final'], true) && $value !== '' && (float) $value > 0 && ($overrideOn === 'start' || $taxKnown)) {
+    $replaced = $overrideOn === 'final' ? (float) $value * $taxFactor : (float) $value;
+    $share = (($replaced - (float) $override) / $replaced) * 100;
+    $salePercent = Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', rtrim(rtrim(number_format($share, 1, '.', ''), '0'), '.'), $money($replaced, $decimals));
     $salePercentWarns = $share > 50 || $share < 0;
 }
 

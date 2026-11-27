@@ -182,9 +182,11 @@
         }
     };
 
-    // Sale on the price: the discount it gives, as a share of the price, under
-    // the sale input. A warning colour when it takes more than half the price, or
-    // when the sale is above the price (the save refuses that).
+    // Sale on the price: the discount it gives, as a share of the price it
+    // replaces (the net when the sale pins the net, the price with taxes when
+    // it pins the final), under the sale input. A warning colour when it takes
+    // more than half the price, or when the sale is above the price (a net sale
+    // above the net is what the save refuses).
     const updateSalePercent = (row) => {
         const line = row.querySelector('[data-price-sale-percent]');
 
@@ -194,9 +196,11 @@
 
         const type = row.querySelector('[data-price-override-type]:checked')?.value || '';
         const sale = parseFloat(row.querySelector('[data-price-override]')?.value);
-        const price = parseFloat(row.querySelector('[data-price-value]')?.value);
+        const net = parseFloat(row.querySelector('[data-price-value]')?.value);
+        const c = calc(row);
+        const price = type === 'final' ? net * c.tax : net;
 
-        if (type !== 'start' || Number.isNaN(sale) || Number.isNaN(price) || price <= 0) {
+        if ((type !== 'start' && type !== 'final') || Number.isNaN(sale) || Number.isNaN(price) || price <= 0) {
             line.hidden = true;
             line.textContent = '';
             line.classList.remove('text-warning');
@@ -205,7 +209,6 @@
         }
 
         const share = ((price - sale) / price) * 100;
-        const c = calc(row);
 
         line.textContent = Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT')
             .replace('%1$s', share.toFixed(1).replace(/\.0$/, ''))
