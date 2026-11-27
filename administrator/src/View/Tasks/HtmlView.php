@@ -28,6 +28,7 @@ use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Throwable;
 
@@ -272,6 +273,67 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
+     * One split button for the background work's tools, each run by the Tools script with its progress and outcome
+     * under the toolbar: its main part runs everything pending (tasks.pending); its list offers each kind on its own
+     * (the tasks a save left, the stock movements, the list prices), any other registered tool, and after a divider the
+     * clean-up of the completed work, which asks first. A tool the registry does not offer is left out.
+     *
+     * @param Toolbar $toolbar The toolbar.
+     *
+     * @since  2.3.0
+     */
+    private function addRunButton(Toolbar $toolbar): void
+    {
+        $actions = [];
+
+        foreach ($this->actions as $action) {
+            if ($action->isValid()) {
+                $actions[$action->id] = $action;
+            }
+        }
+
+        if (!isset($actions['tasks.pending'])) {
+            return;
+        }
+
+        $group = $toolbar->dropdownButton('alfa-run-group')->toggleSplit(true)->toggleButtonClass('btn ' . $actions['tasks.pending']->class);
+        $bar = $group->getChildToolbar();
+        $button = function (PluginAction $action, string $label, string $confirm = '') use ($bar): void {
+            $attributes = ToolButton::attributes(action: $action, progress: self::PROGRESS_ID);
+
+            if ($confirm !== '') {
+                $attributes['data-confirm-message'] = Text::_($confirm);
+            }
+
+            $bar->basicButton('alfa-tool-' . str_replace('.', '-', $action->id), $label)
+                ->icon('icon-' . $action->icon)
+                ->buttonClass('btn ' . $action->class . ' alfa-tool-btn')
+                ->attributes($attributes);
+        };
+
+        // The main part, then each kind on its own, in the order the run takes them.
+        $button($actions['tasks.pending'], Text::_('COM_ALFA_TASKS_RUN_PENDING'));
+        $kinds = ['tasks.run' => 'COM_ALFA_TASKS_RUN_JOBS', 'inventory.effects' => 'COM_ALFA_TASKS_APPLY_STOCK', 'pricing.groupsets' => 'COM_ALFA_TASKS_UPDATE_PRICES'];
+
+        foreach ($kinds as $id => $label) {
+            if (isset($actions[$id])) {
+                $button($actions[$id], Text::_($label));
+            }
+        }
+
+        foreach ($actions as $id => $action) {
+            if (!isset($kinds[$id]) && $id !== 'tasks.pending' && $id !== 'tasks.prune') {
+                $button($action, ToolButton::label($action));
+            }
+        }
+
+        if (isset($actions['tasks.prune'])) {
+            $bar->separatorButton('alfa-run-divider');
+            $button($actions['tasks.prune'], Text::_('COM_ALFA_TASKS_CLEANUP'), 'COM_ALFA_TASKS_CLEANUP_CONFIRM');
+        }
+    }
+
+    /**
      * The toolbar: the background work's tools, then Delete for the finished entries checked.
      *
      * @since  2.3.0
@@ -283,17 +345,7 @@ class HtmlView extends BaseHtmlView
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_TASKS'), 'generic');
 
-        // Each registered tool as a button the Tools script runs; its progress and outcome show under the toolbar.
-        foreach ($this->actions as $action) {
-            if (!$action->isValid()) {
-                continue;
-            }
-
-            $toolbar->basicButton('alfa-tool-' . str_replace('.', '-', $action->id), ToolButton::label($action))
-                ->icon('icon-' . $action->icon)
-                ->buttonClass('btn ' . $action->class . ' alfa-tool-btn')
-                ->attributes(ToolButton::attributes(action: $action, progress: self::PROGRESS_ID));
-        }
+        $this->addRunButton($toolbar);
 
         $toolbar->delete($this->tab === self::TAB_OUTBOUND ? 'outbound.delete' : 'tasks.delete')
             ->message('COM_ALFA_TASKS_DELETE_CONFIRM')
