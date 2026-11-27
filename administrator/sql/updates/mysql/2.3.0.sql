@@ -532,3 +532,14 @@ ALTER TABLE `#__alfa_tasks` ADD COLUMN `rank` tinyint UNSIGNED GENERATED ALWAYS 
 ALTER TABLE `#__alfa_tasks` ADD KEY `idx_rank_id` (`rank`, `id`) /** CAN FAIL **/;
 ALTER TABLE `#__alfa_outbound_deliveries` ADD COLUMN `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'pending' THEN 0 WHEN 'dead' THEN 1 ELSE 2 END) STORED COMMENT 'The Background screen''s order: waiting (running while its job runs), given up, finished; indexed with id' /** CAN FAIL **/;
 ALTER TABLE `#__alfa_outbound_deliveries` ADD KEY `idx_rank_id` (`rank`, `id`) /** CAN FAIL **/;
+
+ALTER TABLE `#__alfa_item_fields` ADD COLUMN `placement` varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)' AFTER `show_on_listing` /** CAN FAIL **/;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_item_sections` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK #__alfa_items.id',
+  `section_key` varchar(64) NOT NULL DEFAULT '' COMMENT 'The key of the general section (Options) this one replaces on the product page; empty for a section of its own',
+  `position` int(11) NOT NULL DEFAULT 0 COMMENT 'Its place among the page sections, with the general sections and the fields shown as sections, ascending',
+  PRIMARY KEY (`id`),
+  KEY `idx_item_position` (`item_id`, `position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='A product page''s own sections; title and body in #__alfa_item_sections_<langtag>';
