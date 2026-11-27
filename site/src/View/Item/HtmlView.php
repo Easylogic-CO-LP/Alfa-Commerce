@@ -171,9 +171,9 @@ class HtmlView extends BaseHtmlView
             slot: 'related',
             layout: $this->getLayout(),
         );
-        $relatedCount = self::firstSet([$own['related_count'] ?? '', $cat['related_count'] ?? '', $this->params->get('item_related_count', 4)]);
+        $relatedCount = self::firstSet([$own['related_count'] ?? '', $cat['related_count'] ?? '', $this->params->get('item_related_count', RelatedProducts::ALL)]);
 
-        if ($relatedCount > 0 && RequestScalar::cmd($input, 'tmpl', '') === '' && !empty($this->item->id)) {
+        if ($relatedCount !== 0 && RequestScalar::cmd($input, 'tmpl', '') === '' && !empty($this->item->id)) {
             $this->relatedCards = $this->relatedCards(itemId: (int) $this->item->id, count: $relatedCount);
         }
 
@@ -285,7 +285,8 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The first value of a chain that is set ('' and null inherit; 0 is a value), as a whole number.
+     * The first value of a chain that is set ('' and null inherit; 0 is a value), as a whole number: a count, 0 for
+     * none, or RelatedProducts::ALL for every one.
      *
      * @param list<mixed> $chain The levels, strongest first.
      *
@@ -295,11 +296,11 @@ class HtmlView extends BaseHtmlView
     {
         foreach ($chain as $value) {
             if ($value !== null && $value !== '') {
-                return max(0, (int) $value);
+                return max(RelatedProducts::ALL, (int) $value);
             }
         }
 
-        return 0;
+        return RelatedProducts::ALL;
     }
 
     /**
@@ -308,7 +309,7 @@ class HtmlView extends BaseHtmlView
      * ({@see \Alfa\Component\Alfa\Site\View\Items\HtmlView::cardsFor()}).
      *
      * @param int $itemId The product.
-     * @param int $count How many to show, at least 1.
+     * @param int $count How many to show: a number, or RelatedProducts::ALL for every one.
      *
      * @return array<int, string> The cards by product id, in their order.
      *

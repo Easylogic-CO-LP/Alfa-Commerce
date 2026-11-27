@@ -57,10 +57,18 @@ final class RelatedProducts
     public const SHOWN_MAX = 12;
 
     /**
+     * The count that shows every related product the merchant put on the product's Related tab, in its order, up to
+     * {@see self::SHOWN_MAX}: what a shop that never chose a count shows.
+     *
+     * @since  2.3.0
+     */
+    public const ALL = -1;
+
+    /**
      * The products to show, decorated by the site ItemsModel, in their order.
      *
      * @param int $itemId The product whose page shows them.
-     * @param int $count How many at most (0 for none, at most {@see self::SHOWN_MAX}).
+     * @param int $count How many at most: {@see self::ALL} for every one (up to {@see self::SHOWN_MAX}), 0 for none.
      *
      * @return list<object>
      *
@@ -68,7 +76,7 @@ final class RelatedProducts
      */
     public static function visible(int $itemId, int $count): array
     {
-        $count = min(self::SHOWN_MAX, $count);
+        $count = $count === self::ALL ? self::SHOWN_MAX : min(self::SHOWN_MAX, $count);
 
         if ($itemId <= 0 || $count <= 0) {
             return [];

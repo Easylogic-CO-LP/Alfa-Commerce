@@ -1395,12 +1395,13 @@
             <field
                     name="item_related_count"
                     type="list"
-                    default="4"
+                    default="-1"
                     label="COM_ALFA_LAYOUT_RELATED_COUNT_LABEL"
                     description="COM_ALFA_CONFIG_LAYOUT_RELATED_COUNT_DESC"
                     validate="options"
             >
-                <option value="0">0</option>
+                <option value="-1">JALL</option>
+                <option value="0">JNONE</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
