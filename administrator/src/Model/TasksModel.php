@@ -64,8 +64,8 @@ class TasksModel extends AlfaListModel
     }
 
     /**
-     * The list's state: running first by default, then waiting, what needs attention and the finished, oldest first
-     * within each (the stored rank's index); the date window against the creation.
+     * The list's state: running first by default, then waiting, what needs attention and the finished, newest first
+     * within each; the date window against the creation.
      *
      * @param string $ordering The default ordering.
      * @param string $direction The default direction.
@@ -173,10 +173,12 @@ class TasksModel extends AlfaListModel
         $ordering = (string) $this->getState('list.ordering', 'rank');
         $direction = strtoupper((string) $this->getState('list.direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
 
-        // The stored rank with the id, one direction, is the index the table keeps for this order: within a state the
-        // oldest first, the queue's own order.
+        // The states in their order (the stored rank), the newest first within each: the id ends the order, so it is
+        // total. The two directions differ, so neither engine reads this order from idx_rank_id (rank, id) and the rows
+        // the filters keep are sorted for the page; the table is bounded by its retention (finished tasks kept
+        // TaskRetention::SHORT_DAYS or TaskRetention::KEEP_DAYS, the rest waiting on the runner or on staff).
         if ($ordering === 'rank') {
-            $query->order(TaskStaff::rankSql(db: $db, alias: 'a') . ' ' . $direction . ', ' . $db->quoteName('a.id') . ' ' . $direction);
+            $query->order(TaskStaff::rankSql(db: $db, alias: 'a') . ' ' . $direction . ', ' . $db->quoteName('a.id') . ' DESC');
         } else {
             $query->order($db->quoteName($ordering) . ' ' . $direction);
             $this->orderByKeyLast($query, $ordering, $direction);
