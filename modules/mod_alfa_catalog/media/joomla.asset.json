@@ -1,0 +1,51 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_alfa_catalog",
+  "version": "1.0.0",
+  "description": "Alfa Catalog module: tabs of products, categories or manufacturers as a grid, a slider or a list.",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "mod_alfa_catalog.catalog",
+      "type": "style",
+      "uri": "mod_alfa_catalog/catalog.min.css"
+    },
+    {
+      "name": "mod_alfa_catalog.catalog",
+      "type": "script",
+      "uri": "mod_alfa_catalog/catalog.min.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_alfa_catalog.keen-slider",
+      "type": "style",
+      "uri": "mod_alfa_catalog/keen-slider.min.css"
+    },
+    {
+      "name": "mod_alfa_catalog.keen-slider",
+      "type": "script",
+      "uri": "mod_alfa_catalog/keen-slider.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_alfa_catalog.look-editor",
+      "type": "style",
+      "uri": "mod_alfa_catalog/look-editor.min.css"
+    },
+    {
+      "name": "mod_alfa_catalog.look-editor",
+      "type": "script",
+      "uri": "mod_alfa_catalog/look-editor.min.js",
+      "attributes": {
+        "defer": true
+      }
+    }
+  ]
+}

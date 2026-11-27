@@ -344,7 +344,8 @@ class com_alfaInstallerScript extends InstallerScript
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
      * throttles of the notices, the tasks and the stock effects), whose entries the version before computed, and the
-     * group of the bundled items module (mod_alfa_items: its best sellers ranking and its listings). A group
+     * groups of the bundled items and catalog modules (mod_alfa_items, mod_alfa_catalog: their best sellers rankings
+     * and their listings). A group
      * added to the component or to a bundled mod_alfa_ module is added here; the release tests compare this list with
      * the source.
      *
@@ -362,6 +363,7 @@ class com_alfaInstallerScript extends InstallerScript
         'com_alfa.stockeffects',
         'com_alfa.tasks',
         'mod_alfa_items',
+        'mod_alfa_catalog',
     ];
 
     // Installer lifecycle hooks
