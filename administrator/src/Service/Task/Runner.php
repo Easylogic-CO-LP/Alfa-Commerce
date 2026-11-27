@@ -739,6 +739,8 @@ final class Runner
             Job\PriceIndexTidyJob::NAME => Job\PriceIndexTidyJob::class,
             // The price check, once a day, and its bell notice.
             Job\PriceAuditJob::NAME => Job\PriceAuditJob::class,
+            // A discount rule's reach, when the card's estimate says it is too much work for the form's request.
+            Job\DiscountReachJob::NAME => Job\DiscountReachJob::class,
             // The gallery's thumbnails, recreated from Tools > Media.
             Job\ThumbnailsRecreateJob::NAME => Job\ThumbnailsRecreateJob::class,
             // The images a REST API write gave as addresses, fetched and stored.

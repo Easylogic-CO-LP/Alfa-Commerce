@@ -28,8 +28,9 @@ use Throwable;
  * per section holds its finding rows, compact, the products named only when a page of them is shown. A run in
  * progress writes nothing here until its last piece, so the previous complete result stays readable throughout.
  *
- * A price row, a discount or a tax saved after the check marks the result out of date with one write (the moment of
- * the change); the result is out of date while that moment is after the one the check read at.
+ * A price row, a discount or a tax saved marks the result out of date with one write (the moment of the change); the
+ * result is out of date while that moment is at or after the moment the check began (the summary's now), since every
+ * piece of the check judges the data as of its start, and a change during the run is not in what it stored.
  *
  * The state is read from here and from the job's own rows (#__alfa_tasks): never run, running (the job waiting or
  * running, with its progress), complete, failed (the last run failed after the last complete one, with its reason) or
@@ -78,7 +79,8 @@ final class PriceAuditStore
     /**
      * The last complete result's summary, or null when the check never completed.
      *
-     * @return array|null now, finished_at, context, options, engine, sections (key => count, available, taxes), index.
+     * @return array|null now (the moment the check began and judged the data at), finished_at, context, options,
+     *                    engine, sections (key => count, available, taxes), index.
      *
      * @since  2.3.0
      */
@@ -204,7 +206,8 @@ final class PriceAuditStore
         }
 
         $stale = $this->staleSince();
-        $outOfDate = $summary !== null && $stale !== null && $stale > (string) $summary['now'];
+        // At or after the start: a change while the run was on is not in what it stored.
+        $outOfDate = $summary !== null && $stale !== null && $stale >= (string) $summary['now'];
 
         $state = match (true) {
             $active !== null => self::STATE_RUNNING,

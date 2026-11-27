@@ -13,10 +13,12 @@ namespace Alfa\Component\Alfa\Administrator\View\Discount;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\Database\DatabaseInterface;
 
 /**
  * View class for a single Category.
@@ -38,6 +40,14 @@ class HtmlView extends FormView
      * @since  2.3.0
      */
     public int $reachOf = 0;
+
+    /**
+     * The rule's reach as last counted and stored (DiscountReach::stored()), for the card to show with its moment;
+     * null when none is stored.
+     *
+     * @since  2.3.0
+     */
+    public ?array $reachStored = null;
 
     /**
      * Render the edit form view.
@@ -70,6 +80,10 @@ class HtmlView extends FormView
 
         // The Reach card counts from the saved rule when asked; a rule not saved yet has no card.
         $this->reachOf = (int) ($this->item->id ?? 0);
+
+        if ($this->reachOf > 0) {
+            $this->reachStored = (new DiscountReach(db: Factory::getContainer()->get(DatabaseInterface::class)))->stored(discountId: $this->reachOf);
+        }
     }
 
     /**
