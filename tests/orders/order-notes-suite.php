@@ -16,6 +16,7 @@
  *        line says the note.
  *   [S2] ★ the e-mail single attempted the customer at host@easylogic.gr: sent when this run may send mail, else the
  *        attempt is recorded with its reason (would send); its record on the history carries the note when sent.
+ *        Each single's state, last error and attempted units are printed, so a run that ends elsewhere says where.
  *   [S3] a status change that says nothing about the e-mail (the inline list, the API) leaves the choice to the
  *        status: its record carries neither a note nor the e-mail fact.
  *   [A1] ★ the status e-mail sent again by staff with a note: recorded in the operator's name with the note, a new
@@ -27,7 +28,10 @@
  *   [T1] every table touched holds exactly the rows it held.
  *
  * Fixtures: one disposable guest order of this run's own, with no lines, whose customer address is
- * host@easylogic.gr; it and every row written about it are removed before the census. No shop stock is touched.
+ * host@easylogic.gr; it and every row written about it are removed before the census: its history, its singles, the
+ * staff notice its failed singles raised when none stood before. A pending status e-mail single of an order that no
+ * longer exists (what a run that ended before its teardown leaves) is removed before the opening census and named.
+ * No shop stock is touched.
  * Mail is off for the run unless --mail is given AND the site sends mail: only then is the e-mail really sent, to
  * host@easylogic.gr alone.
  *
@@ -59,6 +63,7 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskAttention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Application\AdministratorApplication;
 use Joomla\CMS\Factory;
@@ -87,6 +92,18 @@ $app->createExtensionNamespaceMap();
 \defined('JPATH_COMPONENT') || \define('JPATH_COMPONENT', JPATH_ADMINISTRATOR . '/components/com_alfa');
 \defined('JPATH_COMPONENT_ADMINISTRATOR') || \define('JPATH_COMPONENT_ADMINISTRATOR', JPATH_ADMINISTRATOR . '/components/com_alfa');
 \defined('JPATH_COMPONENT_SITE') || \define('JPATH_COMPONENT_SITE', JPATH_SITE . '/components/com_alfa');
+
+// The e-mail's field tokens render through the field plugins' layouts, which ask an administrator application for
+// its template; a suite runs from the site docroot, where the admin's template is out of reach, so an installed
+// template is pinned, as the other suites that compose e-mails do. The e-mail wrapper itself reads the administrator
+// template from the database (EmailLayouts) and needs nothing here.
+$installedTemplates = array_values(array_filter(glob(JPATH_THEMES . '/*') ?: [], static fn (string $dir): bool => is_file($dir . '/index.php')));
+
+if ($installedTemplates !== []) {
+    (new \ReflectionProperty(\Joomla\CMS\Application\CMSApplication::class, 'template'))
+        ->setValue($app, (object) ['template' => basename($installedTemplates[0]), 'params' => new \Joomla\Registry\Registry(), 'parent' => '']);
+    $app->set('themeInherits', '');
+}
 
 $db = $container->get('DatabaseDriver');
 $p = $db->getPrefix();
@@ -138,6 +155,25 @@ $census = static function () use ($db, $p, $tables): array {
 
     return $counts;
 };
+
+// A status e-mail single still pending for an order that no longer exists is what an earlier run of this suite left
+// when it ended before its teardown: removed before the census, and named. A single of an order the shop has is
+// never touched.
+$stale = array_map('intval', $db->setQuery(
+    "SELECT t.id FROM `{$p}alfa_tasks` t LEFT JOIN `{$p}alfa_orders` o ON o.id = t.subject_id"
+    . " WHERE t.subject_type = 'order' AND t.handler = " . $db->quote(OrderStatusEmail::NAME) . " AND t.state = 'pending' AND o.id IS NULL",
+)->loadColumn() ?: []);
+
+if ($stale !== []) {
+    $db->setQuery("DELETE FROM `{$p}alfa_tasks` WHERE id IN (" . implode(',', $stale) . ')')->execute();
+    echo '  removed ', \count($stale), ' stale status e-mail single(s) of orders that no longer exist: #', implode(', #', $stale), "\n\n";
+}
+
+// The staff notice a failed single raises (one row, by its key): when it does not stand before this run, the run's own
+// failed singles raise it, and it is removed with them.
+$attentionBefore = (int) $db->setQuery(
+    "SELECT COUNT(*) FROM `{$p}alfa_notifications` WHERE dedup_key = " . $db->quote(TaskAttention::KEY),
+)->loadResult();
 
 $opening = $census();
 
@@ -205,6 +241,43 @@ $unitOf = static function (array $task, string $unit): ?array {
     }
 
     return null;
+};
+
+/** What a single did, for the record of the run: its state, failures, last error and every unit it attempted. */
+$taskReport = static function (array $task): string {
+    $lines = ['    single #' . (int) $task['id'] . ': state ' . (string) $task['state'] . ', claims ' . (int) $task['claims'] . ', failures ' . (int) $task['failures']
+        . ((string) $task['last_error'] !== '' ? ', last error: ' . $task['last_error'] : '')];
+
+    foreach ($task['history'] as $entry) {
+        $lines[] = '      ' . (string) ($entry['outcome'] ?? '?') . (isset($entry['unit']) ? ' ' . $entry['unit'] : ' (no unit)')
+            . (($entry['error'] ?? '') !== '' ? ': ' . $entry['error'] : '');
+    }
+
+    return implode("\n", $lines) . "\n";
+};
+
+/**
+ * The newest e-mail single of the order, run by this process when its request left it pending and due (a batch a
+ * command-line run does not get to run is recovery's), and read again. Said out loud when it happens.
+ */
+$settledEmailTask = static function (int $orderId) use ($db, $emailTasks): ?array {
+    $task = $emailTasks($orderId)[0] ?? null;
+
+    if ($task === null) {
+        return null;
+    }
+
+    $due = (string) $task['state'] === 'pending' && (int) $db->setQuery(
+        'SELECT ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3) FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE id = ' . (int) $task['id'],
+    )->loadResult() === 1;
+
+    if ($due) {
+        echo '    NOTE single #', (int) $task['id'], " was left pending and due by its request; this run runs its batch\n";
+        Tasks::runBatch($db, (string) $task['batch'], 'cli');
+        $task = $emailTasks($orderId)[0] ?? $task;
+    }
+
+    return $task;
 };
 
 $customerUnit = 'customer:host@easylogic.gr';
@@ -279,16 +352,17 @@ try {
     $check('[S1] the History line says the note', str_contains($line, 'Note to the customer: ' . $statusNote), true);
     $check('[S1] and that the customer is e-mailed', str_contains($line, 'The customer is e-mailed about it.'), true);
 
-    $tasks = $emailTasks($orderId);
-    $emailTask = $tasks[0] ?? null;
+    $emailTask = $settledEmailTask($orderId);
     $check('[S1] the e-mail single was written for the status entered', (int) ($emailTask['payload']['status'] ?? 0), $target);
     $check('[S1] it carries the note', $emailTask['payload']['note'] ?? null, $statusNote);
     $check('[S1] and the ask for the customer', $emailTask['payload']['customer_asked'] ?? null, true);
 
+    if ($emailTask !== null) {
+        echo $taskReport($emailTask);
+    }
+
     $unit = $emailTask ? $unitOf($emailTask, $customerUnit) : null;
     $check('[S2] the single attempted the customer at host@easylogic.gr', $unit !== null, true);
-    echo '    e-mail single #', (int) ($emailTask['id'] ?? 0), ' ended ', (string) ($emailTask['state'] ?? '?'), '; customer unit: ',
-        (string) ($unit['outcome'] ?? 'not attempted'), ($unit['error'] ?? '') !== '' ? ' (' . $unit['error'] . ')' : '', "\n";
 
     if ($sendsMail && $withTexts) {
         $check('[S2] the customer was sent to', $unit['outcome'] ?? null, 'done');
@@ -327,17 +401,27 @@ try {
     $check('[A1] naming the single', (int) ($againContext['task'] ?? 0), $againTask);
     $check('[A1] the History line says the note', $again ? str_contains(OrderHistoryHelper::line($again, $order), $againNote) : false, true);
 
-    $againRow = $emailTasks($orderId)[0] ?? null;
+    $againRow = $settledEmailTask($orderId);
     $check('[A1] the single is the one named', (int) ($againRow['id'] ?? 0), $againTask);
     $check('[A1] it carries the note and the ask', ($againRow['payload']['note'] ?? null) === $againNote && ($againRow['payload']['customer_asked'] ?? null) === true, true);
-    $check('[A1] the ask is recorded before the single\'s own records',
-        $again && ($rowsOf($orderId, 'order.email_sent')[0] ?? $rowsOf($orderId, 'order.email_failed')[0] ?? null) !== null
-            ? (int) $again->id < (int) ($rowsOf($orderId, 'order.email_sent')[0] ?? $rowsOf($orderId, 'order.email_failed')[0])->id
-            : false,
-        true);
+
+    if ($againRow !== null) {
+        echo $taskReport($againRow);
+    }
+
+    // The single's own record about this send: sent, or failed (mail off); the one naming this task.
+    $ownRecord = null;
+
+    foreach ([...$rowsOf($orderId, 'order.email_sent'), ...$rowsOf($orderId, 'order.email_failed'), ...$rowsOf($orderId, 'order.email_held')] as $candidate) {
+        if ((int) ((json_decode((string) $candidate->context, true) ?: [])['task'] ?? 0) === $againTask) {
+            $ownRecord = $candidate;
+        }
+    }
+
+    $check('[A1] the single left its own record on the History', $ownRecord !== null, true);
+    $check('[A1] the ask is recorded before the single\'s own record', $again && $ownRecord ? (int) $again->id < (int) $ownRecord->id : false, true);
     $againUnit = $againRow ? $unitOf($againRow, $customerUnit) : null;
-    echo '    e-mail single #', $againTask, ' ended ', (string) ($againRow['state'] ?? '?'), '; customer unit: ',
-        (string) ($againUnit['outcome'] ?? 'not attempted'), ($againUnit['error'] ?? '') !== '' ? ' (' . $againUnit['error'] . ')' : '', "\n";
+    $check('[A1] the single attempted the customer at host@easylogic.gr', $againUnit !== null, true);
 
     // I1: the internal note
     $internal = 'Internal: customer called twice, prefers afternoon delivery.';
@@ -358,9 +442,9 @@ try {
     $check('[I1] the internal note is in no e-mail', str_contains($mail, $internal), false);
     $check('[I1] while the note to the customer is', str_contains($mail, $againNote), true);
 
-    $view = new \ReflectionProperty(\Alfa\Component\Alfa\Api\View\Orders\JsonApiView::class, 'fieldsToRenderItem');
+    $view = new \ReflectionProperty(\Alfa\Component\Alfa\Api\View\Orders\JsonapiView::class, 'fieldsToRenderItem');
     $check('[I1] the API renders no note attribute for one order', \in_array('note', $view->getDefaultValue(), true), false);
-    $list = new \ReflectionProperty(\Alfa\Component\Alfa\Api\View\Orders\JsonApiView::class, 'fieldsToRenderList');
+    $list = new \ReflectionProperty(\Alfa\Component\Alfa\Api\View\Orders\JsonapiView::class, 'fieldsToRenderList');
     $check('[I1] nor in the list', \in_array('note', $list->getDefaultValue(), true), false);
     $controller = SourceFile::read(JPATH_ROOT . '/api/components/com_alfa/src/Controller/OrdersController.php');
     $check('[I1] the API refuses the key on a create and an update', str_contains($controller, "protected function unwrittenKeys(): array\n    {\n        return ['note'];"), true);
@@ -391,6 +475,11 @@ try {
         $db->setQuery("DELETE FROM `{$p}alfa_inventory_operations` WHERE source_type = 'order' AND source_id = {$orderId}")->execute();
         OrderNotifications::forget($db, [$orderId]);
         $db->setQuery("DELETE FROM `{$p}alfa_orders` WHERE id = {$orderId}")->execute();
+
+        // The staff notice this run's failed singles raised, when none stood before; a notice that stood stays.
+        if ($attentionBefore === 0) {
+            $db->setQuery("DELETE FROM `{$p}alfa_notifications` WHERE dedup_key = " . $db->quote(TaskAttention::KEY))->execute();
+        }
     }
 
     $app->loadIdentity(new User(0));
