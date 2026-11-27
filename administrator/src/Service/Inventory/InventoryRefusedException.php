@@ -21,7 +21,7 @@ use Throwable;
  * The listener throws it with the sentence people are to read, so a sentence fit for a shopper. A movement owed after
  * a status change or a document (InventoryEffectOutbox) is then refused, not failed: it is not tried again, its order's
  * or document's notice names the refusal, and staff decide: an order's by changing its status again, a document's by
- * running its task in Tools > Tasks again, once the listener allows the movement. At an order's placement a
+ * running its task in Background again, once the listener allows the movement. At an order's placement a
  * refused reservation, or a refused deduction of a status that takes the stock at once, stops the placement, and
  * whoever places the order (the shopper, or staff in the back office) reads the sentence. Any other exception a
  * listener throws is a failure, tried again with the task engine's waits.

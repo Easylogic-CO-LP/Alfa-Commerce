@@ -18,7 +18,7 @@ use Throwable;
  * How a run of an extension's task or job failed, thrown by its handler. retry(): nothing took effect, try again later
  * on the work's ladder (a task: 1 min, 5 min, 30 min, 2 h, 6 h, 24 h; a job: 30 s doubling, or the task's ladder for a
  * job that calls other systems), at least the seconds given. failed(): trying again cannot help, the work fails at once
- * and waits for staff in Tools > Tasks. Any other Throwable is an unexpected failure: a repeatable task and a job are
+ * and waits for staff in Background. Any other Throwable is an unexpected failure: a repeatable task and a job are
  * tried again, any other task is held for staff.
  *
  * The message is read by staff: no password, host or database text.

@@ -21,7 +21,7 @@ use LogicException;
  *
  * - delivered($id): the integrator took it;
  * - retry($id, $reason): try again later, on the runner's backoff (after the sixth retry it is given up and shown in
- *   Tools, Tasks);
+ *   Background);
  * - refused($id, $reason): the integrator refuses it for good; it is given up at once.
  *
  * A change left unanswered is retried. A handler that throws has every change of the batch retried, and its failure

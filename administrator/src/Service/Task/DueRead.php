@@ -208,7 +208,7 @@ final class DueRead
     /**
      * Whether a task row's owner may run it now, as SQL with no bound value: core's own work always; an extension's
      * while its owner is enabled and still declares the work by that name (a declaration row with enabled 1). Any
-     * other row of an extension waits, unclaimed, and Tools > Tasks says why.
+     * other row of an extension waits, unclaimed, and Background says why.
      *
      * @param DatabaseDriver $db The connection.
      * @param string $alias The tasks table's alias in the read, or '' when it is not aliased.

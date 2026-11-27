@@ -27,7 +27,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
  * row's thumbnail is written, then its row updated in one statement of its own, so the runner's chunk transaction
  * carries only the heavy slot's renewal and the fenced progress, and a chunk walked twice after a kill writes the same
  * files again. The checkpoint holds the walk's mode, the last row walked and the report (made, kept, missing image
- * files, failed), which the job keeps when it finishes: Tools > Tasks reads it.
+ * files, failed), which the job keeps when it finishes: Background reads it.
  *
  * @since  2.2.0
  */

@@ -14,7 +14,6 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
-use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Api\ApiAddressListing;
@@ -117,29 +116,14 @@ class HtmlView extends BaseHtmlView
     public array $apiSummary = ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0, 'unreadable' => false];
 
     /**
-     * The Tasks tab: the failed and held tasks ({@see TaskStaff::attentionRows()}), their number, and the names of
-     * the users their histories name.
+     * The Tasks tab's card: how much background work is in each state (running, waiting, needs attention, finished)
+     * and how many outgoing notifications wait or were given up, as the Background screen lists them; unreadable when
+     * the tables could not be read (logged).
      *
-     * @var array{rows: list<array<string, mixed>>, total: int, users: array<int, string>, unreadable: bool}
-     * @since  2.1.4
-     */
-    public array $tasks = ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => false];
-
-    /**
-     * The Tasks tab's card of outgoing notifications: each consumer of the shop's changes ({@see OutboundConsumers::cardRows()}).
-     *
-     * @var array{rows: list<array<string, mixed>>, unreadable: bool}
+     * @var array{work: array<string, int>, deliveries: array<string, int>, unreadable: bool}
      * @since  2.3.0
      */
-    public array $outbound = ['rows' => [], 'unreadable' => false];
-
-    /**
-     * The Tasks tab's jobs ({@see TaskStaff::jobRows()}) and the names of the customer groups their price sets cover.
-     *
-     * @var array{rows: list<array<string, mixed>>, groups: array<int, string>, unreadable: bool}
-     * @since  2.2.0
-     */
-    public array $jobs = ['rows' => [], 'groups' => [], 'engines' => [], 'thumbnailsMode' => null, 'followedJob' => 0, 'failedJobs' => 0, 'unreadable' => false];
+    public array $background = ['work' => [], 'deliveries' => [], 'unreadable' => false];
 
     /**
      * The Tasks tab's runner card: the last tick (runner.last_tick), the cron command, the web-cron address without
@@ -149,21 +133,6 @@ class HtmlView extends BaseHtmlView
      * @since  2.2.0
      */
     public array $runner = ['lastTick' => null, 'cli' => '', 'cron' => '', 'keyKept' => false];
-
-    /**
-     * The job the progress page follows (&job=N), or null; jobMissing when &job names no job.
-     *
-     * @var array<string, mixed>|null
-     * @since  2.2.0
-     */
-    public ?array $job = null;
-
-    /**
-     * Whether &job named a job there is not.
-     *
-     * @since  2.2.0
-     */
-    public bool $jobMissing = false;
 
     /**
      * A web-cron key made in this request (TasksController::generateKey()): shown in this answer only, never kept,
@@ -205,21 +174,8 @@ class HtmlView extends BaseHtmlView
         $this->integrityHtml = ob_get_clean();
 
         $this->apiSummary = $this->apiSummary();
-        $this->tasks = $this->tasks();
-        $this->jobs = $this->jobs();
-        $this->outbound = $this->outbound();
+        $this->background = $this->background();
         $this->runner = $this->runner();
-        $jobId = RequestScalar::int(Factory::getApplication()->getInput(), 'job');
-
-        if ($jobId > 0) {
-            try {
-                $this->job = TaskStaff::job(id: $jobId);
-            } catch (Throwable $e) {
-                Tasks::log(entry: 'Tools: job #' . $jobId . ' could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
-            }
-
-            $this->jobMissing = $this->job === null;
-        }
 
         $this->addToolbar();
 
@@ -227,48 +183,23 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The failed and held tasks for the Tasks tab, with the names of the users their histories name.
+     * The counts of the Tasks tab's card: the background work in each state and the outgoing notifications waiting
+     * or given up. Tables that cannot be read (an update whose SQL did not run, a restore) cost this card only: the rest
+     * of Tools, its repair tools included, stays usable.
      *
-     * @return array{rows: list<array<string, mixed>>, total: int, users: array<int, string>, unreadable: bool}
+     * @return array{work: array<string, int>, deliveries: array<string, int>, unreadable: bool}
      *
-     * @since  2.1.4
+     * @since  2.3.0
      */
-    private function tasks(): array
+    private function background(): array
     {
-        // A tasks table that cannot be read (an update whose SQL did not run, a restore) costs this card only: the
-        // rest of Tools, its repair tools included, stays usable.
         try {
-            $rows = TaskStaff::attentionRows();
-            $total = TaskStaff::attentionTotal();
+            return ['work' => TaskStaff::workCounts(), 'deliveries' => OutboundConsumers::deliveryCounts(), 'unreadable' => false];
         } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the tasks could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
+            Tasks::log(entry: 'Tools: the background work could not be counted: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
 
-            return ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => true];
+            return ['work' => [], 'deliveries' => [], 'unreadable' => true];
         }
-
-        $ids = [];
-
-        foreach ($rows as $row) {
-            foreach ($row['history'] as $entry) {
-                if ((int) ($entry['user'] ?? 0) > 0) {
-                    $ids[(int) $entry['user']] = true;
-                }
-            }
-        }
-
-        $users = [];
-
-        if ($ids !== []) {
-            $db = Factory::getContainer()->get(DatabaseInterface::class);
-            $users = $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'name']))
-                    ->from($db->quoteName('#__users'))
-                    ->whereIn($db->quoteName('id'), array_keys($ids)),
-            )->loadAssocList('id', 'name') ?: [];
-        }
-
-        return ['rows' => $rows, 'total' => $total, 'users' => $users, 'unreadable' => false];
     }
 
     /**
@@ -288,38 +219,6 @@ class HtmlView extends BaseHtmlView
 
             return ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0, 'unreadable' => true];
         }
-    }
-
-    /**
-     * The consumers of the shop's changes for the card of outgoing notifications; a table that cannot be read costs
-     * the card only.
-     *
-     * @return array{rows: list<array<string, mixed>>, unreadable: bool}
-     *
-     * @since  2.3.0
-     */
-    private function outbound(): array
-    {
-        try {
-            return ['rows' => OutboundConsumers::cardRows(), 'unreadable' => false];
-        } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
-
-            return ['rows' => [], 'unreadable' => true];
-        }
-    }
-
-    /**
-     * The jobs for the Tasks tab, as the jobs card draws them ({@see TaskStaff::jobsCard()}): the same data the card's
-     * own refresh on the progress page draws. This page follows the job of &job=N when it is a progress page.
-     *
-     * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, engines: array<string, string>, thumbnailsMode: string|null, followedJob: int, failedJobs: int, unreadable: bool}
-     *
-     * @since  2.2.0
-     */
-    private function jobs(): array
-    {
-        return TaskStaff::jobsCard(followedJob: RequestScalar::int(Factory::getApplication()->getInput(), 'job'));
     }
 
     /**

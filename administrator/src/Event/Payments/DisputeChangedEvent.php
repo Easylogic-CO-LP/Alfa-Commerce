@@ -16,7 +16,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
 /**
  * onAlfaDisputeChanged: a card dispute moved or its facts changed, told once after the committed save to every listener
  * of the alfa group (an ERP that must learn an order is owed again after a loss, a report). Listeners observe the books as
- * committed. A listener that throws is recorded and retried alone by staff (Run again under Tools, Tasks).
+ * committed. A listener that throws is recorded and retried alone by staff (Run again under Background).
  *
  *     public function onAlfaDisputeChanged(DisputeChangedEvent $event): void
  *

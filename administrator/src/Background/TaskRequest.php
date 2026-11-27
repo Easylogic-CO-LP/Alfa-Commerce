@@ -83,7 +83,7 @@ final class TaskRequest
     }
 
     /**
-     * What the task concerns, shown in Tools > Tasks ("Order 15").
+     * What the task concerns, shown in Background ("Order 15").
      *
      * @param string $type A lower-case word of at most 32 characters (order).
      * @param int $id Its id, above zero.

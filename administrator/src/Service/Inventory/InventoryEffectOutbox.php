@@ -317,7 +317,7 @@ final class InventoryEffectOutbox
      * is one too; 'refusedByListener' names its source ids, and its notice asks
      * staff to decide rather than to resolve an order line. A document's
      * such refusal is also written as a task of its order that waits for staff
-     * in Tools > Tasks, whose Run again tries the movement once the plugin allows
+     * in Background, whose Run again tries the movement once the plugin allows
      * it ({@see OrderDocumentStock}); not when staff's own Run again met it.
      *
      * A failed obligation is claimed again until it has been tried
@@ -450,7 +450,7 @@ final class InventoryEffectOutbox
                         $summary['refusedByListener'][(int) $row->source_id] = true;
                     }
 
-                    // A listener's refusal is staff's to decide (an order's on the order, a document's in Tools > Tasks,
+                    // A listener's refusal is staff's to decide (an order's on the order, a document's in Background,
                     // where its task is run again); a line with no stock identity is resolved on the Inventory audit
                     // page.
                     self::announceRefusal(
@@ -856,7 +856,7 @@ final class InventoryEffectOutbox
 
     /**
      * A document's movement a stock plugin refused waits for staff as a task of its order: written once, it fails at
-     * its first run with the plugin's words, and stands in Tools > Tasks, where Run again tries the movement
+     * its first run with the plugin's words, and stands in Background, where Run again tries the movement
      * ({@see OrderDocumentStock}). One task stands per document: while one waits (failed or held) the refusal is told
      * to it, its failure line becoming the new words ({@see Tasks::failedAgain()}); while one is still to run, it reads
      * the refusal then. A Run again in flight has read the refusal already and drains the movement itself
@@ -974,7 +974,7 @@ final class InventoryEffectOutbox
      *                                one value, the reason.
      * @param bool $terminal Whether a retry cannot apply the obligation.
      * @param int $decideOnOrder The order on which staff decide a stock plugin's refusal; 0 for none. A document's
-     *                           such refusal is decided in Tools > Tasks, where its task is run again.
+     *                           such refusal is decided in Background, where its task is run again.
      *
      *
      * @since  2.0.0
@@ -1255,14 +1255,14 @@ final class InventoryEffectOutbox
      * A movement a STOCK PLUGIN REFUSED is staff's to decide on the order itself (a new
      * status queues it again once the plugin allows it), so its notice links to the
      * order, for the users who may edit orders. A document's movement so
-     * refused waits as a task in Tools > Tasks, whose Run again tries it, so its
+     * refused waits as a task in Background, whose Run again tries it, so its
      * notice links there, for the users who may open Tools.
      *
      * @param NotificationText|string $message The message: a key and its parameters (core), or literal text.
      * @param bool $refused Whether the movement was refused and waits for an order
      *                      line to be resolved.
      * @param int $decideOnOrder The order on which staff decide a plugin's refusal; 0 for none.
-     * @param bool $runAgainInTasks Whether staff decide a plugin's refusal of a document's movement in Tools > Tasks.
+     * @param bool $runAgainInTasks Whether staff decide a plugin's refusal of a document's movement in Background.
      *
      * @return array Options for NotificationHelper::push().
      *
@@ -1279,7 +1279,7 @@ final class InventoryEffectOutbox
                 $decideOnOrder > 0 => 'index.php?option=com_alfa&task=order.edit&id=' . $decideOnOrder,
                 $runAgainInTasks => TaskAttention::URL,
                 $refused => 'index.php?option=com_alfa&view=inventoryaudit',
-                default => 'index.php?option=com_alfa&view=tools#dbsync',
+                default => 'index.php?option=com_alfa&view=tasks',
             },
             'view' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
             'link' => match (true) {

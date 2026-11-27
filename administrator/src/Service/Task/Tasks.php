@@ -62,7 +62,7 @@ use WeakMap;
  * outermost commit and the release of Alfa's named locks ({@see PostCommit}); its notices (the notice journal,
  * {@see self::notice()}) are written at that commit itself, even while a named lock is held. A request that ends
  * first leaves them here, and recovery runs them later ({@see self::sweepSingles()}: the notification bell's background
- * refresh and Tools > Tasks). Recovery is never the normal path, and a single is never scheduled.
+ * refresh and Background). Recovery is never the normal path, and a single is never scheduled.
  *
  * Each task is claimed by one worker at a time, through a conditional UPDATE whose affected row count is the answer,
  * and settled only by the claim that ran it. A known failure is retried with backoff when the handler allows it. An

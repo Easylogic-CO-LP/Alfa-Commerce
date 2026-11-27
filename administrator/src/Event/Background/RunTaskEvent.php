@@ -63,7 +63,7 @@ final class RunTaskEvent extends AbstractEvent
     }
 
     /**
-     * The task's id, as find() and Tools > Tasks know it.
+     * The task's id, as find() and Background know it.
      *
      * @since  2.3.0
      */
@@ -136,7 +136,7 @@ final class RunTaskEvent extends AbstractEvent
     }
 
     /**
-     * What the finished task reports, kept with its row and read through find() and the REST API (Tools > Tasks shows
+     * What the finished task reports, kept with its row and read through find() and the REST API (Background shows
      * the results of jobs only): JSON-safe, at most 16 KiB encoded.
      *
      * @param array<string, mixed> $result The result.

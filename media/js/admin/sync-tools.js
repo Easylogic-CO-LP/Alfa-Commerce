@@ -2,13 +2,14 @@
  * Alfa Commerce - Tools view: AJAX maintenance actions with per-card progress.
  *
  * Every card is registry-contributed (core and plugins alike) and every button
- * (.alfa-tool-btn) drives the progress bar inside its own card:
+ * (.alfa-tool-btn, on a Tools card or on the Background screen's toolbar) drives the progress element it names
+ * (data-alfa-progress, an id):
  *   - data-action="single"   -> one request (task=toolaction.run).
  *   - data-action="backfill" -> chunked plan -> chunk loop (task=toolaction.plan/.chunk).
  *
  * Optional per-button behaviour, all declared as data attributes by the layout:
  *   - data-confirm-message -> native confirm() before anything runs.
- *   - a form with data-alfa-confirm (Tools > Tasks, a new web-cron address) asks it first; declining sends nothing.
+ *   - a form with data-alfa-confirm (a new web-cron address) asks it first; declining sends nothing.
  *   - data-mutating -> every request is a POST carrying a fresh one-time key
  *     (`once`), which the endpoint demands of a state-changing action; a
  *     read-only action is fetched. The session token rides in the URL either way.
@@ -57,7 +58,12 @@
             return;
         }
 
-        const wrap = btn.closest('.card-body').querySelector('.alfa-progress');
+        const wrap = document.getElementById(btn.getAttribute('data-alfa-progress'));
+
+        if (!wrap) {
+            return;
+        }
+
         const ctx = {
             btn: btn,
             track: wrap.querySelector('.progress'),

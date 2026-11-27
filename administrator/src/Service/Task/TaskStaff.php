@@ -27,7 +27,8 @@ use Joomla\Database\ParameterType;
 use Throwable;
 
 /**
- * What staff do with a failed or held single, or a failed job, each act audited in its history.
+ * What staff read of the shop's background work on the Background screen and the Dashboard, and what they do with a
+ * failed or held single or a failed job, each act audited in its history.
  *
  * Nothing failed or held is ever run again automatically: staff decide. Resend (an e-mail) and Run again (a plugin's
  * reaction) write a new single that names the original (resend_of, rerun_of) and carries every part recorded done in
@@ -77,13 +78,6 @@ final class TaskStaff
     public const REASON_MAX = 500;
 
     /**
-     * The most tasks the Tools card lists.
-     *
-     * @since  2.1.4
-     */
-    public const LIST_LIMIT = 100;
-
-    /**
      * How recently a waiting job must have advanced to read as running: the staff kick and the progress page drive a job
      * in steps a few seconds apart, and between two of them its row waits.
      *
@@ -92,49 +86,521 @@ final class TaskStaff
     public const DRIVEN_SECONDS = 30;
 
     /**
-     * The failed and held singles, oldest first, with what staff may do with each.
+     * The state of work of a row that runs now: a running task or job, or a waiting job being driven between two of
+     * its steps.
      *
-     * @param int $limit The most rows.
-     *
-     * @return list<array<string, mixed>> Each row's columns, plus label (a language key, '' for a handler this
-     *                                    version does not have), action (resend, rerun or '') and units (unit =>
-     *                                    its last recorded outcome).
-     *
-     * @since  2.1.4
+     * @since  2.3.0
      */
-    public static function attentionRows(int $limit = self::LIST_LIMIT): array
+    public const WORK_RUNNING = 'running';
+
+    /**
+     * The state of work of a row that waits for its turn.
+     *
+     * @since  2.3.0
+     */
+    public const WORK_WAITING = 'waiting';
+
+    /**
+     * The state of work of a row that stopped and waits for staff: a failed task or job, or a task whose outcome is
+     * unknown.
+     *
+     * @since  2.3.0
+     */
+    public const WORK_ATTENTION = 'attention';
+
+    /**
+     * The state of work of a row that ended: done, marked resolved or cancelled.
+     *
+     * @since  2.3.0
+     */
+    public const WORK_FINISHED = 'finished';
+
+    /**
+     * The four states of work, in the order the Background screen ranks them.
+     *
+     * @var list<string>
+     *
+     * @since  2.3.0
+     */
+    public const WORK_STATES = [self::WORK_RUNNING, self::WORK_WAITING, self::WORK_ATTENTION, self::WORK_FINISHED];
+
+    /**
+     * The task states of each state of work. A running job and a waiting one being driven both run
+     * ({@see self::drivenSql()}).
+     *
+     * @var array<string, list<string>>
+     *
+     * @since  2.3.0
+     */
+    public const WORK_TASK_STATES = [
+        self::WORK_RUNNING => [Tasks::STATE_RUNNING],
+        self::WORK_WAITING => [Tasks::STATE_PENDING],
+        self::WORK_ATTENTION => [Tasks::STATE_FAILED, Tasks::STATE_HELD],
+        self::WORK_FINISHED => [Tasks::STATE_DONE, Tasks::STATE_RESOLVED, Tasks::STATE_CANCELLED],
+    ];
+
+    /**
+     * The columns the rows of the Background screen and of the Dashboard's card are read with, besides the state of
+     * work and whether the row is driven ({@see self::describe()}).
+     *
+     * @var list<string>
+     *
+     * @since  2.3.0
+     */
+    public const COLUMNS = [
+        'id', 'type', 'owner', 'handler', 'state', 'subject_type', 'subject_id', 'scope_key', 'done_units', 'total_units',
+        'failures', 'claims', 'last_error', 'last_trigger', 'run_after', 'created_at', 'started_at', 'finished_at',
+        'result', 'cancel_requested', 'history',
+    ];
+
+    /**
+     * SQL that says whether a row is driven: running, or a waiting job that started, is due and advanced within
+     * DRIVEN_SECONDS (a step's end writes updated_at; a failed step sets its retry in the future, so a job waiting out
+     * its retry is not driven). The staff kick and the progress page drive a job in steps a few seconds apart, and
+     * between two of them its row waits.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $alias The tasks table's alias in the query, '' for none.
+     *
+     * @since  2.3.0
+     */
+    public static function drivenSql(DatabaseDriver $db, string $alias = ''): string
+    {
+        $column = static fn (string $name): string => $db->quoteName($alias === '' ? $name : $alias . '.' . $name);
+
+        return '(' . $column('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR (' . $column('type') . ' = ' . $db->quote(Tasks::TYPE_JOB)
+            . ' AND ' . $column('state') . ' = ' . $db->quote(Tasks::STATE_PENDING) . ' AND ' . $column('started_at') . ' IS NOT NULL AND '
+            . $column('run_after') . ' <= UTC_TIMESTAMP(3) AND ' . $column('updated_at') . ' >= UTC_TIMESTAMP(3) - INTERVAL ' . self::DRIVEN_SECONDS . ' SECOND))';
+    }
+
+    /**
+     * SQL that names a row's state of work ({@see self::WORK_STATES}): running (a running task or job, or a waiting
+     * job being driven), waiting, attention (failed or held) or finished (done, resolved or cancelled).
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $alias The tasks table's alias in the query, '' for none.
+     *
+     * @since  2.3.0
+     */
+    public static function workSql(DatabaseDriver $db, string $alias = ''): string
+    {
+        $state = $db->quoteName($alias === '' ? 'state' : $alias . '.state');
+        $attention = implode(', ', array_map([$db, 'quote'], self::WORK_TASK_STATES[self::WORK_ATTENTION]));
+
+        return 'CASE WHEN ' . self::drivenSql(db: $db, alias: $alias) . ' THEN ' . $db->quote(self::WORK_RUNNING)
+            . ' WHEN ' . $state . ' = ' . $db->quote(Tasks::STATE_PENDING) . ' THEN ' . $db->quote(self::WORK_WAITING)
+            . ' WHEN ' . $state . ' IN (' . $attention . ') THEN ' . $db->quote(self::WORK_ATTENTION)
+            . ' ELSE ' . $db->quote(self::WORK_FINISHED) . ' END';
+    }
+
+    /**
+     * SQL that ranks a row's state of work for the Background screen's order: running first, then waiting, then what
+     * needs attention, then the finished.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $alias The tasks table's alias in the query, '' for none.
+     *
+     * @since  2.3.0
+     */
+    public static function rankSql(DatabaseDriver $db, string $alias = ''): string
+    {
+        return 'FIELD(' . self::workSql(db: $db, alias: $alias) . ', ' . implode(', ', array_map([$db, 'quote'], self::WORK_STATES)) . ')';
+    }
+
+    /**
+     * How many rows are in each state of work.
+     *
+     * @return array<string, int> By state of work ({@see self::WORK_STATES}).
+     *
+     * @since  2.3.0
+     */
+    public static function workCounts(): array
     {
         $db = self::db();
-        $rows = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName(['id', 'owner', 'handler', 'state', 'subject_type', 'subject_id', 'failures', 'claims', 'last_error', 'last_trigger', 'created_at', 'finished_at', 'history']))
-                ->from($db->quoteName(Tasks::TABLE))
-                ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE))
-                ->whereIn($db->quoteName('state'), [Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING)
-                ->order($db->quoteName('id') . ' ASC'),
-            0,
-            max(1, $limit),
-        )->loadAssocList() ?: [];
+        $counts = array_fill_keys(self::WORK_STATES, 0);
+
+        foreach ($db->setQuery(
+            'SELECT ' . self::workSql(db: $db) . ' AS ' . $db->quoteName('work') . ', COUNT(*) AS ' . $db->quoteName('n')
+            . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' GROUP BY ' . $db->quoteName('work'),
+        )->loadAssocList() ?: [] as $count) {
+            $counts[(string) $count['work']] = (int) $count['n'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The rows of the Background screen and of the Dashboard's card, each told for staff: its name, its extension,
+     * what it covers, why it waits, what it reported, its history and what staff may do with it.
+     *
+     * @param list<array<string, mixed>> $rows Rows read with {@see self::COLUMNS}, the state of work as work
+     *                                         ({@see self::workSql()}), whether the row is driven as driven
+     *                                         ({@see self::drivenSql()}), and the checkpoint of the handlers that
+     *                                         keep their report in it ({@see self::CHECKPOINT_HANDLERS}).
+     *
+     * @return array{rows: list<array<string, mixed>>, users: array<int, string>} The rows, each with label (a
+     *                                        language key, '' for a handler this version does not have), labelText,
+     *                                        extension (its name, '' for core), covers (plain text, '' for a task),
+     *                                        work, driven, waits (why an extension's job waits, '' when it does not),
+     *                                        resultLines, reportLines, percent, history, units (unit => its last
+     *                                        recorded outcome), action (resend, rerun or ''), cancellable and
+     *                                        progressText; and the names of the users the histories name.
+     *
+     * @since  2.3.0
+     */
+    public static function describe(array $rows): array
+    {
+        $db = self::db();
+        $priceSet = Job\PriceSetPrepareJob::NAME . ':';
+        $search = Job\SearchRebuildJob::NAME . ':';
+        $contextIds = [];
+        $userIds = [];
 
         foreach ($rows as &$row) {
-            WorkDeclarations::loadLanguage(owner: (string) $row['owner']);
-            $policy = Tasks::handler(name: (string) $row['handler'], owner: (string) $row['owner'])?->policy();
+            $owner = (string) $row['owner'];
+            $isJob = (string) $row['type'] === Tasks::TYPE_JOB;
+            WorkDeclarations::loadLanguage(owner: $owner);
+            $policy = $isJob ? Runner::handler(name: (string) $row['handler'], owner: $owner)?->policy() : Tasks::handler(name: (string) $row['handler'], owner: $owner)?->policy();
             $row['label'] = $policy->label ?? '';
-            $row['extension'] = self::extensionName(owner: (string) $row['owner']);
-            $row['action'] = $policy->staffAction ?? '';
-            $row['history'] = Tasks::decodeHistory($row['history']);
+            $row['labelText'] = $row['label'] !== '' ? Text::_($row['label']) : Text::sprintf('COM_ALFA_TASKS_HANDLER_UNKNOWN', (string) $row['handler']);
+            $row['extension'] = self::extensionName(owner: $owner);
+            $row['driven'] = (bool) ($row['driven'] ?? false);
+            $row['work'] = (string) ($row['work'] ?? self::work(row: $row));
+            $row['waits'] = $owner === DueRead::CORE_OWNER || !$isJob || $row['state'] !== Tasks::STATE_PENDING ? '' : self::waitReason(row: $row);
+            $row['resultLines'] = $owner === DueRead::CORE_OWNER ? [] : self::resultLines(result: (string) ($row['result'] ?? ''));
+            $row['cancellable'] = \in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) && (int) $row['cancel_requested'] === 0 && WorkCancel::cancellable(row: $row);
+            $row['percent'] = TaskDocument::percent(row: $row);
+            $row['action'] = $policy instanceof TaskPolicy && \in_array($row['state'], [Tasks::STATE_FAILED, Tasks::STATE_HELD], true) ? $policy->staffAction : '';
+            $row['history'] = $isJob ? [] : Tasks::decodeHistory($row['history']);
             $row['units'] = [];
+            $row['report'] = self::report(row: $row);
+            $row['reportLines'] = self::reportLines(row: $row);
+            $row['progressText'] = $isJob ? self::progressText(row: $row) : '';
+            $row['covers'] = '';
 
             foreach ($row['history'] as $entry) {
                 if (isset($entry['unit'])) {
                     $row['units'][(string) $entry['unit']] = (string) ($entry['outcome'] ?? '');
                 }
+
+                if ((int) ($entry['user'] ?? 0) > 0) {
+                    $userIds[(int) $entry['user']] = true;
+                }
             }
+
+            if ($isJob && $owner === DueRead::CORE_OWNER && str_starts_with((string) $row['scope_key'], $priceSet)) {
+                $contextIds[] = (int) substr((string) $row['scope_key'], \strlen($priceSet));
+            }
+
+            unset($row['result'], $row['checkpoint']);
         }
 
         unset($row);
 
-        return $rows;
+        // A preparation job's scope names its pricing context: the groups shown are the context's set's.
+        $groups = self::groupsOfContexts(db: $db, contextIds: array_values(array_unique(array_filter($contextIds))));
+
+        foreach ($rows as &$row) {
+            if ((string) $row['type'] !== Tasks::TYPE_JOB) {
+                continue;
+            }
+
+            $scope = (string) $row['scope_key'];
+            $row['covers'] = match (true) {
+                (string) $row['owner'] !== DueRead::CORE_OWNER => self::extensionCovers(row: $row),
+                str_starts_with($scope, $priceSet) => self::groupsCovers(groups: $groups[(int) substr($scope, \strlen($priceSet))] ?? []),
+                str_starts_with($scope, $search) => Text::sprintf('COM_ALFA_TASKS_COVERS_SEARCH', Job\SearchRebuildJob::engineName(key: substr($scope, \strlen($search)))),
+                $scope === Job\ThumbnailsRecreateJob::NAME => Text::_((($row['report']['mode'] ?? ThumbnailRecreation::mode()) === ThumbnailRecreation::MODE_ALL)
+                    ? 'COM_ALFA_TASKS_COVERS_THUMBNAILS_ALL' : 'COM_ALFA_TASKS_COVERS_THUMBNAILS_MISSING'),
+                str_starts_with($scope, Job\StockRepairJob::NAME . ':') => Text::_('COM_ALFA_TASKS_COVERS_STOCK_REPAIR'),
+                default => Text::_('COM_ALFA_TASKS_COVERS_SHOP'),
+            };
+        }
+
+        unset($row);
+
+        $users = [];
+
+        if ($userIds !== []) {
+            $users = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'name']))
+                    ->from($db->quoteName('#__users'))
+                    ->whereIn($db->quoteName('id'), array_keys($userIds)),
+            )->loadAssocList('id', 'name') ?: [];
+        }
+
+        return ['rows' => $rows, 'users' => $users];
+    }
+
+    /**
+     * The jobs running or waiting, running first, as the Dashboard's background-work card lists them.
+     *
+     * @param int $limit The most rows.
+     *
+     * @return list<array<string, mixed>> Rows as {@see self::describe()} tells them.
+     *
+     * @since  2.3.0
+     */
+    public static function activeJobs(int $limit): array
+    {
+        $db = self::db();
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(self::COLUMNS))
+                ->select(self::workSql(db: $db) . ' AS ' . $db->quoteName('work'))
+                ->select(self::drivenSql(db: $db) . ' AS ' . $db->quoteName('driven'))
+                ->select(self::checkpointSql(db: $db) . ' AS ' . $db->quoteName('checkpoint'))
+                ->from($db->quoteName(Tasks::TABLE))
+                ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
+                ->whereIn($db->quoteName('state'), [Tasks::STATE_RUNNING, Tasks::STATE_PENDING], ParameterType::STRING)
+                ->order(self::rankSql(db: $db) . ' ASC, ' . $db->quoteName('id') . ' DESC'),
+            0,
+            max(1, $limit),
+        )->loadAssocList() ?: [];
+
+        return self::describe(rows: $rows)['rows'];
+    }
+
+    /**
+     * The handlers whose report lives in their checkpoint while they run and after they end, read with the rows.
+     *
+     * @var list<string>
+     *
+     * @since  2.3.0
+     */
+    public const CHECKPOINT_HANDLERS = [Job\ThumbnailsRecreateJob::NAME, Job\StockRepairJob::NAME];
+
+    /**
+     * SQL that reads the checkpoint of the handlers that keep their report in it, and NULL for every other row, so a
+     * large checkpoint never travels with a list.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $alias The tasks table's alias in the query, '' for none.
+     *
+     * @since  2.3.0
+     */
+    public static function checkpointSql(DatabaseDriver $db, string $alias = ''): string
+    {
+        $column = static fn (string $name): string => $db->quoteName($alias === '' ? $name : $alias . '.' . $name);
+
+        return 'CASE WHEN ' . $column('handler') . ' IN (' . implode(', ', array_map([$db, 'quote'], self::CHECKPOINT_HANDLERS)) . ') THEN ' . $column('checkpoint') . ' END';
+    }
+
+    /**
+     * The state of work of a row, from its state and whether it is driven.
+     *
+     * @param array<string, mixed> $row The row.
+     *
+     * @since  2.3.0
+     */
+    public static function work(array $row): string
+    {
+        if (!empty($row['driven'])) {
+            return self::WORK_RUNNING;
+        }
+
+        foreach (self::WORK_TASK_STATES as $work => $states) {
+            if (\in_array((string) $row['state'], $states, true)) {
+                return $work;
+            }
+        }
+
+        return self::WORK_FINISHED;
+    }
+
+    /**
+     * A job's progress in words for a list: "640 of 1500 (43%)"; "Not counted yet" for a total not counted while it
+     * waits or runs; nothing once it ended with no total (its state says how).
+     *
+     * @param array<string, mixed> $row The row.
+     *
+     * @since  2.3.0
+     */
+    private static function progressText(array $row): string
+    {
+        if ((int) $row['total_units'] > 0) {
+            return self::unitsText(done: (int) $row['done_units'], total: (int) $row['total_units'], percent: TaskDocument::percent(row: $row));
+        }
+
+        return \in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) ? Text::_('COM_ALFA_TASKS_PROGRESS_NOT_COUNTED') : '';
+    }
+
+    /**
+     * What a job of core reports, read from its checkpoint or its result: the thumbnails job's report, the stock
+     * repair's counts and the product it stopped at; null for a row with none.
+     *
+     * @param array<string, mixed> $row The row.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @since  2.3.0
+     */
+    private static function report(array $row): ?array
+    {
+        if ((string) $row['owner'] !== DueRead::CORE_OWNER) {
+            return null;
+        }
+
+        return match ((string) $row['handler']) {
+            Job\ThumbnailsRecreateJob::NAME => ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint'] ?? null),
+            Job\StockRepairJob::NAME => Job\StockRepairJob::reportOf(row: $row),
+            default => null,
+        };
+    }
+
+    /**
+     * A job's report as plain sentences for staff: the thumbnails job's counts, the image files missing and the
+     * thumbnails not made with their reason, named by their media row; the stock repair's products repaired, figures
+     * corrected and units offered for sale again, and the product it stopped at with why.
+     *
+     * @param array<string, mixed> $row The row, its report read ({@see self::report()}).
+     *
+     * @return list<string>
+     *
+     * @since  2.3.0
+     */
+    private static function reportLines(array $row): array
+    {
+        $report = $row['report'] ?? null;
+
+        if (!\is_array($report)) {
+            return [];
+        }
+
+        if ((string) $row['handler'] === Job\StockRepairJob::NAME) {
+            $lines = [Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', (int) $report['repaired'], (int) $report['total'], (int) $report['corrected'], (int) $report['released'])];
+
+            if (\is_array($report['refused'])) {
+                $lines[] = Text::sprintf(
+                    'COM_ALFA_TASKS_STOCK_REPAIR_STOPPED',
+                    (int) $report['refused']['item'],
+                    $report['refused']['gone'] ? Text::_('COM_ALFA_INVENTORY_AUDIT_REASON_ITEM_GONE') : (string) $report['refused']['reason'],
+                );
+            }
+
+            return $lines;
+        }
+
+        if ((string) $row['handler'] !== Job\ThumbnailsRecreateJob::NAME) {
+            return [];
+        }
+
+        $named = static fn (array $ids, array $reasons = []): string => implode(', ', array_map(
+            static fn ($id): string => '#' . (int) $id . (isset($reasons[(string) $id]) ? ' (' . Text::_('COM_ALFA_TASKS_THUMBNAILS_REASON_' . strtoupper((string) $reasons[(string) $id])) . ')' : ''),
+            $ids,
+        ));
+        $lines = [Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_REPORT', (int) $report['made'], (int) $report['kept'], (int) $report['missing'], (int) $report['failed'])];
+
+        if ($report['missingIds'] !== []) {
+            $lines[] = Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_MISSING_ROWS', $named($report['missingIds']));
+        }
+
+        if ($report['failedIds'] !== []) {
+            $lines[] = Text::sprintf('COM_ALFA_TASKS_THUMBNAILS_FAILED_ROWS', $named($report['failedIds'], (array) $report['failedReasons']));
+        }
+
+        // Of the made thumbnails: those the box rule wrote again, and those whose stored image is smaller than the
+        // thumbnail size, named by their media row.
+        if ((int) $report['guarded'] > 0) {
+            $lines[] = Text::plural('COM_ALFA_TASKS_THUMBNAILS_GUARDED', (int) $report['guarded']);
+        }
+
+        if ((int) $report['small'] > 0) {
+            $lines[] = Text::plural('COM_ALFA_TASKS_THUMBNAILS_SMALL', (int) $report['small'], $named($report['smallIds']));
+        }
+
+        return $lines;
+    }
+
+    /**
+     * The customer groups the price sets of pricing contexts cover, by context.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param list<int> $contextIds The contexts.
+     *
+     * @return array<int, array<int, string>> By context: group id => title.
+     *
+     * @since  2.3.0
+     */
+    private static function groupsOfContexts(DatabaseDriver $db, array $contextIds): array
+    {
+        if ($contextIds === []) {
+            return [];
+        }
+
+        $lists = $db->setQuery(
+            'SELECT c.id, s.group_list FROM ' . $db->quoteName('#__alfa_price_contexts', 'c')
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' ON s.id = c.group_set_id'
+            . ' WHERE c.id IN (' . implode(',', $contextIds) . ')',
+        )->loadAssocList('id', 'group_list') ?: [];
+        $ids = [];
+
+        foreach ($lists as $list) {
+            foreach (array_filter(array_map('intval', explode(',', (string) $list))) as $id) {
+                $ids[$id] = true;
+            }
+        }
+
+        $titles = $ids === [] ? [] : ($db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'title']))
+                ->from($db->quoteName('#__usergroups'))
+                ->whereIn($db->quoteName('id'), array_keys($ids)),
+        )->loadAssocList('id', 'title') ?: []);
+        $groups = [];
+
+        foreach ($lists as $contextId => $list) {
+            $groups[(int) $contextId] = [];
+
+            foreach (array_filter(array_map('intval', explode(',', (string) $list))) as $id) {
+                $groups[(int) $contextId][$id] = (string) ($titles[$id] ?? ('#' . $id));
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * What a price set's job covers: its customer groups by name, or the customers in no group.
+     *
+     * @param array<int, string> $groups The groups, id => title.
+     *
+     * @since  2.3.0
+     */
+    private static function groupsCovers(array $groups): string
+    {
+        return $groups === [] ? Text::_('COM_ALFA_TASKS_COVERS_NO_GROUP') : Text::sprintf('COM_ALFA_TASKS_COVERS_GROUPS', implode(' + ', $groups));
+    }
+
+    /**
+     * Delete finished entries: the rows named that are done, resolved or cancelled. A row in any other state is kept
+     * and counted.
+     *
+     * @param list<int> $ids The rows.
+     *
+     * @return array{deleted: int, kept: int}
+     *
+     * @since  2.3.0
+     */
+    public static function deleteFinished(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return ['deleted' => 0, 'kept' => 0];
+        }
+
+        $db = self::db();
+        $db->setQuery(
+            $db->getQuery(true)
+                ->delete($db->quoteName(Tasks::TABLE))
+                ->whereIn($db->quoteName('id'), $ids)
+                ->whereIn($db->quoteName('state'), self::WORK_TASK_STATES[self::WORK_FINISHED], ParameterType::STRING),
+        )->execute();
+        $deleted = $db->getAffectedRows();
+
+        return ['deleted' => $deleted, 'kept' => \count($ids) - $deleted];
     }
 
     /**
@@ -153,138 +619,6 @@ final class TaskStaff
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_SINGLE))
                 ->whereIn($db->quoteName('state'), [Tasks::STATE_FAILED, Tasks::STATE_HELD], ParameterType::STRING),
         )->loadResult();
-    }
-
-    /**
-     * What the Tasks tab's jobs card draws (layouts/tasks/jobs.php), the one source of the Tools page and of the card's
-     * refresh on a progress page (TasksController::jobsCard()): the jobs, the names of the customer groups their
-     * price sets cover and of the search engines their rebuilds cover, the thumbnails mode a thumbnails job without a
-     * report yet will walk in (each read once, and only when such a job is listed: the layout reads no database), how
-     * many jobs failed (the attention card says so when no single needs attention), and the job a progress page
-     * follows (its row says where it is followed).
-     *
-     * @param int $followedJob The job the page follows, 0 for none.
-     *
-     * @return array{rows: list<array<string, mixed>>, groups: array<int, string>, engines: array<string, string>, thumbnailsMode: string|null, followedJob: int, failedJobs: int, unreadable: bool}
-     *
-     * @since  2.2.0
-     */
-    public static function jobsCard(int $followedJob): array
-    {
-        try {
-            $rows = self::jobRows();
-        } catch (Throwable $e) {
-            Tasks::log(entry: 'Tools: the jobs could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
-
-            return ['rows' => [], 'groups' => [], 'engines' => [], 'thumbnailsMode' => null, 'followedJob' => $followedJob, 'failedJobs' => 0, 'unreadable' => true];
-        }
-
-        $thumbnailsMode = null;
-        $engines = [];
-        $search = Job\SearchRebuildJob::NAME . ':';
-
-        foreach ($rows as $row) {
-            $scope = (string) $row['scope_key'];
-
-            if ($thumbnailsMode === null && $scope === Job\ThumbnailsRecreateJob::NAME && ($row['report'] ?? null) === null) {
-                $thumbnailsMode = ThumbnailRecreation::mode();
-            }
-
-            if (str_starts_with($scope, $search) && !isset($engines[substr($scope, \strlen($search))])) {
-                $engines[substr($scope, \strlen($search))] = Job\SearchRebuildJob::engineName(key: substr($scope, \strlen($search)));
-            }
-        }
-
-        $ids = array_values(array_unique(array_merge([], ...array_column($rows, 'groups'))));
-        $groups = [];
-
-        if ($ids !== []) {
-            $db = Factory::getContainer()->get(DatabaseInterface::class);
-            $groups = $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName(['id', 'title']))
-                    ->from($db->quoteName('#__usergroups'))
-                    ->whereIn($db->quoteName('id'), $ids),
-            )->loadAssocList('id', 'title') ?: [];
-        }
-
-        return [
-            'rows' => $rows, 'groups' => $groups, 'engines' => $engines, 'thumbnailsMode' => $thumbnailsMode, 'followedJob' => $followedJob,
-            'failedJobs' => \count(array_filter($rows, static fn (array $row): bool => $row['state'] === Tasks::STATE_FAILED)), 'unreadable' => false,
-        ];
-    }
-
-    /**
-     * The jobs, for Tools > Tasks: running and waiting first, then failed, then the finished ones newest first.
-     *
-     * @param int $limit The most rows.
-     *
-     * @return list<array<string, mixed>> Each row's columns, plus label (a language key, '' for a handler this version
-     *                                    does not have), groups (the customer groups a price set's job prepares,
-     *                                    an empty list for any other job) and driven (true for a job running, or
-     *                                    waiting between two steps it took within self::DRIVEN_SECONDS: one being
-     *                                    driven, displayed as running).
-     *
-     * @since  2.2.0
-     */
-    public static function jobRows(int $limit = self::LIST_LIMIT): array
-    {
-        $db = self::db();
-        $order = 'CASE ' . $db->quoteName('state') . ' WHEN ' . $db->quote(Tasks::STATE_RUNNING) . ' THEN 0 WHEN ' . $db->quote(Tasks::STATE_PENDING)
-            . ' THEN 1 WHEN ' . $db->quote(Tasks::STATE_FAILED) . ' THEN 2 ELSE 3 END';
-        $rows = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName(['id', 'owner', 'handler', 'state', 'scope_key', 'done_units', 'total_units', 'failures', 'last_error', 'run_after', 'created_at', 'started_at', 'finished_at', 'result', 'cancel_requested']))
-                // Driven: running, or started, due and advanced within DRIVEN_SECONDS (a step's end writes updated_at;
-                // a failed step sets its retry in the future, so a job waiting out its retry is not driven).
-                ->select('(' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_RUNNING) . ' OR (' . $db->quoteName('state') . ' = ' . $db->quote(Tasks::STATE_PENDING)
-                    . ' AND ' . $db->quoteName('started_at') . ' IS NOT NULL AND ' . $db->quoteName('run_after') . ' <= UTC_TIMESTAMP(3)'
-                    . ' AND ' . $db->quoteName('updated_at') . ' >= UTC_TIMESTAMP(3) - INTERVAL ' . self::DRIVEN_SECONDS . ' SECOND)) AS ' . $db->quoteName('driven'))
-                // The thumbnails job's walk keeps its mode and its report in its checkpoint.
-                ->select('CASE WHEN ' . $db->quoteName('handler') . ' = ' . $db->quote(Job\ThumbnailsRecreateJob::NAME) . ' THEN ' . $db->quoteName('checkpoint') . ' END AS ' . $db->quoteName('checkpoint'))
-                ->from($db->quoteName(Tasks::TABLE))
-                ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
-                ->order($order . ' ASC, ' . $db->quoteName('id') . ' DESC'),
-            0,
-            max(1, $limit),
-        )->loadAssocList() ?: [];
-        $prefix = Job\PriceSetPrepareJob::NAME . ':';
-        $contextIds = [];
-
-        foreach ($rows as $row) {
-            if (str_starts_with((string) $row['scope_key'], $prefix)) {
-                $contextIds[] = (int) substr((string) $row['scope_key'], \strlen($prefix));
-            }
-        }
-
-        // A preparation job's scope names its pricing context: the groups shown are the context's set's.
-        $contextIds = array_values(array_unique(array_filter($contextIds)));
-        $lists = $contextIds === [] ? [] : ($db->setQuery(
-            'SELECT c.id, s.group_list FROM ' . $db->quoteName('#__alfa_price_contexts', 'c')
-            . ' INNER JOIN ' . $db->quoteName('#__alfa_price_group_sets', 's') . ' ON s.id = c.group_set_id'
-            . ' WHERE c.id IN (' . implode(',', $contextIds) . ')',
-        )->loadAssocList('id', 'group_list') ?: []);
-
-        foreach ($rows as &$row) {
-            $owner = (string) $row['owner'];
-            WorkDeclarations::loadLanguage(owner: $owner);
-            $row['label'] = Runner::handler(name: (string) $row['handler'], owner: $owner)?->policy()->label ?? '';
-            $row['driven'] = (bool) $row['driven'];
-            $row['extension'] = self::extensionName(owner: $owner);
-            $row['extensionCovers'] = $owner === DueRead::CORE_OWNER ? '' : self::extensionCovers(row: $row);
-            $row['waits'] = $owner === DueRead::CORE_OWNER || $row['state'] !== Tasks::STATE_PENDING ? '' : self::waitReason(row: $row);
-            $row['resultLines'] = $owner === DueRead::CORE_OWNER ? [] : self::resultLines(result: (string) ($row['result'] ?? ''));
-            $row['cancellable'] = \in_array($row['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true) && (int) $row['cancel_requested'] === 0 && WorkCancel::cancellable(row: $row + ['type' => Tasks::TYPE_JOB]);
-            unset($row['result']);
-            $list = str_starts_with((string) $row['scope_key'], $prefix) ? (string) ($lists[(int) substr((string) $row['scope_key'], \strlen($prefix))] ?? '') : '';
-            $row['groups'] = $list === '' ? [] : array_map('intval', explode(',', $list));
-            $row['report'] = $row['handler'] === Job\ThumbnailsRecreateJob::NAME ? ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint']) : null;
-            unset($row['checkpoint']);
-        }
-
-        unset($row);
-
-        return $rows;
     }
 
     /**
@@ -417,7 +751,7 @@ final class TaskStaff
      * @param int $id The job.
      *
      * @return array{id: int, label: string, heavy: bool, state: string, done: int, total: int, percent: int, error: string,
-     *               started_at: ?string, finished_at: ?string, report: array<string, mixed>|null}|null
+     *               started_at: ?string, finished_at: ?string, reportLines: list<string>}|null
      *
      * @since  2.2.0
      */
@@ -428,6 +762,8 @@ final class TaskStaff
         if ($row === null || $row['type'] !== Tasks::TYPE_JOB) {
             return null;
         }
+
+        $row['report'] = self::report(row: $row);
 
         return [
             'id' => (int) $row['id'],
@@ -440,31 +776,9 @@ final class TaskStaff
             'error' => (string) $row['last_error'],
             'started_at' => $row['started_at'],
             'finished_at' => $row['finished_at'],
-            'report' => (string) $row['scope_key'] === Job\ThumbnailsRecreateJob::NAME ? self::thumbnailsReport(id: (int) $row['id']) : null,
+            // What the job reports, so far or at its end, as plain sentences.
+            'reportLines' => self::reportLines(row: $row),
         ];
-    }
-
-    /**
-     * A thumbnails job's report so far (made, kept, missing, not made), read from its own checkpoint, or null before its
-     * first step (the progress card prints it).
-     *
-     * @param int $id The job.
-     *
-     * @return array<string, mixed>|null
-     *
-     * @since  2.2.0
-     */
-    private static function thumbnailsReport(int $id): ?array
-    {
-        $db = self::db();
-
-        return ThumbnailRecreation::reportOf(checkpoint: $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('checkpoint'))
-                ->from($db->quoteName(Tasks::TABLE))
-                ->where($db->quoteName('id') . ' = :id')
-                ->bind(':id', $id, ParameterType::INTEGER),
-        )->loadResult());
     }
 
     /**

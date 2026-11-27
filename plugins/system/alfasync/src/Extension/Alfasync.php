@@ -1479,8 +1479,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     // Admin menu handlers
 
     /**
-     * Hide the com_alfa "Tools" admin menu item from users without `alfa.tools`.
-     * Cosmetic only: the Tools view + its controller enforce the same permission.
+     * Hide the com_alfa "Tools" and "Background" admin menu items from users without `alfa.tools`.
+     * Cosmetic only: the views and their controllers enforce the same permission.
      *
      * Flagging an item with menu_show=0 makes Joomla's CssMenu drop it.
      *
@@ -1504,7 +1504,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         foreach ($event->getItems() as $item) {
             $link = (string) ($item->link ?? '');
-            $isToolsMenuItem = str_contains($link, 'option=com_alfa') && str_contains($link, 'view=tools');
+            $isToolsMenuItem = str_contains($link, 'option=com_alfa') && (str_contains($link, 'view=tools') || str_contains($link, 'view=tasks'));
 
             if ($isToolsMenuItem) {
                 $item->getParams()->set('menu_show', 0);

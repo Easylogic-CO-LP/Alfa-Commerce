@@ -6,17 +6,12 @@
  * a core one: both arrive as a {@see \Alfa\Component\Alfa\Administrator\Plugin\PluginAction}
  * through {@see \Alfa\Component\Alfa\Administrator\Helper\ToolRegistry} and render here.
  *
- * Rides the shipped Tools script unchanged: an action flagged `chunked` uses the
- * plan/chunk loop, any other uses the single-request path; one flagged `mutating`
- * is sent as a POST carrying a one-time key, which the endpoint demands of it.
- * That is why an extension never ships JavaScript merely to draw a progress bar.
- *
- * The owner travels in the AJAX URL as an optimisation only; the server asks that
- * provider whether it really declares this action, enabled, before running it.
+ * Rides the shipped Tools script unchanged: the button carries the one set of attributes every tool button carries
+ * ({@see ToolButton}), on a Tools card as on the Background screen's toolbar, so an extension never ships JavaScript
+ * merely to draw a progress bar.
  *
  * Available $displayData:
  *   - action   (PluginAction)  The action definition
- *   - ajaxBase (string)        AJAX base URL carrying the CSRF token
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -28,32 +23,21 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ToolButton;
 use Joomla\CMS\Language\Text;
 
 /** @var \Alfa\Component\Alfa\Administrator\Plugin\PluginAction $action */
-$action   = $displayData['action'] ?? null;
-$ajaxBase = (string) ($displayData['ajaxBase'] ?? '');
+$action = $displayData['action'] ?? null;
 
 if (!$action || !$action->isValid()) {
     return;
 }
 
-$e       = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
-$owner   = ($action->metadata['owner_group'] ?? '') . '/' . ($action->metadata['owner_name'] ?? '');
-$chunked = (bool) ($action->metadata['chunked'] ?? false);
-$params  = '&action=' . rawurlencode($action->id) . '&owner=' . rawurlencode($owner);
-
-$attrs = $chunked
-    ? ' data-action="backfill"'
-        . ' data-plan-url="' . $e($ajaxBase . '&task=toolaction.plan' . $params) . '"'
-        . ' data-chunk-url="' . $e($ajaxBase . '&task=toolaction.chunk' . $params) . '"'
-    : ' data-action="single" data-url="' . $e($ajaxBase . '&task=toolaction.run' . $params) . '"';
-
-// A state-changing action is POSTed with a one-time key; a read-only one is
-// fetched. The endpoint refuses a mutating action sent any other way.
-if ($action->mutates) {
-    $attrs .= ' data-mutating="1"';
-}
+$e = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+// The card's own progress element, which its button names; the attributes the Tools script reads are the one set
+// every tool button carries ({@see ToolButton::attributes()}).
+$progressId = 'alfa-tool-progress-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($action->id));
+$attrs = ToolButton::html(ToolButton::attributes(action: $action, progress: $progressId));
 
 $description = (string) ($action->metadata['description'] ?? '');
 $notice      = (string) ($action->metadata['notice'] ?? '');
@@ -64,17 +48,7 @@ $notice      = (string) ($action->metadata['notice'] ?? '');
 // provider identifiers and the URLs built above, all of which land in attributes.
 $label = Text::_($action->label);
 // A card whose button does something other than its title names it says so on the button (button_label).
-$buttonLabel = isset($action->metadata['button_label']) ? Text::_((string) $action->metadata['button_label']) : $label;
-
-// Translations that land in an ATTRIBUTE only have the attribute-ending character
-// neutralised; entity-escaping them would corrupt them the same way as above.
-$attr = static fn (string $v): string => str_replace('"', '&quot;', $v);
-
-$tooltip = $action->tooltip === null ? '' : ' title="' . $attr(Text::_($action->tooltip)) . '"';
-
-$confirm = $action->requires_confirmation
-    ? ' data-confirm-message="' . $attr(Text::_($action->confirmation_message ?? 'JGLOBAL_CONFIRM_DELETE')) . '"'
-    : '';
+$buttonLabel = ToolButton::label($action);
 ?>
 <div class="card mb-3">
     <div class="card-header"><?php echo $label; ?></div>
@@ -88,13 +62,12 @@ $confirm = $action->requires_confirmation
                 <?php echo Text::_($notice); ?></div>
         <?php endif; ?>
 
-        <button type="button" class="btn <?php echo $e($action->class); ?> alfa-tool-btn"<?php
-            echo $attrs, $confirm, $tooltip, $action->enabled ? '' : ' disabled'; ?>>
+        <button class="btn <?php echo $e($action->class); ?> alfa-tool-btn"<?php echo $attrs; ?>>
             <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
             <?php echo $buttonLabel; ?>
         </button>
 
-        <div class="alfa-progress mt-3" style="display:none;">
+        <div class="alfa-progress mt-3" id="<?php echo $e($progressId); ?>" style="display:none;">
             <div class="progress" style="height:1.5rem;">
                 <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
                      style="width:0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>

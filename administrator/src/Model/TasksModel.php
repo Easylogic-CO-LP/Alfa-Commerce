@@ -11,35 +11,40 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Service\Task\TaskAccess;
-use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
-use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
-use Joomla\CMS\User\User;
 use Joomla\Database\QueryInterface;
 
 /**
- * The tasks as the API lists them (GET v1/alfa/tasks), newest first, each in its document's fields
- * ({@see TaskDocument::fields()}). Filters: filter.state, filter.type (single or job) and filter.owner (com_alfa, or
- * an alfa plugin as group.element).
+ * The Background screen's Work tab: every task and job of the shop and its extensions, each in one of four states of
+ * work (running now, waiting, needs attention, finished), with what staff read of it and may do with it
+ * ({@see TaskStaff::describe()}). Filters: a search (an id, a handler, an order, a scope or an error), the state of
+ * work, the kind of work (its handler) and when it was created.
  *
- * @since  2.2.0
+ * @since  2.3.0
  */
-class TasksModel extends ListModel
+class TasksModel extends AlfaListModel
 {
+    use HasDateRangeFilterTrait;
+
     /**
-     * The states a filter may name.
+     * The admin-contract entity of this screen.
      *
-     * @var list<string>
-     *
-     * @since  2.2.0
+     * @since  2.3.0
      */
-    private const STATES = [
-        Tasks::STATE_PENDING, Tasks::STATE_RUNNING, Tasks::STATE_DONE, Tasks::STATE_FAILED, Tasks::STATE_HELD,
-        Tasks::STATE_RESOLVED, Tasks::STATE_CANCELLED,
-    ];
+    protected string $alfaEntity = 'task';
+
+    /**
+     * The names of the users the listed histories name, id => name, read with the items.
+     *
+     * @var array<int, string>
+     *
+     * @since  2.3.0
+     */
+    private array $historyUsers = [];
 
     /**
      * Constructor.
@@ -47,64 +52,130 @@ class TasksModel extends ListModel
      * @param array<string, mixed> $config The model's configuration.
      * @param MVCFactoryInterface|null $factory The MVC factory.
      *
-     * @since  2.2.0
+     * @since  2.3.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields'])) {
-            $config['filter_fields'] = ['id'];
+            $config['filter_fields'] = ['id', 'a.id', 'rank', 'created_at', 'a.created_at', 'finished_at', 'a.finished_at'];
         }
 
         parent::__construct($config, $factory);
     }
 
     /**
-     * The tasks' rows, each made its document's fields.
+     * The list's state: running first by default, then waiting, what needs attention and the finished, newest first
+     * within each; the date window against the creation.
+     *
+     * @param string $ordering The default ordering.
+     * @param string $direction The default direction.
+     *
+     * @since  2.3.0
+     */
+    protected function populateState($ordering = 'rank', $direction = 'ASC')
+    {
+        parent::populateState($ordering, $direction);
+
+        // After the parent: the trait reads the registry the parent fills.
+        $this->resolveDateRangeFilter();
+    }
+
+    /**
+     * The rows of the page, each as staff read it.
      *
      * @return list<object>
      *
-     * @since  2.2.0
+     * @since  2.3.0
      */
     public function getItems()
     {
         $rows = parent::getItems();
-        // The list is Tools' (the API controller asks it first); the last error is shown to Tools only all the same.
-        $withError = TaskAccess::canUseTools(user: Factory::getApplication()->getIdentity() ?? new User());
 
-        return \is_array($rows) ? array_map(static fn (object $row): object => (object) TaskDocument::fields(row: (array) $row, withError: $withError), $rows) : [];
+        if (!\is_array($rows)) {
+            return [];
+        }
+
+        $described = TaskStaff::describe(rows: array_map(static fn (object $row): array => (array) $row, $rows));
+        $this->historyUsers = $described['users'];
+
+        return array_map(static fn (array $row): object => (object) $row, $described['rows']);
     }
 
     /**
-     * The list's query: the tasks the filters keep, newest first.
+     * The names of the users the page's histories name, id => name; read after getItems().
      *
-     * @since  2.2.0
+     * @return array<int, string>
+     *
+     * @since  2.3.0
+     */
+    public function getHistoryUsers(): array
+    {
+        return $this->historyUsers;
+    }
+
+    /**
+     * The list's query.
+     *
+     * @since  2.3.0
      */
     protected function getListQuery(): QueryInterface
     {
         $db = $this->getDatabase();
         $query = $db->getQuery(true)
-            ->select($db->quoteName(TaskDocument::COLUMNS))
-            ->from($db->quoteName(Tasks::TABLE))
-            ->order($db->quoteName('id') . ' DESC');
-        $state = (string) $this->getState('filter.state', '');
-        $type = (string) $this->getState('filter.type', '');
-        $owner = (string) $this->getState('filter.owner', '');
+            ->select($db->quoteName(array_map(static fn (string $column): string => 'a.' . $column, TaskStaff::COLUMNS)))
+            ->select(TaskStaff::workSql(db: $db, alias: 'a') . ' AS ' . $db->quoteName('work'))
+            ->select(TaskStaff::drivenSql(db: $db, alias: 'a') . ' AS ' . $db->quoteName('driven'))
+            ->select(TaskStaff::checkpointSql(db: $db, alias: 'a') . ' AS ' . $db->quoteName('checkpoint'))
+            ->from($db->quoteName(Tasks::TABLE, 'a'));
 
-        // A state no task can be in and a type that is neither each list none; an owner lists its own rows.
-        if ($state !== '' && \in_array($state, self::STATES, true)) {
-            $query->where($db->quoteName('state') . ' = :state')->bind(':state', $state);
-        } elseif ($state !== '') {
+        $work = (string) $this->getState('filter.work', '');
+
+        if ($work !== '' && \in_array($work, TaskStaff::WORK_STATES, true)) {
+            $query->where(TaskStaff::workSql(db: $db, alias: 'a') . ' = :work')->bind(':work', $work);
+        } elseif ($work !== '') {
             $query->where('1 = 0');
         }
 
-        if ($type !== '' && \in_array($type, [Tasks::TYPE_SINGLE, Tasks::TYPE_JOB], true)) {
-            $query->where($db->quoteName('type') . ' = :type')->bind(':type', $type);
-        } elseif ($type !== '') {
-            $query->where('1 = 0');
+        $kind = (string) $this->getState('filter.kind', '');
+
+        if ($kind !== '') {
+            $query->where($db->quoteName('a.handler') . ' = :kind')->bind(':kind', $kind);
         }
 
-        if ($owner !== '') {
-            $query->where($db->quoteName('owner') . ' = :owner')->bind(':owner', $owner);
+        // The creation is stored as UTC; the state holds the shop's local bounds.
+        AlfaHelper::applyDateRange(
+            query: $query,
+            column: 'a.created_at',
+            localStart: (string) $this->getState('filter.date_start', ''),
+            localEnd: (string) $this->getState('filter.date_end', ''),
+        );
+
+        $search = trim((string) $this->getState('filter.search', ''));
+
+        if ($search !== '') {
+            if (preg_match('/^#?(\d+)$/', $search, $matches) === 1) {
+                $query->where($db->quoteName('a.id') . ' = ' . (int) $matches[1]);
+            } elseif (preg_match('/^order:(\d+)$/i', $search, $matches) === 1) {
+                $query->where($db->quoteName('a.subject_type') . ' = ' . $db->quote('order'))
+                    ->where($db->quoteName('a.subject_id') . ' = ' . (int) $matches[1]);
+            } else {
+                $like = '%' . $db->escape($search, true) . '%';
+                $query->extendWhere('AND', [
+                    $db->quoteName('a.handler') . ' LIKE ' . $db->quote($like),
+                    $db->quoteName('a.scope_key') . ' LIKE ' . $db->quote($like),
+                    $db->quoteName('a.last_error') . ' LIKE ' . $db->quote($like),
+                    $db->quoteName('a.owner') . ' LIKE ' . $db->quote($like),
+                ], 'OR');
+            }
+        }
+
+        $ordering = (string) $this->getState('list.ordering', 'rank');
+        $direction = strtoupper((string) $this->getState('list.direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
+
+        if ($ordering === 'rank') {
+            $query->order(TaskStaff::rankSql(db: $db, alias: 'a') . ' ' . $direction . ', ' . $db->quoteName('a.id') . ' DESC');
+        } else {
+            $query->order($db->quoteName($ordering) . ' ' . $direction);
         }
 
         return $query;

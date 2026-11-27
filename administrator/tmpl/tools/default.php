@@ -17,13 +17,11 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Session\Session;
-use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 
 /** @var \Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useScript('com_alfa.sync-tools');
-// The component's administrator stylesheet: the jobs list's dates on one line, its rows folded on a phone.
+// The component's administrator stylesheet: the cards' lists folded on a phone.
 $wa->useStyle('com_alfa.admin');
 
 // Generic completion label for actions whose server reply carries no message.
@@ -31,10 +29,6 @@ Text::script('COM_ALFA_TOOLS_BACKFILL_DONE');
 Text::script('COM_ALFA_SYNC_ERROR_PREFIX');
 Text::script('COM_ALFA_TOOLS_JOB_OPENING');
 Text::script('COM_ALFA_TOOLS_REQUEST_FAILED');
-
-// CSRF token carried in the AJAX URLs (validated server-side via Session::checkToken).
-$token    = Session::getFormToken();
-$ajaxBase = 'index.php?option=com_alfa&' . $token . '=1';
 
 /**
  * EVERY action card renders through one registry loop and one layout. There is no
@@ -45,37 +39,28 @@ $ajaxBase = 'index.php?option=com_alfa&' . $token . '=1';
  * tools that priority encodes RUN order, so the tab reads top-to-bottom as
  * "do them in this order".
  */
-$renderActions = static function (array $actions) use ($ajaxBase): string {
+$renderActions = static function (array $actions): string {
     $html = '';
 
     foreach ($actions as $action) {
-        $html .= LayoutHelper::render(
-            'actions.toolcard',
-            ['action' => $action, 'ajaxBase' => $ajaxBase],
-            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
-        );
+        $html .= LayoutHelper::render('actions.toolcard', ['action' => $action], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
     }
 
     return $html;
 };
 $renderSurface = static fn (string $surface): string => $renderActions(ToolRegistry::forSurface($surface));
 
-// Tools > Tasks reads in the order staff act: what needs attention and the run that retries it, the jobs and the
-// deletion of finished ones, any other card of the tab, and last how the background work runs (set once, read rarely).
-$tasksActions = ToolRegistry::forSurface('tasks');
-$tasksAction = static fn (string $id): array => array_values(array_filter($tasksActions, static fn ($action): bool => $action->id === $id));
-$tasksOthers = array_values(array_filter($tasksActions, static fn ($action): bool => !\in_array($action->id, ['tasks.run', 'tasks.prune'], true)));
-
-/** Tab ids this template renders itself; anything else a plugin names opens its own tab. */
-$coreSurfaces = ['media', 'dbsync', 'tasks', 'github', 'integrity', 'data', 'extensions'];
+/** Tab ids this template renders itself, and the surface whose actions are the Background screen's toolbar; anything
+ *  else a plugin names opens its own tab. */
+$coreSurfaces = ['media', 'dbsync', 'tasks', 'github', 'integrity', 'data', 'extensions', 'background'];
 $toolsUser = Factory::getApplication()->getIdentity();
 ?>
 <div class="com-alfa-tools p-3">
 
     <?php // Outer tabset carries recall; the devguide's inner tabset must NOT, or
           // nested recall shares one sessionStorage key and can hang the page. ?>
-    <?php // The progress page (&job=N) and a new web-cron address open on the Tasks tab, whatever tab was last open.
-    $onTasks = $this->job !== null || $this->jobMissing || $this->newCronKey !== ''; ?>
+    <?php // A new web-cron address opens on the Tasks tab, whatever tab was last open.
+    $onTasks = $this->newCronKey !== ''; ?>
     <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaTools', ['active' => $onTasks ? 'tasks' : 'media', 'recall' => !$onTasks]); ?>
 
     <?php /* Media */ ?>
@@ -100,16 +85,27 @@ $toolsUser = Factory::getApplication()->getIdentity();
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php /* Tasks: the job the progress page follows; what a save left failed or with an unknown outcome, for staff to act on,
-             and the run that retries it; the jobs and the prune; how the background work runs */ ?>
+    <?php /* Tasks: how much background work there is, in the words of the Background screen, which lists it and runs its
+             tools; then any card a plugin adds to the tab, and how the background work runs (set once, read rarely) */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
-        <?php echo LayoutHelper::render('tasks.progress', ['job' => $this->job, 'missing' => $this->jobMissing, 'id' => RequestScalar::int(Factory::getApplication()->getInput(), 'job')], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-        <?php echo LayoutHelper::render('tasks.attention', $this->tasks + ['failedJobs' => $this->jobs['failedJobs']], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-        <?php echo $renderActions($tasksAction('tasks.run')); ?>
-        <?php echo LayoutHelper::render('tasks.jobs', $this->jobs, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-        <?php echo LayoutHelper::render('tasks.outbound', $this->outbound, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-        <?php echo $renderActions($tasksAction('tasks.prune')); ?>
-        <?php echo $renderActions($tasksOthers); ?>
+        <div class="card mb-3">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_TITLE_TASKS'); ?></div>
+            <div class="card-body">
+                <?php if ($this->background['unreadable']) : ?>
+                    <div class="alert alert-warning"><span class="icon-warning" aria-hidden="true"></span>
+                        <?php echo Text::_('COM_ALFA_TASKS_UNREADABLE'); ?></div>
+                <?php else : ?>
+                    <?php $work = $this->background['work']; $deliveries = $this->background['deliveries']; ?>
+                    <p class="mb-1"><?php echo Text::sprintf('COM_ALFA_TOOLS_BACKGROUND_WORK', (int) ($work['running'] ?? 0), (int) ($work['waiting'] ?? 0), (int) ($work['attention'] ?? 0), (int) ($work['finished'] ?? 0)); ?></p>
+                    <p class="text-muted mb-3"><?php echo Text::sprintf('COM_ALFA_TOOLS_BACKGROUND_DELIVERIES', (int) ($deliveries['waiting'] ?? 0) + (int) ($deliveries['running'] ?? 0), (int) ($deliveries['attention'] ?? 0)); ?></p>
+                <?php endif; ?>
+                <a class="btn <?php echo (int) ($this->background['work']['attention'] ?? 0) > 0 ? 'btn-warning' : 'btn-secondary'; ?>" href="<?php echo Route::_('index.php?option=com_alfa&view=tasks'); ?>">
+                    <span class="icon-loop" aria-hidden="true"></span>
+                    <?php echo Text::_('COM_ALFA_TOOLS_BACKGROUND_BTN'); ?>
+                </a>
+            </div>
+        </div>
+        <?php echo $renderSurface('tasks'); ?>
         <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
@@ -214,13 +210,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
             $surface,
             Text::_((string) ($surfaceActions[0]->metadata['surface_label'] ?? $surfaceActions[0]->label)),
         ); ?>
-            <?php foreach ($surfaceActions as $surfaceAction) : ?>
-                <?php echo LayoutHelper::render(
-                    'actions.toolcard',
-                    ['action' => $surfaceAction, 'ajaxBase' => $ajaxBase],
-                    JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
-                ); ?>
-            <?php endforeach; ?>
+            <?php echo $renderActions($surfaceActions); ?>
         <?php echo HTMLHelper::_('uitab.endTab'); ?>
     <?php endforeach; ?>
 

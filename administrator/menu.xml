@@ -27,7 +27,7 @@
     stock moves, Customers as they register and are grouped, and the last three are set
     up once: Market is where the shop trades (places, currencies, taxes), Configuration
     is how its checkout works (methods, statuses, the fields a customer types) and
-    System is what the shop tells and what maintains it (notifications, webhooks, tools).
+    System is what the shop tells and what maintains it (notifications, webhooks, the background work, tools).
     Within a section the order is the setup order, so nothing depends on an item below it.
 
     Each <section> places a heading (ordering 100..900, spaced so a plugin can put its
@@ -74,5 +74,6 @@
 
     <item id="notifications"     section="COM_ALFA_MENU_SYSTEM"    view="notifications"     title="COM_ALFA_NOTIFY_HISTORY_TITLE"    icon="media/com_alfa/images/admin/menu/notifications.svg" ordering="300"/>
     <item id="webhooks"          section="COM_ALFA_MENU_SYSTEM"    view="webhooks"          title="COM_ALFA_TITLE_WEBHOOKS"          icon="media/com_alfa/images/admin/menu/webhooks.svg"      ordering="350"/>
+    <item id="tasks"             section="COM_ALFA_MENU_SYSTEM"    view="tasks"             title="COM_ALFA_TITLE_TASKS"             icon="media/com_alfa/images/admin/menu/tasks.svg"         ordering="375" access="alfa.tools"/>
     <item id="tools"             section="COM_ALFA_MENU_SYSTEM"    view="tools"             title="COM_ALFA_TITLE_TOOLS"             icon="media/com_alfa/images/admin/menu/tools.svg"         ordering="400" access="alfa.tools"/>
 </menu>

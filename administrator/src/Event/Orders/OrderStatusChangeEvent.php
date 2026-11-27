@@ -22,7 +22,7 @@
  * order.status_event task once the status change has committed, which
  * calls each listener on its own, records a listener that throws with its error
  * in the task's history, and still runs the others; staff run it again from
- * Tools > Tasks.
+ * Background.
  *
  * A listener never depends on the current user or the current application:
  * the event can be dispatched by the shop's background work, which

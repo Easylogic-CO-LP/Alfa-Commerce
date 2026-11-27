@@ -20,7 +20,7 @@ use Throwable;
 
 /**
  * Cancel a task or job that has not finished, through its owner's BackgroundWork::cancel() or staff's Cancel in
- * Tools > Tasks.
+ * Background.
  *
  * A waiting task or job is cancelled at once, its scope free. A running job is marked (cancel_requested) and stays
  * running, so its scope stays taken: the runner runs no further step, the step in progress keeps nothing (or, for a

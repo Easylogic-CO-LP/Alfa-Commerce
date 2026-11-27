@@ -33,7 +33,7 @@ use Throwable;
  * classes, written by the installer and every update; each alfa plugin's from its onAlfaDeclareWork answer, read when the
  * plugin is installed, updated, saved or enabled (Alfa Sync, through {@see PluginFollower}), and once in a request when
  * an enqueue names a work the copy does not hold. The copy is not a second source: it is the plugin's own answer, kept
- * so that the runner's due read, its schedules and Tools > Tasks never boot a plugin.
+ * so that the runner's due read, its schedules and Background never boot a plugin.
  *
  * The enabled flag follows the plugin: set from Joomla's extension events, set to 0 at once when a boot for work is
  * refused because the plugin is disabled or gone, and compared with #__extensions once an hour both ways, so a plugin
@@ -560,7 +560,7 @@ final class WorkDeclarations
     }
 
     /**
-     * Load an extension's own language, for its labels and Covers texts in Tools > Tasks (strict language ownership:
+     * Load an extension's own language, for its labels and Covers texts in Background (strict language ownership:
      * the plugin owns its strings). Once a request per owner; core's own is loaded already.
      *
      * @param string $owner group.element.

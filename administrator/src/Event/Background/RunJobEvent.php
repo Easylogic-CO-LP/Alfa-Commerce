@@ -106,7 +106,7 @@ final class RunJobEvent extends AbstractEvent
     }
 
     /**
-     * The job's id, as find() and Tools > Tasks know it.
+     * The job's id, as find() and Background know it.
      *
      * @since  2.3.0
      */
@@ -237,7 +237,7 @@ final class RunJobEvent extends AbstractEvent
 
     /**
      * The step ends and the job is done, with what it reports (JSON-safe, at most 16 KiB encoded), shown in
-     * Tools > Tasks and kept with its row.
+     * Background and kept with its row.
      *
      * @param array<string, mixed> $result The result.
      *

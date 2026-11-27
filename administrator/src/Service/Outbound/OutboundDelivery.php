@@ -39,7 +39,7 @@ use Throwable;
  *   waiting one backoff step, its attempts unchanged.
  *
  * A retried change waits Tasks::BACKOFF_SECONDS for its count of failed attempts (60 seconds, 5 minutes, 30 minutes,
- * 2 hours, 6 hours, 24 hours); after the sixth retry fails it is given up (dead): staff see it in Tools, Tasks and the
+ * 2 hours, 6 hours, 24 hours); after the sixth retry fails it is given up (dead): staff see it in Background and the
  * notice, and may put it back or discard it. A stock or price change given up leaves its unit free to wait again, so
  * the next change of the unit is told with the newest figure. An order's change waits while an older change of the
  * same order is neither sent nor given up, so an order's changes arrive in the order they happened.

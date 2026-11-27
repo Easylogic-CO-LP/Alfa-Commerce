@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\MediaFetchJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockRepairJob;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\User;
@@ -123,8 +124,9 @@ final class TaskDocument
 
     /**
      * What a task reported: an extension's result as its plugin gave it; for core, the images a write gave as
-     * addresses and what became of each so far (media.fetch), while it runs as well as once it is done; null for core's
-     * other work, and for an extension's work before it is done.
+     * addresses and what became of each so far (media.fetch), and the stock repair's counts and the product it stopped
+     * at (stock.repair), while it runs as well as once it is done; null for core's other work, and for an extension's
+     * work before it is done.
      *
      * @param array<string, mixed> $row The row.
      *
@@ -140,7 +142,11 @@ final class TaskDocument
             return \is_array($result) ? $result : null;
         }
 
-        return (string) $row['handler'] === MediaFetchJob::NAME ? MediaFetchJob::result(checkpoint: self::checkpointOf(row: $row)) : null;
+        return match ((string) $row['handler']) {
+            MediaFetchJob::NAME => MediaFetchJob::result(checkpoint: self::checkpointOf(row: $row)),
+            StockRepairJob::NAME => StockRepairJob::reportOf(row: $row),
+            default => null,
+        };
     }
 
     /**
