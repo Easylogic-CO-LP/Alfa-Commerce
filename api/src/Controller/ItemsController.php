@@ -419,7 +419,8 @@ class ItemsController extends ApiController
      * (the variants' grid, the option and specification lists, the field order, the downloads grid), which the item
      * save reads from the request as the form posts them. Options, specifications, combinations and field values are
      * written as the API's own lists, and the related products (`related`) with the item, as the Related tab writes
-     * them.
+     * them. The shipping methods a product ships with (shipments, shipments_scope) are read only here: the item screen
+     * and the variant window set them.
      *
      * @return string[]
      *
@@ -428,7 +429,8 @@ class ItemsController extends ApiController
     protected function unwrittenKeys(): array
     {
         return ['fields', 'combinations_default', 'deleted_combination_ids',
-            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads'];
+            'deleted_option_value_ids', 'deleted_info_value_ids', 'info_values', 'field_order', 'field_required', 'item_downloads',
+            'shipments', 'shipments_scope'];
     }
 
     /**
@@ -440,7 +442,7 @@ class ItemsController extends ApiController
     {
         return 'the item screen\'s own lists (the variants\' grid, the option and specification lists, the field order, the'
             . ' downloads) are not keys of the API; options, informational, combinations and field_values are sent as the'
-            . ' API\'s lists. Nothing was saved.';
+            . ' API\'s lists; the shipping methods a product ships with (shipments) are set on the item screen. Nothing was saved.';
     }
 
     /**

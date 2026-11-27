@@ -28,6 +28,8 @@ use Joomla\CMS\Language\Text;
  * @var array $displayData
  *   - object $combination Combination row (+price_rows, media_ids, translations, value labels)
  *   - array  $descriptors Override descriptors (ItemFieldsAdminHelper::getCombinationOverrideDescriptors)
+ *   - array|null $shipping The variant's shipping list: choice (inherit, all, only), ids, and the published methods
+ *                          it may name (id => {name}); null when the window does not offer it
  *   - array  $languages   Content languages [{tag,key,title}]
  *   - object $escaper     View for ->escape()
  */
@@ -38,6 +40,7 @@ $view = $displayData['escaper'];
 
 $combinationId = (int) $combination->id;
 $base = 'jform[combinations][' . $combinationId . ']';
+$shipping = $displayData['shipping'] ?? null;
 
 // Parent item values shown as placeholders (a blank combination field inherits
 // the item); falls back to the given text when the item has no value.
@@ -388,6 +391,34 @@ try {
                                 <?php foreach ($dimensionOverrides as $descriptor) : ?>
                                     <?php echo $renderOverride($descriptor); ?>
                                 <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php // The variant's shipping list: as the product's, every method, or the chosen methods only
+                              // (ItemShipments). Absent for a virtual product, as the dimensions are. The methods
+                              // select shows while the chosen methods are the choice (combinations.js). ?>
+                        <?php if (\is_array($shipping) && empty($item->is_virtual)) : ?>
+                            <div class="studio-grid mt-2" data-studio-shipping>
+                                <div>
+                                    <label class="form-label small mb-0 text-muted" for="studio-shipments-scope-<?php echo $combinationId; ?>"
+                                           title="<?php echo $view->escape(Text::_('COM_ALFA_FORM_DESC_ITEM_SHIPMENTS')); ?>"><?php echo Text::_('COM_ALFA_FORM_LBL_ITEM_SHIPMENTS'); ?></label>
+                                    <select class="form-select form-select-sm" id="studio-shipments-scope-<?php echo $combinationId; ?>"
+                                            name="<?php echo $base; ?>[shipments_scope]" data-studio-shipping-scope>
+                                        <?php foreach (['inherit' => 'COM_ALFA_COMBINATION_SHIPMENTS_AS_PRODUCT', 'all' => 'COM_ALFA_ITEM_SHIPMENTS_ALL', 'only' => 'COM_ALFA_ITEM_SHIPMENTS_ONLY'] as $choice => $key) : ?>
+                                            <option value="<?php echo $choice; ?>"<?php echo $shipping['choice'] === $choice ? ' selected' : ''; ?>><?php echo Text::_($key); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div data-studio-shipping-only<?php echo $shipping['choice'] === 'only' ? '' : ' hidden'; ?>>
+                                    <label class="form-label small mb-0 text-muted" for="studio-shipments-<?php echo $combinationId; ?>"
+                                           title="<?php echo $view->escape(Text::_('COM_ALFA_FORM_DESC_ITEM_SHIPMENTS_ONLY')); ?>"><?php echo Text::_('COM_ALFA_FORM_LBL_ITEM_SHIPMENTS_ONLY'); ?></label>
+                                    <select class="form-select form-select-sm" id="studio-shipments-<?php echo $combinationId; ?>"
+                                            name="<?php echo $base; ?>[shipments][]" multiple size="<?php echo min(6, max(2, \count($shipping['methods']))); ?>">
+                                        <?php foreach ($shipping['methods'] as $method) : ?>
+                                            <option value="<?php echo (int) $method->id; ?>"<?php echo \in_array((int) $method->id, $shipping['ids'], true) ? ' selected' : ''; ?>><?php echo $view->escape((string) ($method->name ?? $method->id)); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
                         <?php endif; ?>
 

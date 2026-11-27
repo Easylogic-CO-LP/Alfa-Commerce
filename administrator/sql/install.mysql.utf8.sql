@@ -1188,6 +1188,22 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- The shipping methods a product, or one of its combinations, is shipped with (ItemShipments, the one reader).
+-- A product with no row ships with every method; one with rows ships with those only. A combination with no row
+-- ships as its product does; its wildcard row (shipment 0) means every method, whatever the product says; its
+-- method rows mean those only. A cart is offered the methods every line allows. The item delete removes the rows
+-- of a deleted product and the combination delete those of a deleted combination.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_items_shipments` (
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The product''s combination the row is for; 0 for the product itself',
+  `shipment_id` int(11) UNSIGNED NOT NULL COMMENT 'A shipping method the unit ships with; 0 on a combination row: every method, whatever the product says',
+  PRIMARY KEY (`item_id`, `combination_id`, `shipment_id`),
+  KEY `idx_shipment_id` (`shipment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The shipping methods a product or one of its combinations ships with only; no row = every method (a combination: as its product)';
+
+--
 -- Table structure for table `#__alfa_items_links`
 --
 -- The products a product's page shows as related, in the order staff set on the product's Related tab. A link goes

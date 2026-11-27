@@ -70,6 +70,7 @@ class JsonApiView extends BaseApiView
         'prices_state',
         'categories',
         'manufacturers',
+        'shipments',
         'related',
         'medias',
         'translations',
@@ -162,6 +163,12 @@ class JsonApiView extends BaseApiView
 
                 return $option;
             }, $item->options);
+        }
+
+        // The shipping methods the product ships with, by id; [] for every method. Read only: the item screen sets
+        // them, and each combination carries its own (null: as the product's).
+        if (isset($item->shipments) && \is_array($item->shipments)) {
+            $item->shipments = array_values(array_map('intval', $item->shipments));
         }
 
         // The related products, in their order, each {item_id, combination_id (null for none), values (an object of

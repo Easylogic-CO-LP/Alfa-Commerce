@@ -31,6 +31,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorPaymentPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Closure;
@@ -337,7 +338,8 @@ final class CartMethods
 
     /**
      * Why the cart's goods keep a shipping method off the list: by method id, the sentence naming the method and the
-     * products in a category it does not serve (MethodCategoryScope). Only a method every other scope would offer
+     * products in a category it does not serve (MethodCategoryScope), or products whose own shipping list leaves it out
+     * (ItemShipments). Only a method every other scope would offer
      * (customer group, user, destination, and the manufacturers of every line) is named, so the shopper is never told
      * about a method they could not have had. The storefront's list and the order builder show them; placement refuses
      * such a method as it refuses any method not offered.
@@ -369,6 +371,7 @@ final class CartMethods
             placeIds:      $this->deliveryPlaces,
             lines:         $lines,
             categoryScope: false,
+            itemScope:     false,
         ) as $id => $method) {
             $refused = MethodCategoryScope::of($method)->refused($lines);
 
@@ -378,10 +381,66 @@ final class CartMethods
                     (string) ($method->name ?? ''),
                     implode(', ', array_values(array_unique(array_filter(array_column($refused, 'name'))))),
                 );
+
+                continue;
+            }
+
+            // The products (or variants) whose own shipping list leaves the method out.
+            $refused = ItemShipments::refused((int) $id, $lines);
+
+            if ($refused !== []) {
+                $this->refusals[(int) $id] = Text::sprintf(
+                    'COM_ALFA_CART_SHIPMENT_ITEM_REFUSED',
+                    (string) ($method->name ?? ''),
+                    implode(', ', array_values(array_unique(array_filter(array_column($refused, 'name'))))),
+                );
             }
         }
 
         return $this->refusals;
+    }
+
+    /**
+     * The sentence an empty shipping list shows when the products' own shipping lists are what leaves nothing: it names
+     * the products that restrict their methods. '' when the list is not empty, or is empty for another reason (the
+     * destination, the audience, the carriers' answers), or no product restricts anything.
+     *
+     * @since  2.3.0
+     */
+    public function shipmentNotSharedNotice(): string
+    {
+        if (($this->isVirtual)()) {
+            return '';
+        }
+
+        $lines = ($this->lineScopes)('shipment');
+        $restricting = ItemShipments::restricting($lines);
+
+        if ($restricting === []) {
+            return '';
+        }
+
+        $user = ($this->customer)();
+        $offered = fn (bool $itemScope): array => AlfaHelper::getFilteredMethods(
+            categories:    [],
+            manufacturers: [],
+            usergroups:    PriceContext::customerGroups(customer: $user),
+            userId:        $user->id,
+            baseTable:     'shipment',
+            placeIds:      $this->deliveryPlaces,
+            lines:         $lines,
+            itemScope:     $itemScope,
+        );
+
+        // Empty with the lists and not without them: the lists are the reason.
+        if ($offered(true) !== [] || $offered(false) === []) {
+            return '';
+        }
+
+        return Text::sprintf(
+            'COM_ALFA_CART_SHIPMENT_NOT_SHARED',
+            implode(', ', array_values(array_unique(array_filter(array_column($restricting, 'name'))))),
+        );
     }
 
     /**

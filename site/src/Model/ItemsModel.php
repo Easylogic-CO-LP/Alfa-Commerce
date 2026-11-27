@@ -26,6 +26,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ItemFieldValueProjection;
@@ -1717,6 +1718,10 @@ class ItemsModel extends UrlListModel
         //    then assign + decorate in the enrich loop below.
         $fieldData = ItemFieldsHelper::getDataForItems($productIds);
 
+        // The shipping lists of the page's products and their combinations, read once (ItemShipments): the cart
+        // reads its products through this model, and each line's offered methods follow its unit's list.
+        $shipmentScopes = ItemShipments::forItems($this->getDatabase(), $productIds);
+
         // Pass 1 asks every card with fields which of them are required, and the
         // item-level overrides that decide it were read one card at a time.
         ItemConfigurationHelper::warmRequiredOverrides(array_keys(array_filter(
@@ -1779,6 +1784,7 @@ class ItemsModel extends UrlListModel
             $item->options = $data->options ?? [];
             $item->combinations = $data->combinations ?? [];
             $item->informational = $data->informational ?? [];
+            $item->shipment_scope = $shipmentScopes[(int) $item->id] ?? null;
 
             // The fields this card draws, decided BEFORE the variant resolves: a
             // dimension the card hides must not constrain the ones it shows.

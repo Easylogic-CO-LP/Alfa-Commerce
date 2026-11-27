@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Event\Catalog\RelatedLinksChangedEvent;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
@@ -2696,6 +2697,9 @@ class ItemFieldsAdminHelper
                             ->whereIn($db->qn('id'), $hardDeletedIds),
                     );
                     $db->execute();
+
+                    // Their own shipping lists go with them.
+                    ItemShipments::forgetCombinations(db: $db, combinationIds: $hardDeletedIds);
                 }
 
                 if ($archivedIds !== []) {
@@ -4611,6 +4615,18 @@ class ItemFieldsAdminHelper
             }
 
             self::saveCombinationTranslations(combinationId: $combinationId, row: $row);
+
+            // The variant's own shipping list, when the window posted the choice: as the product (no row), every
+            // method (the wildcard row) or the chosen methods. A write that does not post it leaves the list as it is.
+            if (\array_key_exists('shipments_scope', $row)) {
+                ItemShipments::replace(
+                    db:            $db,
+                    itemId:        $itemId,
+                    combinationId: $combinationId,
+                    shipmentIds:   ItemShipments::posted(choice: (string) $row['shipments_scope'], ids: $row['shipments'] ?? [], combination: true),
+                );
+            }
+
             self::syncCombinationPrices(itemId: $itemId, combinationId: $combinationId, rows: $priceRows);
 
             // The combination's prices and its sale rules are its product's: recorded in this transaction, for the

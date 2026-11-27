@@ -40,6 +40,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLinksRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
@@ -618,6 +619,10 @@ class ItemModel extends AlfaAdminModel
 
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // The shipping methods the product ships with ([] for every method), and the choice its form shows.
+            $item->shipments = ItemShipments::forItems($this->getDatabase(), [(int) $item->id])[(int) $item->id]->item ?? [];
+            $item->shipments_scope = ItemShipments::productChoice($item->shipments);
 
             // The related products, in their order, as the Related tab's rows.
             $item->related = RelatedItems::rows(db: $this->getDatabase(), itemId: (int) $item->id);
@@ -1229,6 +1234,17 @@ class ItemModel extends AlfaAdminModel
 
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // The shipping methods the product ships with: every method (no row) or the chosen ones. A write that
+            // does not post the choice leaves the list as it is.
+            if (\array_key_exists('shipments_scope', $data)) {
+                ItemShipments::replace(
+                    db:            $db,
+                    itemId:        (int) $currentId,
+                    combinationId: 0,
+                    shipmentIds:   ItemShipments::posted(choice: (string) $data['shipments_scope'], ids: $data['shipments'] ?? [], combination: false),
+                );
+            }
 
             // The related products, in the posted order: each written only while its product (and its combination)
             // exists, so one deleted since the check above leaves no link.
@@ -3719,6 +3735,7 @@ class ItemModel extends AlfaAdminModel
                 '#__alfa_items_manufacturers' => 'item_id',
                 '#__alfa_items_usergroups' => 'item_id',
                 '#__alfa_items_users' => 'item_id',
+                '#__alfa_items_shipments' => 'item_id',
             ] as $table => $column) {
                 $db->setQuery(
                     $db->getQuery(true)

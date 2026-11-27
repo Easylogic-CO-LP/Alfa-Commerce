@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
 
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Throwable;
 
@@ -266,8 +267,8 @@ final class HydratedCart
     }
 
     /**
-     * The category and manufacturer scopes of each line, for method
-     * eligibility; a carrier is not asked about virtual lines.
+     * The category, manufacturer and shipping list scopes of each line, for
+     * method eligibility; a carrier is not asked about virtual lines.
      *
      * @since  2.0.0
      */
@@ -283,6 +284,8 @@ final class HydratedCart
             $scopes[] = [
                 'categories' => array_map('intval', array_keys((array) ($line->data->categories ?? []))),
                 'manufacturers' => array_map('intval', array_keys((array) ($line->data->manufacturers ?? []))),
+                // The shipping methods the unit ships with, its variant's own list before its product's; [] for every method.
+                'shipments' => ItemShipments::allowed($line->data->shipment_scope ?? null, $line->combination_id ?? null),
                 // What the shopper bought, for the reason a method does not serve it.
                 'name' => (string) ($line->data->name ?? ''),
             ];
