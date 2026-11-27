@@ -172,6 +172,7 @@ class UsersModel extends AlfaListModel
         $orderCol = $this->getState('list.ordering', 'a.id');
         $orderDirn = $this->getState('list.direction', 'ASC');
         $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
+        $this->orderByKeyLast($query, (string) $orderCol, (string) $orderDirn);
 
         return $query;
     }

@@ -101,6 +101,26 @@ abstract class AlfaListModel extends ListModel
     }
 
     /**
+     * End the list's ORDER BY with the table's primary key, in the direction of the chosen ordering, so the order is
+     * total: a row is never repeated or skipped between two pages. Nothing is added when the ordering already is the key.
+     *
+     * @param DatabaseQuery $query     The list query, its chosen ordering already applied.
+     * @param string        $column    The ordering column the list applied.
+     * @param string        $direction The direction it applied.
+     * @param string        $key       The primary key column, with the table alias.
+     *
+     * @since  2.3.0
+     */
+    protected function orderByKeyLast(DatabaseQuery $query, string $column, string $direction, string $key = 'a.id'): void
+    {
+        if ($column === '' || $column === $key || $column === 'id') {
+            return;
+        }
+
+        $query->order($this->getDatabase()->quoteName($key) . ' ' . (strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC'));
+    }
+
+    /**
      * @var array[]|null Harvested plugin column descriptors ({@see AdminColumns}); null until the
      *                   list phases have run for the current state.
      * @since  2.0.0

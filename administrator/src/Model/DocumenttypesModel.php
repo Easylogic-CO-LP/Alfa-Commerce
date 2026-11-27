@@ -120,6 +120,8 @@ class DocumenttypesModel extends AlfaListModel
             . $db->escape($this->getState('list.direction', 'ASC')),
         );
 
+        $this->orderByKeyLast($query, (string) $this->getState('list.ordering', 'a.ordering'), (string) $this->getState('list.direction', 'ASC'));
+
         return $query;
     }
 }

@@ -179,6 +179,7 @@ class TasksModel extends AlfaListModel
             $query->order(TaskStaff::rankSql(db: $db, alias: 'a') . ' ' . $direction . ', ' . $db->quoteName('a.id') . ' ' . $direction);
         } else {
             $query->order($db->quoteName($ordering) . ' ' . $direction);
+            $this->orderByKeyLast($query, $ordering, $direction);
         }
 
         return $query;
