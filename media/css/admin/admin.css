@@ -667,3 +667,9 @@ tr.alfa-row-refund > * {
         transition: none;
     }
 }
+
+/* Item edit, the Preview control: Atum draws an external link glyph before every link that opens a new tab. The
+   control's "In a new tab" choice carries its own icon, so the glyph stays out of this control only. */
+#toolbar-preview a[target="_blank"]::before {
+    content: none;
+}

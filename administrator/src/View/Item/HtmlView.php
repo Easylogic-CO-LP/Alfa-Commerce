@@ -162,16 +162,49 @@ class HtmlView extends FormView
             ToolbarHelper::custom('item.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
         }
 
-        // Preview: the product's storefront page in a new tab. A product not published yet renders there for
-        // whoever may edit products, so a draft is seen as the shopper will see it.
-        if (!$isNew) {
-            $this->getDocument()->getToolbar()->linkButton('preview', 'JGLOBAL_PREVIEW')
-                ->url($this->previewUrl())
-                ->icon('icon-eye')
-                ->target('_blank');
-        }
+        $this->addPreviewButton(isNew: $isNew);
 
         ToolbarHelper::cancel('item.cancel', 'JTOOLBAR_CLOSE');
+    }
+
+    /**
+     * Preview: the product's storefront page, in a window over this screen or in a new tab, under one control. Only
+     * a saved, published product has a page for the shopper, so the control is disabled until then; the save that
+     * publishes the product reloads the form with it enabled.
+     *
+     * Disabled is the toolbar's own state: the disabled class on the button, the one the toolbar's web component sets
+     * while a list button waits for a selection. The dropdown ignores a toggle that carries it.
+     *
+     * @param bool $isNew Whether the product has no id yet
+     *
+     * @since  2.3.0
+     */
+    private function addPreviewButton(bool $isNew): void
+    {
+        $canPreview = !$isNew && (int) ($this->item->state ?? 0) === 1;
+        $url = $this->previewUrl();
+
+        $dropdown = $this->getDocument()->getToolbar()->dropdownButton('preview')
+            ->text('JGLOBAL_PREVIEW')
+            ->toggleSplit(false)
+            ->icon('icon-eye')
+            ->buttonClass('btn btn-action' . ($canPreview ? '' : ' disabled'));
+
+        $childBar = $dropdown->getChildToolbar();
+
+        // The storefront page in Joomla's dialog: an iframe of the same site, which the site's frame policy allows.
+        $childBar->popupButton('preview-window', 'COM_ALFA_PREVIEW_IN_WINDOW')
+            ->popupType('iframe')
+            ->textHeader(Text::_('JGLOBAL_PREVIEW'))
+            ->url($url)
+            ->modalWidth('90vw')
+            ->modalHeight('90vh')
+            ->icon('icon-eye');
+
+        $childBar->linkButton('preview-tab', 'COM_ALFA_PREVIEW_IN_NEW_TAB')
+            ->url($url)
+            ->icon('icon-new-tab')
+            ->target('_blank');
     }
 
     /**
