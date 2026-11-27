@@ -47,8 +47,9 @@ class SubtemplateField extends GroupedlistField
     protected $type = 'Subtemplate';
 
     /**
-     * Self-documenting description: when the XML gives none, explain the exact
-     * file-naming contract for THIS slot so site builders know what to create.
+     * Self-documenting description: the exact file-naming contract for THIS slot,
+     * so site builders know what to create, after the description the XML gives
+     * (what the part is, who overrides it) or alone when it gives none.
      *
      * @param SimpleXMLElement $element The field XML element
      * @param mixed $value The field value
@@ -61,12 +62,14 @@ class SubtemplateField extends GroupedlistField
     {
         $return = parent::setup($element, $value, $group);
 
-        if ($return && trim((string) $this->description) === '') {
-            $this->description = Text::sprintf(
+        if ($return) {
+            $contract = Text::sprintf(
                 'COM_ALFA_SUBTEMPLATE_FIELD_DESC',
                 preg_replace('#[^\w-]#', '', (string) $element['slot']),
                 preg_replace('#\W#', '', (string) $element['view']),
             );
+            $given = trim((string) $this->description);
+            $this->description = $given === '' ? $contract : Text::_($given) . ' ' . $contract;
         }
 
         return $return;

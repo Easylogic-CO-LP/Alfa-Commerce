@@ -42,8 +42,9 @@ class ViewLayoutField extends GroupedlistField
     protected $type = 'ViewLayout';
 
     /**
-     * Self-documenting description: when the XML gives none, explain where
-     * layouts of THIS view live and how they must be named.
+     * Self-documenting description: where layouts of THIS view live and how they
+     * must be named, after the description the XML gives (what the layout is, who
+     * overrides it) or alone when it gives none.
      *
      * @param SimpleXMLElement $element The field XML element
      * @param mixed $value The field value
@@ -56,8 +57,10 @@ class ViewLayoutField extends GroupedlistField
     {
         $return = parent::setup($element, $value, $group);
 
-        if ($return && trim((string) $this->description) === '') {
-            $this->description = Text::sprintf('COM_ALFA_VIEWLAYOUT_FIELD_DESC', preg_replace('#\W#', '', (string) $element['view']));
+        if ($return) {
+            $contract = Text::sprintf('COM_ALFA_VIEWLAYOUT_FIELD_DESC', preg_replace('#\W#', '', (string) $element['view']));
+            $given = trim((string) $this->description);
+            $this->description = $given === '' ? $contract : Text::_($given) . ' ' . $contract;
         }
 
         return $return;

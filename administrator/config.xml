@@ -333,13 +333,13 @@
                     name="stock_low"
                     type="number"
                     label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
-                    description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
+                    description="COM_ALFA_CONFIG_STOCK_LOW_DESC"
                     min="1"
             />
 
             <field name="stock_low_message"
                    label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
-                   description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
+                   description="COM_ALFA_CONFIG_STOCK_LOW_MESSAGE_DESC"
                    type="editor"
                    showon="stock_low!:"
             />
@@ -1265,7 +1265,7 @@
                     type="viewLayout"
                     view="items"
                     label="COM_ALFA_LAYOUT_ITEMS_LABEL"
-                    description="COM_ALFA_LAYOUT_ITEMS_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEMS_DESC"
             />
 
             <field
@@ -1274,6 +1274,7 @@
                     view="items"
                     slot="item"
                     label="COM_ALFA_LAYOUT_ITEMS_CARD_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEMS_CARD_DESC"
             />
 
             <field
@@ -1282,6 +1283,7 @@
                     view="items"
                     slot="card_images"
                     label="COM_ALFA_LAYOUT_ITEMS_CARD_IMAGES_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEMS_CARD_IMAGES_DESC"
             />
 
             <field
@@ -1289,7 +1291,7 @@
                     type="list"
                     default="0"
                     label="COM_ALFA_LAYOUT_CARD_IMAGES_COUNT_LABEL"
-                    description="COM_ALFA_LAYOUT_CARD_IMAGES_COUNT_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_CARD_IMAGES_COUNT_DESC"
                     validate="options"
             >
                 <option value="0">JALL</option>
@@ -1311,6 +1313,7 @@
                     view="items"
                     slot="categories"
                     label="COM_ALFA_LAYOUT_ITEMS_CATEGORIES_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEMS_CATEGORIES_DESC"
             />
         </fieldset>
 
@@ -1324,7 +1327,7 @@
                     type="viewLayout"
                     view="item"
                     label="COM_ALFA_LAYOUT_ITEM_LABEL"
-                    description="COM_ALFA_LAYOUT_ITEM_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_DESC"
             />
 
             <field
@@ -1333,6 +1336,7 @@
                     view="item"
                     slot="images"
                     label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_IMAGES_DESC"
             />
 
             <field
@@ -1340,7 +1344,7 @@
                     type="list"
                     default="2"
                     label="COM_ALFA_LAYOUT_IMAGES_GRID_COLUMNS_LABEL"
-                    description="COM_ALFA_LAYOUT_IMAGES_GRID_COLUMNS_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_IMAGES_GRID_COLUMNS_DESC"
                     validate="options"
             >
                 <option value="2">2</option>
@@ -1354,6 +1358,7 @@
                     view="item"
                     slot="manufacturers"
                     label="COM_ALFA_LAYOUT_ITEM_MANUFACTURERS_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_MANUFACTURERS_DESC"
             />
 
             <field
@@ -1362,6 +1367,7 @@
                     view="item"
                     slot="categories"
                     label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_CATEGORIES_DESC"
             />
 
             <field
@@ -1369,7 +1375,7 @@
                     type="list"
                     default="stacked"
                     label="COM_ALFA_LAYOUT_ITEM_SECTIONS"
-                    description="COM_ALFA_LAYOUT_ITEM_SECTIONS_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_SECTIONS_DESC"
                     validate="options"
             >
                 <option value="stacked">COM_ALFA_LAYOUT_ITEM_SECTIONS_STACKED</option>
@@ -1382,7 +1388,7 @@
                     type="list"
                     default="frame"
                     label="COM_ALFA_LAYOUT_ITEM_METHODS"
-                    description="COM_ALFA_LAYOUT_ITEM_METHODS_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_METHODS_DESC"
                     validate="options"
             >
                 <option value="frame">COM_ALFA_LAYOUT_ITEM_METHODS_FRAME</option>
@@ -1395,6 +1401,7 @@
                     view="item"
                     slot="related"
                     label="COM_ALFA_LAYOUT_ITEM_RELATED_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_ITEM_RELATED_DESC"
             />
 
             <field
@@ -1402,7 +1409,7 @@
                     type="list"
                     default="4"
                     label="COM_ALFA_LAYOUT_RELATED_COUNT_LABEL"
-                    description="COM_ALFA_LAYOUT_RELATED_COUNT_DESC"
+                    description="COM_ALFA_CONFIG_LAYOUT_RELATED_COUNT_DESC"
                     validate="options"
             >
                 <option value="0">0</option>
@@ -1431,6 +1438,7 @@
                     type="viewLayout"
                     view="manufacturers"
                     label="COM_ALFA_LAYOUT_MANUFACTURERS_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_MANUFACTURERS_DESC"
             />
 
             <field
@@ -1438,6 +1446,7 @@
                     type="viewLayout"
                     view="manufacturer"
                     label="COM_ALFA_LAYOUT_MANUFACTURER_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_MANUFACTURER_DESC"
             />
         </fieldset>
 
@@ -1452,6 +1461,7 @@
                     view="cart"
                     slot="cart_items"
                     label="COM_ALFA_LAYOUT_CART_ITEMS_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_CART_ITEMS_DESC"
             />
 
             <field
@@ -1460,6 +1470,7 @@
                     view="cart"
                     slot="cart_form"
                     label="COM_ALFA_LAYOUT_CART_FORM_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_CART_FORM_DESC"
             />
 
             <field
@@ -1468,6 +1479,7 @@
                     view="cart"
                     slot="select_user_info"
                     label="COM_ALFA_LAYOUT_CART_USER_INFO_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_CART_USER_INFO_DESC"
             />
 
             <field
@@ -1476,6 +1488,7 @@
                     view="cart"
                     slot="select_payment"
                     label="COM_ALFA_LAYOUT_CART_PAYMENT_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_CART_PAYMENT_DESC"
             />
 
             <field
@@ -1484,6 +1497,7 @@
                     view="cart"
                     slot="select_shipment"
                     label="COM_ALFA_LAYOUT_CART_SHIPMENT_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_CART_SHIPMENT_DESC"
             />
 
             <field
@@ -1505,6 +1519,7 @@
                     type="viewLayout"
                     view="registration"
                     label="COM_ALFA_LAYOUT_REGISTRATION_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_REGISTRATION_DESC"
             />
 
             <field
@@ -1512,6 +1527,7 @@
                     type="viewLayout"
                     view="userinfo"
                     label="COM_ALFA_LAYOUT_USERINFO_LABEL"
+                    description="COM_ALFA_CONFIG_LAYOUT_USERINFO_DESC"
             />
         </fieldset>
 
