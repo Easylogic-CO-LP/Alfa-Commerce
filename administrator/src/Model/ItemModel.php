@@ -3984,6 +3984,11 @@ class ItemModel extends AlfaAdminModel
             $table->created_by = $user->id;
         }
 
+        // When the product was made (NewProducts counts from it): kept from its first save, never changed.
+        if ($table->id == 0 && empty($table->created)) {
+            $table->created = Factory::getDate()->toSql();
+        }
+
         $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $user->id;
 

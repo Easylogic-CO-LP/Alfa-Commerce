@@ -300,6 +300,33 @@
             layout="joomla.form.field.list-fancy-select"
     />
 
+    <!-- New products: reached, or left out while new within the shop's days or the rule's own. -->
+    <field
+            name="new_products"
+            type="radio"
+            class="btn-group"
+            default="0"
+            validate="options"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_NEW_PRODUCTS"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_NEW_PRODUCTS"
+    >
+      <option value="0">COM_ALFA_DISCOUNT_NEW_PRODUCTS_REACHED</option>
+      <option value="1">COM_ALFA_DISCOUNT_NEW_PRODUCTS_SHOP_DAYS</option>
+      <option value="2">COM_ALFA_DISCOUNT_NEW_PRODUCTS_OWN_DAYS</option>
+    </field>
+
+    <field
+            name="new_days"
+            type="number"
+            min="1"
+            step="1"
+            default="30"
+            filter="integer"
+            showon="new_products:2"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_NEW_DAYS"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_NEW_DAYS"
+    />
+
     <field
             name="publish_up"
             type="calendar"

@@ -31,6 +31,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceIndexTidyJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceSetPrepareJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\Runner;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
+use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
@@ -2965,6 +2966,33 @@ class PriceIndexSyncService
                     if ($edge !== null && strcmp((string) $edge, trim($now, "'")) > 0) {
                         $found[(int) $row->item_id][(string) $edge] = true;
                     }
+                }
+            }
+        }
+
+        // The moment a product stops being new, while a published rule leaves new products out: within the shop's days,
+        // or within a rule's own days (one edge a rule).
+        $date = NewProducts::dateSql(itemAlias: 'i');
+        $format = $db->quote('%Y-%m-%d %H:%i:%s');
+        $items = $db->quoteName('#__alfa_items') . ' AS i';
+        $discounts = $db->quoteName('#__alfa_discounts') . ' AS d';
+        $newEdges = [
+            'SELECT i.id AS item_id, DATE_FORMAT(DATE_ADD(' . $date . ', INTERVAL d.new_days DAY), ' . $format . ') AS edge FROM ' . $items
+            . ' INNER JOIN ' . $discounts . ' ON d.state = 1 AND d.new_products = 2 AND d.new_days > 0'
+            . ' WHERE i.id IN (' . $list . ') AND ' . $date . ' IS NOT NULL',
+        ];
+        $shopDays = NewProducts::days();
+
+        if ($shopDays > 0) {
+            $newEdges[] = 'SELECT i.id AS item_id, DATE_FORMAT(DATE_ADD(' . $date . ', INTERVAL ' . $shopDays . ' DAY), ' . $format . ') AS edge FROM ' . $items
+                . ' WHERE i.id IN (' . $list . ') AND ' . $date . ' IS NOT NULL'
+                . ' AND EXISTS (SELECT 1 FROM ' . $discounts . ' WHERE d.state = 1 AND d.new_products = 1)';
+        }
+
+        foreach ($newEdges as $statement) {
+            foreach ($db->setQuery($statement)->loadObjectList() ?: [] as $row) {
+                if ($row->edge !== null && strcmp((string) $row->edge, trim($now, "'")) > 0) {
+                    $found[(int) $row->item_id][(string) $row->edge] = true;
                 }
             }
         }

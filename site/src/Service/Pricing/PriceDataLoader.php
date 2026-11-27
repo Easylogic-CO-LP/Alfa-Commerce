@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Joomla\CMS\Factory;
 
@@ -708,6 +709,11 @@ class PriceDataLoader
             ->where('NOT EXISTS (SELECT 1 FROM #__alfa_discount_excluded_categories AS xc INNER JOIN ' . $this->categoryLinks() . ' AS xic'
                 . ' ON xic.item_id = ic.item_id WHERE xc.discount_id = d.id AND xc.category_id = xic.category_id)')
 
+            // New products: a rule that leaves them out does not reach a product new at the moment, within the shop's
+            // days or the rule's own. A product not saved yet has no date and is reached.
+            ->join('LEFT', '#__alfa_items AS it ON it.id = ic.item_id')
+            ->where($this->newProductsSql(context: $context))
+
             // Scope 3: Place
             // Matches when: no place restriction exists, applies-to-all-places (0),
             // or the discount targets the visitor's place or a place above it.
@@ -847,6 +853,25 @@ class PriceDataLoader
     }
 
     // Helpers
+
+    /**
+     * The condition that a discount rule (alias d) does not leave the product (items alias it) out as new at the
+     * context's moment: the rule reaches new products, or the product is not new within the days the rule names (the
+     * shop's, or its own). A product with no items row (one not saved yet) is reached.
+     *
+     * @param PriceContext $context The context, for its moment.
+     *
+     * @since  2.3.0
+     */
+    private function newProductsSql(PriceContext $context): string
+    {
+        $moment = $this->db->quote($context->getReferenceDate() ?? ActiveDateCondition::now());
+        $shopDays = NewProducts::days();
+        $shop = $shopDays > 0 ? 'NOT ' . NewProducts::withinSql(itemAlias: 'it', daysSql: (string) $shopDays, momentSql: $moment) : '1 = 1';
+        $own = 'NOT ' . NewProducts::withinSql(itemAlias: 'it', daysSql: 'd.new_days', momentSql: $moment);
+
+        return '(it.id IS NULL OR ((d.new_products <> 1 OR ' . $shop . ') AND (d.new_products <> 2 OR d.new_days <= 0 OR ' . $own . ')))';
+    }
 
     /**
      * The place condition of a discount's or a tax's scope: no place row, the "every place" row (0), or a row

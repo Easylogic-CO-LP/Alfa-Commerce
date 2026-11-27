@@ -155,6 +155,32 @@
 
         </fieldset>
 
+        <!-- Products: what makes a product new (NewProducts), for the storefront's label and the discount rules
+             that leave new products out. -->
+        <fieldset name="general_products" label="COM_ALFA_CONFIG_FIELDSET_PRODUCTS">
+            <field
+                    name="new_product_days"
+                    type="number"
+                    min="0"
+                    step="1"
+                    default="0"
+                    filter="integer"
+                    label="COM_ALFA_CONFIG_NEW_PRODUCT_DAYS"
+                    description="COM_ALFA_CONFIG_NEW_PRODUCT_DAYS_DESC"
+            />
+            <field
+                    name="new_product_from"
+                    type="list"
+                    default="created"
+                    validate="options"
+                    label="COM_ALFA_CONFIG_NEW_PRODUCT_FROM"
+                    description="COM_ALFA_CONFIG_NEW_PRODUCT_FROM_DESC"
+            >
+                <option value="created">COM_ALFA_CONFIG_NEW_PRODUCT_FROM_CREATED</option>
+                <option value="published">COM_ALFA_CONFIG_NEW_PRODUCT_FROM_PUBLISHED</option>
+            </field>
+        </fieldset>
+
         <!-- Floor of the listing chain: category -> menu item -> here.
              A visitor's own choice in the storefront's list tools still wins
              over all three; these only decide what an untouched URL shows.
