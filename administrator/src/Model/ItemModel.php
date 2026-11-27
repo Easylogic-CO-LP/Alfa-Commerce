@@ -1283,7 +1283,8 @@ class ItemModel extends AlfaAdminModel
             }
 
             // The product's own page sections, as the Sections tab posted them: a form with no row carries no list,
-            // which empties them as it empties the other lists.
+            // which empties them as it empties the other lists; a REST PATCH and a change built in code that leave the
+            // key out keep the stored rows (ItemWriteService::KEPT_WHEN_ABSENT lays them back, as the related products).
             ItemSections::replace(db: $db, itemId: (int) $currentId, rows: ItemSections::posted($data['sections'] ?? []));
 
             // ITEM FIELDS: options and specifications are ADDED by their pickers (item.addOptions, item.addInfoValues),

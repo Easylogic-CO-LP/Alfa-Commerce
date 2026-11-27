@@ -69,7 +69,7 @@ final class ItemWriteService
      *
      * @since  2.3.0
      */
-    public const KEPT_WHEN_ABSENT = ['categories', 'manufacturers', 'allowedUsers', 'allowedUserGroups', 'prices', 'robots', 'related'];
+    public const KEPT_WHEN_ABSENT = ['categories', 'manufacturers', 'allowedUsers', 'allowedUserGroups', 'prices', 'robots', 'related', 'sections'];
 
     /**
      * The stored fields a change never lays back when it leaves them out: the stock figures, the images, and the lists
