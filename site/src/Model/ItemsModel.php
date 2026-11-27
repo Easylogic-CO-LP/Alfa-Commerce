@@ -2830,22 +2830,34 @@ class ItemsModel extends UrlListModel
      */
     public function getAvailableStockCounts(): array
     {
-        $model = $this->createFilterSubModel(['filter.stock']);
         $sellable = (new StockVisibilityPolicy())->sellableExpression('a');
-        $out = [];
+        $base = $this->createFilterSubModel(['filter.stock'])->getListQuery();
+        $base->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->select('COUNT(DISTINCT a.id)');
+        $queries = [];
 
         foreach (['in' => $sellable, 'out' => 'NOT ' . $sellable] as $key => $predicate) {
-            $query = $model->getListQuery();
-            $query->clear('select')
-                ->clear('order')
-                ->clear('group')
-                ->select('COUNT(DISTINCT a.id)')
-                ->where($predicate);
+            $queries[$key] = (clone $base)->where($predicate);
+        }
 
+        // The filter module asks for this facet more than once per render (its asset checks and its layout); the two
+        // counts are identical for the same filter state, so memo by the built statement and the values bound to it.
+        static $cache = [];
+        $memo = self::statementKey(query: $queries['in']);
+
+        if (isset($cache[$memo])) {
+            return $cache[$memo];
+        }
+
+        $out = [];
+
+        foreach ($queries as $key => $query) {
             $out[$key] = (int) $this->getDatabase()->setQuery($query)->loadResult();
         }
 
-        return $out;
+        return $cache[$memo] = $out;
     }
 
     /**
