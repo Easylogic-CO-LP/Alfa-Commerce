@@ -4,7 +4,9 @@
  * A webhook's edit screen, a tab a fieldset: General (name, https address, state), Topics (the changes it is told
  * of, each with when it is told) and Security (the signing secret, shown masked and never read back, New secret, and
  * how a request is signed). The secret is made by the shop when the webhook is new or staff press New secret, and
- * shown once in the message after that save.
+ * shown once in the message after that save. A saved webhook has a fourth tab, Deliveries: each change the shop owed
+ * it, as a list of its own in a frame, paged and filtered with Joomla's tools, which post the one form named
+ * adminForm, here the webhook's.
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -89,6 +91,14 @@ $tab = static fn (string $fieldset): string => Text::_((string) ($fieldsets[$fie
         </div>
     </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php if (!$isNew) : ?>
+        <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'deliveries', Text::_('COM_ALFA_WEBHOOK_TAB_DELIVERIES')); ?>
+        <?php // Loaded when the tab is opened, not with the form. ?>
+        <iframe src="<?php echo Route::_('index.php?option=com_alfa&view=webhookdeliveries&tmpl=component&modal=1&webhook_id=' . (int) $item->id); ?>"
+                title="<?php echo $this->escape(Text::_('COM_ALFA_WEBHOOK_TAB_DELIVERIES')); ?>" class="alfa-webhook-deliveries" loading="lazy"></iframe>
+        <?php echo HTMLHelper::_('uitab.endTab'); ?>
+    <?php endif; ?>
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 

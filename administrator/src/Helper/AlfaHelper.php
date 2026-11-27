@@ -967,6 +967,8 @@ class AlfaHelper
         'notifications' => 'notifications',
         'webhook' => 'webhooks',
         'webhooks' => 'webhooks',
+        'webhookdelivery' => 'webhooks',
+        'webhookdeliveries' => 'webhooks',
     ];
 
     /**
@@ -1065,7 +1067,7 @@ class AlfaHelper
         'locations', 'inventorymovements', 'reservations',
         'places', 'currencies', 'taxes',
         'payments', 'shipments', 'formfields', 'formfieldgroups', 'orderstatuses',
-        'users', 'usergroups', 'webhooks',
+        'users', 'usergroups', 'webhooks', 'webhookdeliveries',
     ];
 
     /**
