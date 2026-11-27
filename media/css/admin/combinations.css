@@ -358,6 +358,7 @@ body:has(.alfa-studio) {
 
 .alfa-combi-tools .tools-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin-bottom: 0.6rem;
@@ -372,10 +373,12 @@ body:has(.alfa-studio) {
   margin-left: auto;
 }
 
-/* The variations head's action cluster (show-only, bulk, generate) hugs right. */
+/* The variations head's action cluster (show-only, bulk, generate) hugs right, and
+   wraps onto further lines where the width runs out. */
 .alfa-combi-tools .tools-head .tools-actions {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
 }
@@ -407,6 +410,7 @@ body:has(.alfa-studio) {
 
 .alfa-combi-tools .settings-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   padding: 0.4rem 0.2rem;

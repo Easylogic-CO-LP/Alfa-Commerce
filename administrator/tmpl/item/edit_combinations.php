@@ -447,254 +447,257 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                             <p class="tools-hint mb-0"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_EMPTY'); ?></p>
                         </div>
                     <?php else : ?>
-                        <table class="table table-sm align-middle mb-0 alfa-combinations">
-                            <thead>
-                            <tr>
-                                <th class="w-1"></th>
-                                <th class="w-1"><input type="checkbox" class="form-check-input" id="combi-select-all" aria-label="<?php echo $this->escape(Text::_('JGLOBAL_CHECK_ALL')); ?>" data-select-all></th>
-                                <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_VARIANT'); ?></th>
-                                <th class="w-15">
-                                    <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_NAME'); ?>
-                                    <span class="icon-info-circle alfa-quick-info" aria-hidden="true"
-                                          title="<?php echo $this->escape(Text::_('COM_ALFA_COMBINATION_NAME_TIP')); ?>"></span>
-                                </th>
-                                <th class="w-15"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_SKU'); ?></th>
-                                <th class="w-10"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_STOCK'); ?></th>
-                                <th class="w-10">
-                                    <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_ADJUST'); ?>
-                                    <span class="icon-info-circle alfa-quick-info" aria-hidden="true"
-                                          title="<?php echo $this->escape(Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_ANYCONTEXT_DESC')); ?>"></span>
-                                </th>
-                                <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_CUSTOMIZED'); ?></th>
-                                <th class="w-5 text-center"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_DEFAULT'); ?></th>
-                                <th class="w-5 text-center"><?php echo Text::_('JSTATUS'); ?></th>
-                                <th class="w-10 text-end"></th>
-                            </tr>
-                            </thead>
-                            <tbody data-sortable-combinations>
-                            <?php foreach ($combinations as $combination) :
-                                $combinationId = (int) $combination->id;
-                                $base = 'jform[combinations][' . $combinationId . ']';
-
-                                // Summary chips: what does this variant customize?
-                                $priceRows = (array) ($combination->price_rows ?? []);
-                                $priceCount = count(array_filter($priceRows, static fn ($r) => ((array) $r)['_mode'] !== 'adjust'));
-                                $adjustCount = count($priceRows) - $priceCount;
-                                $mediaCount = (int) ($combination->media_count ?? 0);
-                                $overrideCount = count(array_filter($scalarNames, static fn ($n) => $combination->{$n} !== null));
-                                $textCount = count((array) ($combination->translations ?? []));
-
-                                // Quick edit owns at most ONE simple (any-context) row, of
-                                // either mode (price or adjust). Two or more rows (or a
-                                // single CONDITIONED row) are the Studio's business and
-                                // lock the grid edit (it must never clobber/confuse them).
-                                $isAnyContext = static fn (array $r): bool => !(int) ($r['currency_id'] ?? 0)
-                                    && !(int) ($r['country_id'] ?? 0)
-                                    && !(int) ($r['usergroup_id'] ?? 0)
-                                    && !(int) ($r['user_id'] ?? 0)
-                                    && trim((string) ($r['quantity_start'] ?? '')) === ''
-                                    && trim((string) ($r['quantity_end'] ?? '')) === ''
-                                    && empty($r['publish_up'])
-                                    && empty($r['publish_down']);
-
-                                $quickRow = null;
-                                $quickLocked = false;
-
-                                if (count($priceRows) >= 2) {
-                                    $quickLocked = true;
-                                } elseif (count($priceRows) === 1) {
-                                    $single = (array) $priceRows[array_key_first($priceRows)];
-
-                                    if ($isAnyContext($single)) {
-                                        $quickRow = $single;
-                                    } else {
-                                        $quickLocked = true;
-                                    }
-                                }
-
-                                $quickMode = (($quickRow['_mode'] ?? 'adjust') === 'price') ? 'price' : 'adjust';
-                                $quickOperation = in_array($quickRow['operation'] ?? null, ['+', '-', '%', '-%'], true) ? $quickRow['operation'] : '+';
-                                $quickTarget = in_array($quickRow['override_type'] ?? '', ['start', 'final'], true)
-                                    ? $quickRow['override_type'] : $adjustTargetDefault;
-                                // A 'price' row carrying its own sale is charged the sale (the
-                                // engine's sale rule); the "after discounts" figure follows it.
-                                $quickSaleValue = ($quickMode === 'price' && $quickRow !== null) ? trim((string) ($quickRow['override_value'] ?? '')) : '';
-                                $quickSaleType = $quickSaleValue === '' ? '' : ((($quickRow['override_type'] ?? '') === 'final') ? 'final' : 'start');
-                                ?>
-                                <tr data-combination-id="<?php echo $combinationId; ?>" data-values="<?php echo $this->escape($combination->signature); ?>" data-tuple="<?php echo implode('-', array_map('intval', (array) ($combination->value_ids ?? []))); ?>">
-                                    <td class="text-center"><span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span></td>
-                                    <td><input type="checkbox" class="form-check-input" id="combi-select-<?php echo $combinationId; ?>" aria-label="<?php echo $this->escape($combination->label); ?>" data-select-row></td>
-                                    <td>
-                                        <span class="variant-label"><?php echo $this->escape($combination->label); ?></span>
-                                        <div class="signature"><?php echo $this->escape($combination->signature); ?></div>
-                                    </td>
-                                    <td><?php echo $nameControl($combination); ?></td>
-                                    <td>
-                                        <input type="text" class="form-control form-control-sm" name="<?php echo $base; ?>[sku]"
-                                               value="<?php echo $this->escape($combination->sku); ?>"
-                                               placeholder="<?php echo $this->escape(($this->item->sku ?? '') !== '' ? $this->item->sku : '-'); ?>">
-                                    </td>
-                                    <td>
-                                        <?php
-                                        // The combination's own tracking setting when it has one,
-                                        // else the product's; no setting at all means not tracked.
-                                        $unitStock = $stockByCombination[$combinationId] ?? [];
-                                        $tracksStock = (int) ($combination->manage_stock ?? $itemStockTracking ?? 0) === 1;
-                                        $gridLocationId = $tracksStock
-                                            ? ItemFieldsAdminHelper::gridStockLocation(unitRows: $unitStock, enabledLocationIds: $enabledLocationIds)
-                                            : null;
-                                        ?>
-                                        <?php if (!$tracksStock) : ?>
-                                            <!-- No stock is counted for this variant; tracking is switched
-                                                 on in its Edit, together with the quantity on hand. -->
-                                            <span class="chip" data-open-edit role="button" tabindex="0"><?php echo Text::_('COM_ALFA_COMBI_STOCK_NOT_TRACKED'); ?></span>
-                                        <?php elseif ($gridLocationId !== null) : ?>
-                                            <?php $gridFigure = InventoryAvailabilityService::formatQuantity(value: (float) ($unitStock[$gridLocationId]['physical'] ?? 0.0)); ?>
-                                            <input type="number" step="any" class="form-control form-control-sm" name="<?php echo $base; ?>[stock]"
-                                                   value="<?php echo $this->escape($gridFigure); ?>">
-                                            <input type="hidden" name="<?php echo $base; ?>[stock_baseline]"
-                                                   value="<?php echo $this->escape($gridFigure); ?>">
-                                        <?php else : ?>
-                                            <?php
-                                            // Stock at several locations: the quantities live in the
-                                            // Studio; the cell shows the totals (physical / available /
-                                            // reserved) and the per-location split rides the tooltip.
-                                            $chipPhysical = 0.0;
-                                            $chipAvailable = 0.0;
-                                            $chipReserved = 0.0;
-                                            $parts = [];
-
-                                            foreach ($unitStock as $locId => $figures) {
-                                                $chipPhysical += $figures['physical'];
-                                                $chipReserved += $figures['reserved'];
-
-                                                if (\in_array((int) $locId, $enabledLocationIds, true)) {
-                                                    $chipAvailable += $figures['physical'] - $figures['reserved'];
-                                                }
-                                            }
-
-                                            foreach (array_unique(array_merge($enabledLocationIds, array_keys($unitStock))) as $locId) {
-                                                $parts[] = ($stockLocationTitles[$locId] ?? ('#' . $locId)) . ': '
-                                                    . InventoryAvailabilityService::formatQuantity(value: (float) ($unitStock[$locId]['physical'] ?? 0.0));
-                                            }
-                                            ?>
-                                            <!-- Per-location quantities: the grid must not clobber them;
-                                                 the chip opens this row's Edit (same doctrine as price). -->
-                                            <span class="quick-adjust is-locked" data-open-edit role="button" tabindex="0"
-                                                  title="<?php echo $this->escape(implode(' - ', $parts) . ' - ' . Text::_('COM_ALFA_ITEM_COMBINATIONS_STOCK_LOCKED_DESC')); ?>">
-                                                <span class="icon-lock" aria-hidden="true"></span>
-                                                <strong><?php echo $this->escape(InventoryAvailabilityService::formatQuantity(value: $chipPhysical)); ?></strong>
-                                                <small class="text-muted">
-                                                    <?php echo Text::_('COM_ALFA_INVENTORY_ABBR_AVAILABLE'); ?> <?php echo $this->escape(InventoryAvailabilityService::formatQuantity(value: $chipAvailable)); ?>
-                                                    - <?php echo Text::_('COM_ALFA_INVENTORY_ABBR_RESERVED'); ?> <?php echo $this->escape(InventoryAvailabilityService::formatQuantity(value: $chipReserved)); ?>
-                                                </small>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($quickLocked) : ?>
-                                            <!-- 2+ price rows: the grid must not clobber them; the chip opens
-                                                 this row's Edit, where the full price matrix is managed. -->
-                                            <span class="quick-adjust is-locked" data-open-edit role="button" tabindex="0"
-                                                  title="<?php echo $this->escape(Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_LOCKED_DESC')); ?>">
-                                                <span class="icon-lock" aria-hidden="true"></span>
-                                                <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_LOCKED'); ?>
-                                            </span>
-                                        <?php else : ?>
-                                            <!-- Quick edit of the single any-context row: a full price
-                                                 OR a +/-/% adjust on the item price. The op-cycle and
-                                                 the net/final target show only in adjust mode. All three
-                                                 are the same cycle-button chrome. -->
-                                            <span class="quick-adjust" data-quick-sale-type="<?php echo $this->escape($quickSaleType); ?>" data-quick-sale-value="<?php echo $this->escape($quickSaleValue); ?>">
-                                                <?php echo $cycle($base . '[quick][mode]', $quickMode, [
-                                                    'adjust' => Text::_('COM_ALFA_PRICES_MODE_ADJUST'),
-                                                    'price' => Text::_('COM_ALFA_PRICES_MODE_PRICE'),
-                                                ], 'data-quick-mode'); ?>
-                                                <span class="adjust-only"<?php echo $quickMode === 'price' ? ' hidden' : ''; ?>>
-                                                    <?php echo $opCycle($base . '[quick][operation]', $quickOperation); ?>
-                                                </span>
-                                                <input type="number" step="0.00000001" class="form-control form-control-sm" data-quick-value
-                                                       name="<?php echo $base; ?>[quick][value]"
-                                                       value="<?php echo $quickRow !== null ? $this->escape($quickRow['value']) : ''; ?>"
-                                                       placeholder="&mdash;">
-                                                <span class="adjust-only"<?php echo $quickMode === 'price' ? ' hidden' : ''; ?>>
-                                                    <?php echo $cycle($base . '[quick][target]', $quickTarget, [
-                                                        'final' => Text::_('COM_ALFA_PRICES_TARGET_GROSS'),
-                                                        'start' => Text::_('COM_ALFA_PRICES_TARGET_NET'),
-                                                    ]); ?>
-                                                </span>
-                                                <!-- Final (gross, BEFORE discounts), editable: typing here
-                                                     back-computes the net value/adjust. Not posted (the net
-                                                     value is the source). Same meaning as the Prices panel. -->
-                                                <input type="number" step="any" class="form-control form-control-sm quick-final"
-                                                       id="combi-final-<?php echo $combinationId; ?>" data-quick-final
-                                                       title="<?php echo $this->escape(Text::_('COM_ALFA_PRICES_FINAL')); ?>"
-                                                       placeholder="<?php echo $this->escape(Text::_('COM_ALFA_PRICES_FINAL')); ?>">
-                                                <?php if ($hasDiscounts) : ?>
-                                                    <!-- Read-only "after discounts" figure (JS-filled value),
-                                                         label over price like the Prices panel. Shown only while
-                                                         discounts run. Informational, never posted. -->
-                                                    <span class="quick-after" data-quick-after hidden>
-                                                        <span class="quick-after-label"><?php echo $this->escape(Text::_('COM_ALFA_PRICES_DISCOUNTED')); ?></span>
-                                                        <strong class="quick-after-value" data-quick-after-value></strong>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </span>
-                                            <!-- The cell as rendered: the save writes only the fields
-                                                 changed on this page. -->
-                                            <input type="hidden" name="<?php echo $base; ?>[quick_baseline][mode]" value="<?php echo $this->escape($quickMode); ?>">
-                                            <input type="hidden" name="<?php echo $base; ?>[quick_baseline][operation]" value="<?php echo $this->escape($quickOperation); ?>">
-                                            <input type="hidden" name="<?php echo $base; ?>[quick_baseline][value]" value="<?php echo $quickRow !== null ? $this->escape($quickRow['value']) : ''; ?>">
-                                            <input type="hidden" name="<?php echo $base; ?>[quick_baseline][target]" value="<?php echo $this->escape($quickTarget); ?>">
-                                            <?php $quickCharged = $quickSaleValue !== '' ? \Alfa\Component\Alfa\Administrator\Field\AlfapricesField::chargedPrice(itemId: (int) $this->item->id, combinationId: $combinationId) : null; ?>
-                                            <?php if ($quickCharged !== null) : ?>
-                                                <!-- The row's custom discount, kept by every grid save: what the
-                                                     shop charges for the variant, from the engine's own price. -->
-                                                <small class="d-block text-muted" data-quick-sale-charged>
-                                                    <?php echo Text::sprintf('COM_ALFA_COMBI_QUICK_SALE_CHARGED', $this->escape($quickCharged->format())); ?>
-                                                </small>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($priceCount) : ?>
-                                            <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_PRICES', $priceCount); ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($adjustCount) : ?>
-                                            <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_ADJUSTS', $adjustCount); ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($mediaCount) : ?>
-                                            <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_IMAGES', $mediaCount); ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($overrideCount + $textCount) : ?>
-                                            <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_OVERRIDES', $overrideCount + $textCount); ?></span>
-                                        <?php endif; ?>
-                                        <?php if (!$priceCount && !$adjustCount && !$mediaCount && !($overrideCount + $textCount)) : ?>
-                                            <span class="chip"><?php echo Text::_('COM_ALFA_COMBINATION_CHIP_INHERITS'); ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <input type="radio" class="form-check-input" name="jform[combinations_default]"
-                                               value="<?php echo $combinationId; ?>" <?php echo (int) $combination->default_on === 1 ? 'checked' : ''; ?>>
-                                    </td>
-                                    <td class="text-center">
-                                        <input type="checkbox" class="form-check-input" name="<?php echo $base; ?>[state]" value="1"
-                                               <?php echo (int) $combination->state === 1 ? 'checked' : ''; ?>>
-                                    </td>
-                                    <td class="text-end">
-                                        <button type="button" class="btn btn-sm btn-primary" data-studio-open
-                                                data-src="<?php echo Route::_('index.php?option=com_alfa&view=item&layout=edit_combination&tmpl=component&id=' . (int) $this->item->id . '&combination_id=' . $combinationId, false); ?>"
-                                                data-label="<?php echo $this->escape($combination->label); ?>">
-                                            <span class="icon-edit" aria-hidden="true"></span> <?php echo Text::_('JACTION_EDIT'); ?>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-combination-remove aria-label="<?php echo Text::_('JACTION_DELETE'); ?>">
-                                            <span class="icon-trash" aria-hidden="true"></span>
-                                        </button>
-                                    </td>
+                        <?php // Only the table scrolls sideways on a narrow screen, not the page. ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0 alfa-combinations">
+                                <thead>
+                                <tr>
+                                    <th class="w-1"></th>
+                                    <th class="w-1"><input type="checkbox" class="form-check-input" id="combi-select-all" aria-label="<?php echo $this->escape(Text::_('JGLOBAL_CHECK_ALL')); ?>" data-select-all></th>
+                                    <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_VARIANT'); ?></th>
+                                    <th class="w-15">
+                                        <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_NAME'); ?>
+                                        <span class="icon-info-circle alfa-quick-info" aria-hidden="true"
+                                              title="<?php echo $this->escape(Text::_('COM_ALFA_COMBINATION_NAME_TIP')); ?>"></span>
+                                    </th>
+                                    <th class="w-15"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_SKU'); ?></th>
+                                    <th class="w-10"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_STOCK'); ?></th>
+                                    <th class="w-10">
+                                        <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_ADJUST'); ?>
+                                        <span class="icon-info-circle alfa-quick-info" aria-hidden="true"
+                                              title="<?php echo $this->escape(Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_ANYCONTEXT_DESC')); ?>"></span>
+                                    </th>
+                                    <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_CUSTOMIZED'); ?></th>
+                                    <th class="w-5 text-center"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_DEFAULT'); ?></th>
+                                    <th class="w-5 text-center"><?php echo Text::_('JSTATUS'); ?></th>
+                                    <th class="w-10 text-end"></th>
                                 </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody data-sortable-combinations>
+                                <?php foreach ($combinations as $combination) :
+                                    $combinationId = (int) $combination->id;
+                                    $base = 'jform[combinations][' . $combinationId . ']';
+
+                                    // Summary chips: what does this variant customize?
+                                    $priceRows = (array) ($combination->price_rows ?? []);
+                                    $priceCount = count(array_filter($priceRows, static fn ($r) => ((array) $r)['_mode'] !== 'adjust'));
+                                    $adjustCount = count($priceRows) - $priceCount;
+                                    $mediaCount = (int) ($combination->media_count ?? 0);
+                                    $overrideCount = count(array_filter($scalarNames, static fn ($n) => $combination->{$n} !== null));
+                                    $textCount = count((array) ($combination->translations ?? []));
+
+                                    // Quick edit owns at most ONE simple (any-context) row, of
+                                    // either mode (price or adjust). Two or more rows (or a
+                                    // single CONDITIONED row) are the Studio's business and
+                                    // lock the grid edit (it must never clobber/confuse them).
+                                    $isAnyContext = static fn (array $r): bool => !(int) ($r['currency_id'] ?? 0)
+                                        && !(int) ($r['country_id'] ?? 0)
+                                        && !(int) ($r['usergroup_id'] ?? 0)
+                                        && !(int) ($r['user_id'] ?? 0)
+                                        && trim((string) ($r['quantity_start'] ?? '')) === ''
+                                        && trim((string) ($r['quantity_end'] ?? '')) === ''
+                                        && empty($r['publish_up'])
+                                        && empty($r['publish_down']);
+
+                                    $quickRow = null;
+                                    $quickLocked = false;
+
+                                    if (count($priceRows) >= 2) {
+                                        $quickLocked = true;
+                                    } elseif (count($priceRows) === 1) {
+                                        $single = (array) $priceRows[array_key_first($priceRows)];
+
+                                        if ($isAnyContext($single)) {
+                                            $quickRow = $single;
+                                        } else {
+                                            $quickLocked = true;
+                                        }
+                                    }
+
+                                    $quickMode = (($quickRow['_mode'] ?? 'adjust') === 'price') ? 'price' : 'adjust';
+                                    $quickOperation = in_array($quickRow['operation'] ?? null, ['+', '-', '%', '-%'], true) ? $quickRow['operation'] : '+';
+                                    $quickTarget = in_array($quickRow['override_type'] ?? '', ['start', 'final'], true)
+                                        ? $quickRow['override_type'] : $adjustTargetDefault;
+                                    // A 'price' row carrying its own sale is charged the sale (the
+                                    // engine's sale rule); the "after discounts" figure follows it.
+                                    $quickSaleValue = ($quickMode === 'price' && $quickRow !== null) ? trim((string) ($quickRow['override_value'] ?? '')) : '';
+                                    $quickSaleType = $quickSaleValue === '' ? '' : ((($quickRow['override_type'] ?? '') === 'final') ? 'final' : 'start');
+                                    ?>
+                                    <tr data-combination-id="<?php echo $combinationId; ?>" data-values="<?php echo $this->escape($combination->signature); ?>" data-tuple="<?php echo implode('-', array_map('intval', (array) ($combination->value_ids ?? []))); ?>">
+                                        <td class="text-center"><span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span></td>
+                                        <td><input type="checkbox" class="form-check-input" id="combi-select-<?php echo $combinationId; ?>" aria-label="<?php echo $this->escape($combination->label); ?>" data-select-row></td>
+                                        <td>
+                                            <span class="variant-label"><?php echo $this->escape($combination->label); ?></span>
+                                            <div class="signature"><?php echo $this->escape($combination->signature); ?></div>
+                                        </td>
+                                        <td><?php echo $nameControl($combination); ?></td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm" name="<?php echo $base; ?>[sku]"
+                                                   value="<?php echo $this->escape($combination->sku); ?>"
+                                                   placeholder="<?php echo $this->escape(($this->item->sku ?? '') !== '' ? $this->item->sku : '-'); ?>">
+                                        </td>
+                                        <td>
+                                            <?php
+                                            // The combination's own tracking setting when it has one,
+                                            // else the product's; no setting at all means not tracked.
+                                            $unitStock = $stockByCombination[$combinationId] ?? [];
+                                            $tracksStock = (int) ($combination->manage_stock ?? $itemStockTracking ?? 0) === 1;
+                                            $gridLocationId = $tracksStock
+                                                ? ItemFieldsAdminHelper::gridStockLocation(unitRows: $unitStock, enabledLocationIds: $enabledLocationIds)
+                                                : null;
+                                            ?>
+                                            <?php if (!$tracksStock) : ?>
+                                                <!-- No stock is counted for this variant; tracking is switched
+                                                     on in its Edit, together with the quantity on hand. -->
+                                                <span class="chip" data-open-edit role="button" tabindex="0"><?php echo Text::_('COM_ALFA_COMBI_STOCK_NOT_TRACKED'); ?></span>
+                                            <?php elseif ($gridLocationId !== null) : ?>
+                                                <?php $gridFigure = InventoryAvailabilityService::formatQuantity(value: (float) ($unitStock[$gridLocationId]['physical'] ?? 0.0)); ?>
+                                                <input type="number" step="any" class="form-control form-control-sm" name="<?php echo $base; ?>[stock]"
+                                                       value="<?php echo $this->escape($gridFigure); ?>">
+                                                <input type="hidden" name="<?php echo $base; ?>[stock_baseline]"
+                                                       value="<?php echo $this->escape($gridFigure); ?>">
+                                            <?php else : ?>
+                                                <?php
+                                                // Stock at several locations: the quantities live in the
+                                                // Studio; the cell shows the totals (physical / available /
+                                                // reserved) and the per-location split rides the tooltip.
+                                                $chipPhysical = 0.0;
+                                                $chipAvailable = 0.0;
+                                                $chipReserved = 0.0;
+                                                $parts = [];
+
+                                                foreach ($unitStock as $locId => $figures) {
+                                                    $chipPhysical += $figures['physical'];
+                                                    $chipReserved += $figures['reserved'];
+
+                                                    if (\in_array((int) $locId, $enabledLocationIds, true)) {
+                                                        $chipAvailable += $figures['physical'] - $figures['reserved'];
+                                                    }
+                                                }
+
+                                                foreach (array_unique(array_merge($enabledLocationIds, array_keys($unitStock))) as $locId) {
+                                                    $parts[] = ($stockLocationTitles[$locId] ?? ('#' . $locId)) . ': '
+                                                        . InventoryAvailabilityService::formatQuantity(value: (float) ($unitStock[$locId]['physical'] ?? 0.0));
+                                                }
+                                                ?>
+                                                <!-- Per-location quantities: the grid must not clobber them;
+                                                     the chip opens this row's Edit (same doctrine as price). -->
+                                                <span class="quick-adjust is-locked" data-open-edit role="button" tabindex="0"
+                                                      title="<?php echo $this->escape(implode(' - ', $parts) . ' - ' . Text::_('COM_ALFA_ITEM_COMBINATIONS_STOCK_LOCKED_DESC')); ?>">
+                                                    <span class="icon-lock" aria-hidden="true"></span>
+                                                    <strong><?php echo $this->escape(InventoryAvailabilityService::formatQuantity(value: $chipPhysical)); ?></strong>
+                                                    <small class="text-muted">
+                                                        <?php echo Text::_('COM_ALFA_INVENTORY_ABBR_AVAILABLE'); ?> <?php echo $this->escape(InventoryAvailabilityService::formatQuantity(value: $chipAvailable)); ?>
+                                                        - <?php echo Text::_('COM_ALFA_INVENTORY_ABBR_RESERVED'); ?> <?php echo $this->escape(InventoryAvailabilityService::formatQuantity(value: $chipReserved)); ?>
+                                                    </small>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($quickLocked) : ?>
+                                                <!-- 2+ price rows: the grid must not clobber them; the chip opens
+                                                     this row's Edit, where the full price matrix is managed. -->
+                                                <span class="quick-adjust is-locked" data-open-edit role="button" tabindex="0"
+                                                      title="<?php echo $this->escape(Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_LOCKED_DESC')); ?>">
+                                                    <span class="icon-lock" aria-hidden="true"></span>
+                                                    <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_QUICK_LOCKED'); ?>
+                                                </span>
+                                            <?php else : ?>
+                                                <!-- Quick edit of the single any-context row: a full price
+                                                     OR a +/-/% adjust on the item price. The op-cycle and
+                                                     the net/final target show only in adjust mode. All three
+                                                     are the same cycle-button chrome. -->
+                                                <span class="quick-adjust" data-quick-sale-type="<?php echo $this->escape($quickSaleType); ?>" data-quick-sale-value="<?php echo $this->escape($quickSaleValue); ?>">
+                                                    <?php echo $cycle($base . '[quick][mode]', $quickMode, [
+                                                        'adjust' => Text::_('COM_ALFA_PRICES_MODE_ADJUST'),
+                                                        'price' => Text::_('COM_ALFA_PRICES_MODE_PRICE'),
+                                                    ], 'data-quick-mode'); ?>
+                                                    <span class="adjust-only"<?php echo $quickMode === 'price' ? ' hidden' : ''; ?>>
+                                                        <?php echo $opCycle($base . '[quick][operation]', $quickOperation); ?>
+                                                    </span>
+                                                    <input type="number" step="0.00000001" class="form-control form-control-sm" data-quick-value
+                                                           name="<?php echo $base; ?>[quick][value]"
+                                                           value="<?php echo $quickRow !== null ? $this->escape($quickRow['value']) : ''; ?>"
+                                                           placeholder="&mdash;">
+                                                    <span class="adjust-only"<?php echo $quickMode === 'price' ? ' hidden' : ''; ?>>
+                                                        <?php echo $cycle($base . '[quick][target]', $quickTarget, [
+                                                            'final' => Text::_('COM_ALFA_PRICES_TARGET_GROSS'),
+                                                            'start' => Text::_('COM_ALFA_PRICES_TARGET_NET'),
+                                                        ]); ?>
+                                                    </span>
+                                                    <!-- Final (gross, BEFORE discounts), editable: typing here
+                                                         back-computes the net value/adjust. Not posted (the net
+                                                         value is the source). Same meaning as the Prices panel. -->
+                                                    <input type="number" step="any" class="form-control form-control-sm quick-final"
+                                                           id="combi-final-<?php echo $combinationId; ?>" data-quick-final
+                                                           title="<?php echo $this->escape(Text::_('COM_ALFA_PRICES_FINAL')); ?>"
+                                                           placeholder="<?php echo $this->escape(Text::_('COM_ALFA_PRICES_FINAL')); ?>">
+                                                    <?php if ($hasDiscounts) : ?>
+                                                        <!-- Read-only "after discounts" figure (JS-filled value),
+                                                             label over price like the Prices panel. Shown only while
+                                                             discounts run. Informational, never posted. -->
+                                                        <span class="quick-after" data-quick-after hidden>
+                                                            <span class="quick-after-label"><?php echo $this->escape(Text::_('COM_ALFA_PRICES_DISCOUNTED')); ?></span>
+                                                            <strong class="quick-after-value" data-quick-after-value></strong>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </span>
+                                                <!-- The cell as rendered: the save writes only the fields
+                                                     changed on this page. -->
+                                                <input type="hidden" name="<?php echo $base; ?>[quick_baseline][mode]" value="<?php echo $this->escape($quickMode); ?>">
+                                                <input type="hidden" name="<?php echo $base; ?>[quick_baseline][operation]" value="<?php echo $this->escape($quickOperation); ?>">
+                                                <input type="hidden" name="<?php echo $base; ?>[quick_baseline][value]" value="<?php echo $quickRow !== null ? $this->escape($quickRow['value']) : ''; ?>">
+                                                <input type="hidden" name="<?php echo $base; ?>[quick_baseline][target]" value="<?php echo $this->escape($quickTarget); ?>">
+                                                <?php $quickCharged = $quickSaleValue !== '' ? \Alfa\Component\Alfa\Administrator\Field\AlfapricesField::chargedPrice(itemId: (int) $this->item->id, combinationId: $combinationId) : null; ?>
+                                                <?php if ($quickCharged !== null) : ?>
+                                                    <!-- The row's custom discount, kept by every grid save: what the
+                                                         shop charges for the variant, from the engine's own price. -->
+                                                    <small class="d-block text-muted" data-quick-sale-charged>
+                                                        <?php echo Text::sprintf('COM_ALFA_COMBI_QUICK_SALE_CHARGED', $this->escape($quickCharged->format())); ?>
+                                                    </small>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($priceCount) : ?>
+                                                <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_PRICES', $priceCount); ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($adjustCount) : ?>
+                                                <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_ADJUSTS', $adjustCount); ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($mediaCount) : ?>
+                                                <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_IMAGES', $mediaCount); ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($overrideCount + $textCount) : ?>
+                                                <span class="chip is-set"><?php echo Text::plural('COM_ALFA_COMBINATION_CHIP_OVERRIDES', $overrideCount + $textCount); ?></span>
+                                            <?php endif; ?>
+                                            <?php if (!$priceCount && !$adjustCount && !$mediaCount && !($overrideCount + $textCount)) : ?>
+                                                <span class="chip"><?php echo Text::_('COM_ALFA_COMBINATION_CHIP_INHERITS'); ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="radio" class="form-check-input" name="jform[combinations_default]"
+                                                   value="<?php echo $combinationId; ?>" <?php echo (int) $combination->default_on === 1 ? 'checked' : ''; ?>>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="checkbox" class="form-check-input" name="<?php echo $base; ?>[state]" value="1"
+                                                   <?php echo (int) $combination->state === 1 ? 'checked' : ''; ?>>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-primary" data-studio-open
+                                                    data-src="<?php echo Route::_('index.php?option=com_alfa&view=item&layout=edit_combination&tmpl=component&id=' . (int) $this->item->id . '&combination_id=' . $combinationId, false); ?>"
+                                                    data-label="<?php echo $this->escape($combination->label); ?>">
+                                                <span class="icon-edit" aria-hidden="true"></span> <?php echo Text::_('JACTION_EDIT'); ?>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-combination-remove aria-label="<?php echo Text::_('JACTION_DELETE'); ?>">
+                                                <span class="icon-trash" aria-hidden="true"></span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
                 </div>
 
