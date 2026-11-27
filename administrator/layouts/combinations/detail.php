@@ -419,9 +419,21 @@ try {
     <?php // Media: the variant's own gallery?>
     <?php if ($galleryForm !== null) : ?>
         <?php echo HTMLHelper::_('uitab.addTab', 'combinationStudioTabs', 'combo-media', Text::_('COM_ALFA_MEDIA_TAB_ITEM_LABEL')); ?>
-            <div class="studio-section">
-                <p class="studio-hint"><?php echo Text::_('COM_ALFA_COMBINATION_GALLERY_DESC'); ?></p>
-                <?php echo $galleryForm->renderField('medias'); ?>
+            <div class="studio-section studio-media">
+                <div class="studio-media-zone">
+                    <p class="studio-hint"><?php echo Text::_('COM_ALFA_COMBINATION_GALLERY_DESC'); ?></p>
+                    <?php echo $galleryForm->renderField('medias'); ?>
+                </div>
+                <?php // The selected image as stored, large, with its description: what the merchant set, without leaving
+                      // the window. combinations.js fills it from the card clicked (the first card when the tab opens). ?>
+                <aside class="studio-image-preview" data-studio-image-preview aria-live="polite">
+                    <p class="studio-image-preview-title"><?php echo Text::_('COM_ALFA_COMBINATION_IMAGE_PREVIEW'); ?></p>
+                    <figure class="studio-image-preview-figure" data-studio-image-preview-figure hidden>
+                        <img src="" alt="" data-studio-image-preview-img>
+                        <figcaption data-studio-image-preview-caption></figcaption>
+                    </figure>
+                    <p class="studio-hint" data-studio-image-preview-empty><?php echo Text::_('COM_ALFA_COMBINATION_IMAGE_PREVIEW_NONE'); ?></p>
+                </aside>
             </div>
         <?php echo HTMLHelper::_('uitab.endTab'); ?>
     <?php endif; ?>
