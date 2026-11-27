@@ -15,8 +15,9 @@
  * Every arm runs on disposable fixtures of this run's own, written through the real models (products as the item
  * screen saves them, discounts and taxes through their models, one sale row set above its price by SQL, as a row saved
  * before the save refused it) inside one transaction that is rolled back. The report is read inside that transaction
- * through PriceAudit::report() (the page's own PriceAudit::read() opens a read-only snapshot of its own, which a
- * caller's transaction forbids); the SQL and the engine runs are the same.
+ * by the check's job (PriceAuditJob::chunk(), run chunk by chunk in this process from a checkpoint, two rows a chunk, so
+ * every piece of the check crosses a chunk) and read back from the store (PriceAuditStore), as the page, the tile and
+ * the bell read it; the SQL and the engine runs are the job's.
  *
  *   [PE1] ★ RulePeriod::status() judges a period as the engine does: an end equal to the clock is still active, a
  *         start equal to the clock has begun, empty and null dates are open ends.
@@ -33,7 +34,13 @@
  *   [PA5] (needs a prepared price index context) a published product with no price row is a finding; a product two
  *         rules reach whose index price is more than half off is a finding naming both rules.
  *   [PA6] counts() names each section with findings and sentence() words them; the option switches take a section out.
- *   [PA7] the notice follows the report: its facts are the kinds found, and a report with nothing withdraws them.
+ *   [PA7] the notice follows the stored result: its facts are the kinds found, and a result with nothing withdraws them.
+ *   [ST1] ★ the store's state: never run before a result is stored, complete once the job's last chunk stored it, out
+ *         of date once a price or rule change is marked after the check's moment, running while a job waits.
+ *   [ST2] ★ "Check again" twice queues one job: the second ask joins the first.
+ *   [ST3] ★ the stored rows page: a page of one row, the next page, the total unchanged.
+ *   [ST4] ★ every sale row is judged across chunks: the engine ran once for each of the shop's sale rows that need it,
+ *         with more rows than one chunk holds.
  *   [PR1] the product's price row says the sale replaces the rules it names, or which rules apply now; prices.js keeps
  *         that sentence live.
  *   [T1]  nothing of the run outlived the rollback, by the ids it knows: a row of its products, rules or tax found on
@@ -70,6 +77,9 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditNotice;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceAuditJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ConditionNotice;
@@ -365,11 +375,47 @@ try {
     $reach3 = $reach->of($d3);
     $stacksWith = static fn (array $reach, int $id): ?int => array_values(array_filter($reach['stacks'], static fn (array $s): bool => $s['id'] === $id))[0]['count'] ?? null;
 
-    // The report, in this transaction.
+    // The check, by its job's chunks in this transaction, two rows a chunk, read back from the store as the page reads it.
     PriceDataLoader::forgetLoaded();
-    $report = (new PriceAudit(db: $db))->report();
-    $sections = $report['sections'];
-    $context = $report['context']['id'];
+    $store = new PriceAuditStore(db: $db);
+    $db->setQuery("DELETE FROM `{$p}alfa_meta` WHERE name LIKE 'price\\_audit.%'")->execute();
+    $stateBefore = $store->status()['state'];
+    $runJob = static function (int $units): array {
+        $job = new PriceAuditJob();
+        $run = new JobRun(id: 0, handler: PriceAuditJob::NAME, scopeKey: '', payload: [], checkpoint: null, doneUnits: 0, totalUnits: 0, trigger: 'suite');
+        $chunks = 0;
+
+        do {
+            $chunk = $job->chunk($run, $units);
+            $chunks++;
+            $run = $run->at(checkpoint: $chunk->checkpoint, doneUnits: $run->doneUnits + $chunk->units, totalUnits: $run->totalUnits);
+        } while (!$chunk->finished && $chunks < 100000);
+
+        return ['chunks' => $chunks, 'result' => json_decode((string) $chunk->result, true)];
+    };
+    $saleRows = PriceAudit::begin(db: $db)->saleCount();
+    $ran = $runJob(2);
+    $summary = $store->summary();
+    $stateAfter = $store->status()['state'];
+    $sections = [];
+
+    foreach (PriceAudit::SECTIONS as $key) {
+        $sections[$key] = ['rows' => $store->rows(section: $key)['rows'], 'count' => (int) ($summary['sections'][$key]['count'] ?? 0), 'available' => (bool) ($summary['sections'][$key]['available'] ?? false)];
+    }
+
+    $context = $summary['context']['id'];
+    $report = $summary;
+
+    // [ST3] a page of one row, then the next, of the section that holds the rules out of their period.
+    $pageOne = $store->rows(section: PriceAudit::SECTION_RULES_PERIOD, offset: 0, limit: 1);
+    $pageTwo = $store->rows(section: PriceAudit::SECTION_RULES_PERIOD, offset: 1, limit: 1);
+
+    // [ST1] out of date once a change is marked after the check's moment; running while a job waits.
+    PriceAuditStore::markStale(db: $db);
+    $stateStale = $store->status()['state'];
+    $firstAsk = PriceAuditJob::enqueue();
+    $secondAsk = PriceAuditJob::enqueue();
+    $stateRunning = $store->status();
 
     // [PR1] the row's sentence, rendered as the item screen renders it.
     $sentenceOf = static function (int $itemId) use ($db, $p): array {
@@ -386,18 +432,10 @@ try {
     $belowSentence = $sentenceOf($pBelow);
     $stackedSentence = $sentenceOf($pStacked);
 
-    // [PA7] the notice follows the report, then a report with nothing.
-    $toldBefore = ConditionNotice::told(key: PriceAuditNotice::KEY);
-    $followed = PriceAuditNotice::follow(report: $report);
+    // [PA7] the notice followed the stored result in the job's last chunk; a result with nothing withdraws it.
     $toldWith = ConditionNotice::told(key: PriceAuditNotice::KEY);
-    $quiet = $report;
-
-    foreach ($quiet['sections'] as $key => $section) {
-        $quiet['sections'][$key] = ['rows' => [], 'count' => 0, 'available' => true];
-    }
-
-    $quiet['index']['complete'] = true;
-    PriceAuditNotice::follow(report: $quiet);
+    $followed = array_keys(PriceAudit::counts(summary: $summary));
+    PriceAuditNotice::follow(counts: [], sentence: '');
     $toldQuiet = ConditionNotice::told(key: PriceAuditNotice::KEY);
 
     $result = [
@@ -409,6 +447,12 @@ try {
         'stacks13' => $stacksWith($reach1, $d3),
         'context' => $context,
         'engine' => $report['engine'],
+        'saleRows' => $saleRows,
+        'chunks' => $ran['chunks'],
+        'jobResult' => $ran['result'],
+        'states' => ['before' => $stateBefore, 'after' => $stateAfter, 'stale' => $stateStale, 'running' => $stateRunning['state'], 'job' => $stateRunning['job']['id'] ?? null],
+        'asks' => ['first' => $firstAsk->joined, 'second' => $secondAsk->joined, 'same' => $firstAsk->id === $secondAsk->id],
+        'pages' => ['one' => \count($pageOne['rows']), 'two' => \count($pageTwo['rows']), 'totals' => [$pageOne['total'], $pageTwo['total']], 'distinct' => ($pageOne['rows'][0]['rule']['id'] ?? null) !== ($pageTwo['rows'][0]['rule']['id'] ?? null)],
         'above' => $ofItem($sections[PriceAudit::SECTION_SALE_ABOVE], $pAbove),
         'aboveRow' => $aboveRow,
         'large' => $ofItem($sections[PriceAudit::SECTION_SALE_LARGE], $pLarge),
@@ -423,11 +467,11 @@ try {
         'noPrice' => $ofItem($sections[PriceAudit::SECTION_UNPRICED], $pNoPrice),
         'stacked' => $ofItem($sections[PriceAudit::SECTION_STACKED], $pStacked),
         'available' => [$sections[PriceAudit::SECTION_UNPRICED]['available'], $sections[PriceAudit::SECTION_STACKED]['available']],
-        'counts' => PriceAudit::counts(report: $report),
-        'sentence' => PriceAudit::sentence(report: $report),
+        'counts' => PriceAudit::counts(summary: $summary),
+        'sentence' => PriceAudit::sentence(summary: $summary),
         'belowSentence' => $belowSentence,
         'stackedSentence' => $stackedSentence,
-        'told' => ['before' => $toldBefore, 'followed' => $followed, 'with' => $toldWith, 'quiet' => $toldQuiet],
+        'told' => ['followed' => $followed, 'with' => $toldWith, 'quiet' => $toldQuiet],
         'd' => [$d1, $d2, $d3, $d4],
     ];
 } catch (\Throwable $e) {
@@ -475,7 +519,7 @@ if (isset($result['error'])) {
     check('[PA3] ★ a period row without a sale beside a sale row without a period is a finding naming both rows', [\count($inverted), ($inverted[0]['row_id'] ?? 0) > 0, ($inverted[0]['detail']['sale_row'] ?? 0) > 0, $inverted[0]['detail']['sale_price'] ?? null], [1, true, true, $unit('50.00000000')]);
     $below = $result['belowRules'];
     check('[PA4] ★ a sale that gives less than the rules it replaces is a finding naming the rules', [\count($below), str_contains((string) ($below[0]['detail']['rules'] ?? ''), 'PA disposable discount D1'), str_contains((string) ($below[0]['detail']['rules'] ?? ''), 'PA disposable discount D2')], [1, true, true]);
-    check('[PA4] ★ the engine ran for the sale rows within its cap', [$result['engine']['runs'] > 0, $result['engine']['runs'] <= PriceAudit::ENGINE_CAP, $result['engine']['cap']], [true, true, PriceAudit::ENGINE_CAP]);
+    check('[PA4] ★ the engine ran for the sale rows, none left unchecked', [$result['engine']['runs'] > 0, $result['engine']['unchecked']], [true, 0]);
 
     if ($result['context'] === null) {
         echo "  skip [PA5] the price index holds no prepared context for the anonymous visitor on this shop; the sections that read it say so\n";
@@ -494,7 +538,15 @@ if (isset($result['error'])) {
     $kinds = array_map('strval', array_keys($counts));
     sort($kinds, SORT_STRING);
     check('[PA7] the notice\'s facts are the kinds found', [$result['told']['followed'], $result['told']['with']], [array_keys($counts), $kinds]);
-    check('[PA7] a report with nothing withdraws them', $result['told']['quiet'], null);
+    check('[PA7] a result with nothing withdraws them', $result['told']['quiet'], null);
+
+    echo "\nthe stored result\n";
+    check('[ST1] ★ never run before a result is stored, complete once stored, out of date once a change is marked, running while a job waits',
+        [$result['states']['before'], $result['states']['after'], $result['states']['stale'], $result['states']['running'], ($result['states']['job'] ?? 0) > 0],
+        [PriceAuditStore::STATE_NEVER, PriceAuditStore::STATE_COMPLETE, PriceAuditStore::STATE_STALE, PriceAuditStore::STATE_RUNNING, true]);
+    check('[ST2] ★ a second Check again joins the job already waiting: one job', [$result['asks']['first'], $result['asks']['second'], $result['asks']['same']], [false, true, true]);
+    check('[ST3] ★ the stored rows page: one row a page, the next page another row, the total the same', [$result['pages']['one'], $result['pages']['two'], $result['pages']['totals'][0] === $result['pages']['totals'][1], $result['pages']['distinct']], [1, 1, true, true]);
+    check('[ST4] ★ every sale row judged across chunks: more chunks than one, the job\'s result the counts', [$result['chunks'] > \count(PriceAudit::SET_SECTIONS) + 2, \is_array($result['jobResult']['counts'] ?? null), $result['engine']['runs'] <= $result['saleRows']], [true, true, true]);
 
     echo "\nthe product's price row\n";
     $d1Name = 'PA disposable discount D1 ' . $run;

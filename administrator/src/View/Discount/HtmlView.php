@@ -13,15 +13,10 @@ namespace Alfa\Component\Alfa\Administrator\View\Discount;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
-use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
 use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\Database\DatabaseInterface;
-use Throwable;
 
 /**
  * View class for a single Category.
@@ -37,14 +32,12 @@ class HtmlView extends FormView
     protected string $alfaEntity = 'discount';
 
     /**
-     * What the saved rule reaches, for the form's Reach card (DiscountReach::of()); null for a new rule, or when the
-     * counts could not be read (logged, the form stands).
-     *
-     * @var array|null
+     * The saved rule the form's Reach card counts for on demand (DiscountController::reach()); 0 for a new rule, which
+     * has nothing to count and no card.
      *
      * @since  2.3.0
      */
-    public ?array $reach = null;
+    public int $reachOf = 0;
 
     /**
      * Render the edit form view.
@@ -75,17 +68,8 @@ class HtmlView extends FormView
         $this->form
             ->addControlField('task', '');
 
-        // The Reach card counts from the saved rule; a rule not saved yet has nothing to count.
-        $discountId = (int) ($this->item->id ?? 0);
-
-        if ($discountId > 0) {
-            try {
-                $this->reach = (new DiscountReach(db: Factory::getContainer()->get(DatabaseInterface::class)))->of(discountId: $discountId);
-            } catch (Throwable $e) {
-                Log::add('Discount #' . $discountId . ': the Reach card could not be counted: ' . $e::class . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
-                $this->reach = null;
-            }
-        }
+        // The Reach card counts from the saved rule when asked; a rule not saved yet has no card.
+        $this->reachOf = (int) ($this->item->id ?? 0);
     }
 
     /**

@@ -93,6 +93,10 @@
                 .catch(function () { window.setTimeout(step, 5000); });
         }
 
-        step();
+        // A job that had already ended when the page was drawn is shown as it is: asking again would end again and
+        // load the page again, without end.
+        if (!card.hasAttribute('data-job-ended')) {
+            step();
+        }
     });
 })();

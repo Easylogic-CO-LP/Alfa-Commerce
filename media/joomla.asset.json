@@ -706,6 +706,17 @@
       }
     },
     {
+      "name": "com_alfa.admin.discount-reach",
+      "type": "script",
+      "uri": "com_alfa/admin/discount-reach.min.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.admin.tasks",
       "type": "script",
       "uri": "com_alfa/admin/tasks.min.js",

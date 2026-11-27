@@ -48,7 +48,8 @@ class PriceProjection implements ProjectionInterface
      */
     public function syncItem(int $itemId): void
     {
-        $this->service->syncItem($itemId);
+        // The manager holds the items' rebuild marks and clears them itself.
+        $this->service->syncItem($itemId, marked: true);
     }
 
     /**
@@ -57,7 +58,7 @@ class PriceProjection implements ProjectionInterface
      */
     public function syncItems(array $itemIds): void
     {
-        $this->service->syncItems($itemIds);
+        $this->service->syncItems($itemIds, marked: true);
     }
 
     /**
@@ -72,7 +73,7 @@ class PriceProjection implements ProjectionInterface
      */
     public function syncItemsOrFail(array $itemIds): void
     {
-        $this->service->syncItemsOrFail(itemIds: $itemIds);
+        $this->service->syncItemsOrFail(itemIds: $itemIds, marked: true);
     }
 
     /**

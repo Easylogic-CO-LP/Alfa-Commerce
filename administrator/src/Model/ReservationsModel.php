@@ -137,6 +137,8 @@ class ReservationsModel extends AlfaListModel
             . $db->escape($this->getState('list.direction', 'DESC')),
         );
 
+        $this->orderByKeyLast($query, (string) $this->getState('list.ordering', 'a.id'), (string) $this->getState('list.direction', 'DESC'));
+
         return $query;
     }
 }

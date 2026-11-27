@@ -58,7 +58,7 @@ $ends = [
 $ended = $ends[$job['state']] ?? null;
 $report = implode(' ', (array) ($job['reportLines'] ?? []));
 ?>
-<div class="card mb-3" id="job-progress" data-job-progress data-id="<?php echo (int) $job['id']; ?>" data-token="<?php echo Session::getFormToken(); ?>"
+<div class="card mb-3" id="job-progress" data-job-progress<?php echo $ended === null ? '' : ' data-job-ended'; ?> data-id="<?php echo (int) $job['id']; ?>" data-token="<?php echo Session::getFormToken(); ?>"
     data-url="<?php echo $e(Route::_('index.php?option=com_alfa&task=tasks.process', false)); ?>">
     <div class="card-header">
         <?php echo Text::sprintf('COM_ALFA_TASKS_PROGRESS_TITLE', (int) $job['id'], $job['label'] !== '' ? Text::_($job['label']) : ''); ?>

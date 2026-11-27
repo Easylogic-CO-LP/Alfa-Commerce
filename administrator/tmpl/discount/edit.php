@@ -15,6 +15,7 @@ use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Layout\LayoutHelper;
+use \Joomla\CMS\Session\Session;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
@@ -77,9 +78,9 @@ $wa->useScript('keepalive')
                 <?php echo $this->form->renderField('modified'); ?>
                 <?php echo $this->form->renderField('modified_by'); ?>
             </fieldset>
-            <?php // What the saved rule reaches: products, the products its categories leave out, the rules it stacks with. ?>
-            <?php if ($this->reach !== null) : ?>
-                <?php echo LayoutHelper::render('discount.reach', ['reach' => $this->reach], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+            <?php // What the saved rule reaches, counted when asked: products, the products its categories leave out, the rules it stacks with. ?>
+            <?php if ($this->reachOf > 0) : ?>
+                <?php echo LayoutHelper::render('discount.reach', ['id' => $this->reachOf, 'url' => Route::_('index.php?option=com_alfa&task=discount.reach', false), 'token' => Session::getFormToken()], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
             <?php endif; ?>
         </div>
     </div>

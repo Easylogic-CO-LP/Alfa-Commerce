@@ -215,6 +215,10 @@ class ProjectionManager
             return;
         }
 
+        // Marked before the first chunk, cleared chunk by chunk as each commits: a request that stops between chunks
+        // leaves the rest owed to the catalogue job.
+        self::mark(itemIds: $itemIds);
+
         foreach (array_chunk($itemIds, self::CHUNK_SIZE) as $chunk) {
             $this->rebuildLocked(itemIds: $chunk, operation: 'syncItems(' . \count($chunk) . ' items)');
         }
@@ -774,6 +778,21 @@ class ProjectionManager
     }
 
     /**
+     * The marks of items as read now, for a writer that clears them itself once its rows committed
+     * ({@see self::clearOwn()}): read after the items' locks are granted, so a mark written later stays.
+     *
+     * @param int[] $itemIds The items.
+     *
+     * @return array<int, string> Item id => its projection_dirty_at; the items marked only.
+     *
+     * @since  2.3.0
+     */
+    public static function marks(array $itemIds): array
+    {
+        return self::marksOf(itemIds: $itemIds);
+    }
+
+    /**
      * The marks of items, as read now (the items marked only).
      *
      * @param int[] $itemIds The items.
@@ -805,7 +824,7 @@ class ProjectionManager
      *
      * @since  2.2.0
      */
-    private static function clearOwn(array $read): void
+    public static function clearOwn(array $read): void
     {
         try {
             self::clearMarks(read: $read);

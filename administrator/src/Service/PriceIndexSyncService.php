@@ -409,15 +409,15 @@ class PriceIndexSyncService
      *
      * @since  1.0.0
      */
-    public function syncItem(int $itemId, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): void
+    public function syncItem(int $itemId, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0, bool $marked = false): void
     {
         if ($itemId <= 0) {
             return;
         }
 
-        self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemId): void {
+        self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemId, $marked): void {
             try {
-                $this->writeIndexRows(itemIds: [$itemId], contexts: $this->alignContexts());
+                $this->writeIndexRows(itemIds: [$itemId], contexts: $this->alignContexts(), marked: $marked);
             } catch (Throwable $e) {
                 $this->logWarning("syncItem({$itemId}) failed: " . ErrorText::of($e));
                 ProjectionManager::owe(itemIds: [$itemId]);
@@ -439,11 +439,11 @@ class PriceIndexSyncService
      *
      * @since  1.0.0
      */
-    public function syncItems(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
+    public function syncItems(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0, bool $marked = false): int
     {
         $this->beginOutcome();
 
-        return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds, $cause): int {
+        return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds, $cause, $marked): int {
             // Not strict: a chunk whose calculation failed is rolled back, logged and owed; the others are written.
             try {
                 // A rule's context-wide scope is rewritten as generations, each context switched whole.
@@ -454,7 +454,7 @@ class PriceIndexSyncService
                     return $this->rewriteAsGenerations();
                 }
 
-                return $this->rebuildItems(itemIds: $itemIds, strict: false);
+                return $this->rebuildItems(itemIds: $itemIds, strict: false, marked: $marked);
             } catch (Throwable $e) {
                 $this->logWarning('syncItems() failed: ' . ErrorText::of($e));
                 $this->handlingPending = true;
@@ -479,9 +479,9 @@ class PriceIndexSyncService
      *
      * @since  2.2.0
      */
-    public function syncItemsOrFail(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
+    public function syncItemsOrFail(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0, bool $marked = false): int
     {
-        return self::announcing(cause: $cause, causeId: $causeId, work: fn (): int => $this->rebuildItems(itemIds: $itemIds, strict: true));
+        return self::announcing(cause: $cause, causeId: $causeId, work: fn (): int => $this->rebuildItems(itemIds: $itemIds, strict: true, marked: $marked));
     }
 
     /**
@@ -494,7 +494,7 @@ class PriceIndexSyncService
      *
      * @since  2.2.0
      */
-    private function rebuildItems(array $itemIds, bool $strict): int
+    private function rebuildItems(array $itemIds, bool $strict, bool $marked = false): int
     {
         $itemIds = array_values(array_filter(array_map('intval', $itemIds)));
 
@@ -505,7 +505,7 @@ class PriceIndexSyncService
             return 0;
         }
 
-        return $this->writeIndexRows(itemIds: $itemIds, contexts: $contexts, strict: $strict);
+        return $this->writeIndexRows(itemIds: $itemIds, contexts: $contexts, strict: $strict, marked: $marked);
     }
 
     /**
@@ -1155,11 +1155,11 @@ class PriceIndexSyncService
         }
 
         $contexts = array_values($this->contextRows(ids: null, waitingOnly: false));
-        $this->writeIndexRows(itemIds: $items, contexts: $contexts);
+        $this->writeIndexRows(itemIds: $items, contexts: $contexts, marked: true);
         $still = array_values(array_intersect($missing(), $items));
 
         foreach ($still as $itemId) {
-            $this->writeIndexRows(itemIds: [$itemId], contexts: $contexts);
+            $this->writeIndexRows(itemIds: [$itemId], contexts: $contexts, marked: true);
         }
 
         $failed = array_values(array_intersect($missing(), $still));
@@ -1961,6 +1961,10 @@ class PriceIndexSyncService
      * @param array $contexts From alignContexts().
      * @param bool $strict A chunk whose calculation failed, or whose locks were not granted, throws once rolled back;
      *                     false owes that chunk to the catalogue job and moves on.
+     * @param bool $marked Whether the caller holds the products' rebuild marks (the projection manager, a context's
+     *                     preparation): then none is written or cleared here. Otherwise every product is marked before
+     *                     the first chunk and each chunk's marks are cleared by compare and set once it committed, so
+     *                     a request that stops between chunks leaves the rest owed to the catalogue job.
      *
      * @return int Rows written.
      *
@@ -1968,7 +1972,7 @@ class PriceIndexSyncService
      *
      * @since  1.0.0
      */
-    private function writeIndexRows(array $itemIds, array $contexts, bool $strict = false): int
+    private function writeIndexRows(array $itemIds, array $contexts, bool $strict = false, bool $marked = false): int
     {
         $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds), static fn (int $itemId): bool => $itemId > 0)));
 
@@ -1977,6 +1981,11 @@ class PriceIndexSyncService
         }
 
         sort($itemIds);
+
+        if (!$marked) {
+            ProjectionManager::mark(itemIds: $itemIds);
+        }
+
         $written = 0;
         $lock = new IndexRebuildLock($this->db);
         $nested = TransactionState::isOpen(db: $this->db);
@@ -2000,6 +2009,9 @@ class PriceIndexSyncService
                 continue;
             }
 
+            // Read after the grant: a mark written later is a value this chunk did not read, and it stays.
+            $read = $marked ? [] : ProjectionManager::marks(itemIds: $granted);
+
             try {
                 $chunkWritten = $this->writeLockedChunk(chunk: $granted, contexts: $contexts);
             } catch (Throwable $e) {
@@ -2016,6 +2028,10 @@ class PriceIndexSyncService
             if ($chunkWritten !== null) {
                 $written += $chunkWritten;
                 $this->handledProducts += \count($granted);
+
+                if ($read !== []) {
+                    ProjectionManager::clearOwn(read: $read);
+                }
 
                 continue;
             }
@@ -3483,7 +3499,7 @@ class PriceIndexSyncService
         $missing = $this->uncoveredOf(contextId: $contextId, itemIds: $expected);
 
         foreach ($missing === [] ? [] : array_chunk($missing, self::CHUNK_SIZE) as $chunk) {
-            $this->writeIndexRows(itemIds: $chunk, contexts: [$context]);
+            $this->writeIndexRows(itemIds: $chunk, contexts: [$context], marked: true);
         }
 
         $failed = $missing === [] ? [] : $this->uncoveredOf(contextId: $contextId, itemIds: $missing);
