@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncOutcome;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Event\Model;
@@ -346,6 +347,8 @@ class DiscountModel extends AlfaAdminModel
         }
 
         PriceAuditStore::markStale();
+        // What the Reach card counted was of the rule before this save.
+        DiscountReach::forget(discountIds: [(int) $currentId]);
         $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
@@ -406,6 +409,7 @@ class DiscountModel extends AlfaAdminModel
         }
 
         PriceAuditStore::markStale();
+        DiscountReach::forget(discountIds: array_map('intval', (array) $pks));
         $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
@@ -532,6 +536,7 @@ class DiscountModel extends AlfaAdminModel
         }
 
         PriceAuditStore::markStale();
+        DiscountReach::forget(discountIds: array_map('intval', (array) $pks));
         $this->alfaSayRepriced(outcome: $outcome);
 
         return true;

@@ -11,8 +11,8 @@
  * The counts of a saved discount rule's Reach card: how many published products its categories and manufacturers take
  * in (the product list narrowed to them), the products of its manufacturers its categories leave out, the rules it
  * stacks with on a product, each with the count, and the products of its scope it never reaches (excluded by the rule,
- * or on their own). Rendered on the server for the card's action (DiscountController::reach()). Read only; counted
- * from the saved rule by DiscountReach.
+ * or on their own), with the moment it was counted. Rendered on the server for the card and its action
+ * (DiscountController::reach()). Read only; counted from the rule as last saved by DiscountReach.
  *
  * @var array $displayData
  *   - array $reach What DiscountReach::of() answered.
@@ -21,6 +21,7 @@
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 
 $reach = (array) $displayData['reach'];
@@ -28,6 +29,9 @@ $e = static fn (string $text): string => htmlspecialchars($text, ENT_QUOTES, 'UT
 $products = Text::plural('COM_ALFA_DISCOUNT_REACH_PRODUCTS', (int) $reach['reaches']);
 ?>
 <ul class="list-unstyled mb-0 small">
+    <?php if ((string) ($reach['computed_at'] ?? '') !== '') : ?>
+        <li class="mb-2 text-muted"><?php echo $e(Text::sprintf('COM_ALFA_DISCOUNT_REACH_COUNTED_ON', HTMLHelper::_('date', (string) $reach['computed_at'], Text::_('DATE_FORMAT_LC5')))); ?></li>
+    <?php endif; ?>
     <li class="mb-2">
         <?php if ((int) $reach['reaches'] > 0) : ?>
             <a href="<?php echo $e((string) $reach['url']); ?>"><?php echo $e($products); ?></a>
