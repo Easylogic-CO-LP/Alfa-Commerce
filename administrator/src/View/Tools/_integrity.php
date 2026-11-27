@@ -100,7 +100,7 @@ $files = function (array $paths): void {
             <?php endif; ?>
 
             <?php if ($hasInjected) : ?>
-                <div class="alert <?php echo $alarm ? 'alert-danger' : 'alert-info'; ?>" role="alert">
+                <div class="alert <?php echo $alarm ? 'alert-danger' : 'alert-secondary'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_ADDED'); ?></strong>
                     <?php $files($this->official['injected']); ?>
                 </div>

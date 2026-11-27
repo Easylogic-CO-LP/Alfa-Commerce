@@ -41,14 +41,12 @@ $count = static fn (int $shown, int $all): string => '<span class="badge bg-seco
     . ($filtered ? Text::sprintf('COM_ALFA_TOOLS_API_ROUTES_COUNT_SHOWN', $shown, $all) : (string) $all)
     . '</span>';
 
-/** One section that opens on demand: Joomla's accordion with one slide, open when asked. */
+/** One section folded under its title, open when asked: the same fold as the integrity lists, no script, no animation. */
 $open = static function (string $id, string $title, bool $active): void {
-    echo HTMLHelper::_('bootstrap.startAccordion', $id, $active ? ['active' => $id . '-slide'] : []);
-    echo HTMLHelper::_('bootstrap.addSlide', $id, $title, $id . '-slide');
+    echo '<details class="mb-2" id="' . $id . '"' . ($active ? ' open' : '') . '><summary>' . $title . '</summary><div class="pt-2">';
 };
 $close = static function (): void {
-    echo HTMLHelper::_('bootstrap.endSlide');
-    echo HTMLHelper::_('bootstrap.endAccordion');
+    echo '</div></details>';
 };
 
 /** The permission an endpoint asks, as the table names it: its title and key, per record, or none. */
@@ -192,7 +190,8 @@ $endpoints = function (array $addresses, string $id, string $source) use ($permi
 
             <div class="mt-2">
                 <?php $open('alfaApiInternals', $this->escape(Text::_('COM_ALFA_TOOLS_API_ROUTES_INTERNALS')) . '<span class="badge text-bg-info ms-2">' . Text::_('COM_ALFA_TOOLS_API_ROUTES_INTERNALS_BADGE') . '</span>', false); ?>
-                <h3 class="h6"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TOKEN_TITLE'); ?></h3>
+                <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaApiInternalsTabs', ['recall' => true, 'breakpoint' => 768]); ?>
+                <?php echo HTMLHelper::_('uitab.addTab', 'alfaApiInternalsTabs', 'alfaApiInternalsToken', Text::_('COM_ALFA_TOOLS_API_ROUTES_TOKEN_TITLE')); ?>
                 <p id="alfaApiTokenGroups">
                     <?php if ($routes['tokenGroups']['every']) : ?>
                         <?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TOKEN_GROUPS_EVERY'); ?>
@@ -202,7 +201,8 @@ $endpoints = function (array $addresses, string $id, string $source) use ($permi
                 </p>
                 <p class="small text-muted"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TOKEN_RULE'); ?></p>
 
-                <h3 class="h6 mt-3"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_HOLDERS_TITLE'); ?></h3>
+                <?php echo HTMLHelper::_('uitab.endTab'); ?>
+                <?php echo HTMLHelper::_('uitab.addTab', 'alfaApiInternalsTabs', 'alfaApiInternalsHolders', Text::_('COM_ALFA_TOOLS_API_ROUTES_HOLDERS_TITLE')); ?>
                 <?php if ($routes['holders'] === []) : ?>
                     <p><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_HOLDERS_NONE'); ?></p>
                 <?php else : ?>
@@ -273,7 +273,8 @@ $endpoints = function (array $addresses, string $id, string $source) use ($permi
                     </div>
                 <?php endif; ?>
 
-                <h3 class="h6 mt-3"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_FORMATS_TITLE'); ?></h3>
+                <?php echo HTMLHelper::_('uitab.endTab'); ?>
+                <?php echo HTMLHelper::_('uitab.addTab', 'alfaApiInternalsTabs', 'alfaApiInternalsFormats', Text::_('COM_ALFA_TOOLS_API_ROUTES_FORMATS_TITLE')); ?>
                 <p><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_FORMATS_CORE'); ?></p>
                 <?php $formats = array_values(array_filter($routes['shown'], static fn (ApiAddress $address): bool => $address->fromPlugin())); ?>
                 <?php if ($formats !== []) : ?>
@@ -303,6 +304,8 @@ $endpoints = function (array $addresses, string $id, string $source) use ($permi
                         </table>
                     </div>
                 <?php endif; ?>
+                <?php echo HTMLHelper::_('uitab.endTab'); ?>
+                <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
                 <?php $close(); ?>
             </div>
         <?php endif; ?>
