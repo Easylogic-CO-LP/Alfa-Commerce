@@ -205,6 +205,18 @@ class com_alfaInstallerScript extends InstallerScript
     private const LEFTOVER_STATUS_TEXT_COLUMNS = ['email_subject_customer', 'email_body_customer', 'email_subject_admin', 'email_body_admin'];
 
     /**
+     * Tables a release adds: the installation creates each one the site lacks, from this package's install SQL
+     * ({@see self::createMissingTables()}). Joomla runs an update file once per schema version it recorded, so a
+     * table added to this release's file after a site recorded this schema would never be made there otherwise.
+     *
+     * @var list<string>
+     * @since 2.3.0
+     */
+    private const NEW_TABLES = [
+        '#__alfa_items_shipments',
+    ];
+
+    /**
      * Columns a release adds to a table an earlier one created: table => column => its definition, exactly as
      * the install SQL's CREATE has it, and the column it follows. The installation adds each one a table lacks
      * ({@see self::addMissingColumns()}); the install SQL creates them for a new shop.
@@ -801,6 +813,62 @@ class com_alfaInstallerScript extends InstallerScript
             $message = $this->installerText(
                 key:      'COM_ALFA_INSTALL_NEW_COLUMNS_FAILED',
                 fallback: 'Alfa Commerce %1$s could not add columns this version needs: %2$s. Install the package again; the pages that read them need them.',
+                values:   [$this->packageVersion, implode('; ', $failed)],
+            );
+            Factory::getApplication()->enqueueMessage($message, 'error');
+            self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::ERROR);
+        }
+    }
+
+    /**
+     * Create the tables this release adds ({@see self::NEW_TABLES}), each only where the site lacks it.
+     *
+     * The table's presence is read first, from the database's catalogue, so a fresh install (the install SQL
+     * created it) and an update run again go on. Each definition is read from the install SQL, the one place it is
+     * written (CREATE TABLE IF NOT EXISTS). A table that refuses is named in an error and the maintenance log; the
+     * screens that read it need it, and the next installation creates it.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function createMissingTables(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $sql = (string) file_get_contents(JPATH_ADMINISTRATOR . '/components/com_alfa/sql/install.mysql.utf8.sql');
+        $failed = [];
+
+        foreach (self::NEW_TABLES as $name) {
+            $table = $db->replacePrefix($name);
+
+            try {
+                $present = $db->setQuery(
+                    'SELECT ' . $db->quoteName('TABLE_NAME') . ' FROM ' . $db->quoteName('information_schema.TABLES')
+                    . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                    . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table),
+                )->loadResult();
+
+                if ($present !== null) {
+                    continue;
+                }
+
+                if (preg_match('/CREATE TABLE IF NOT EXISTS `' . preg_quote($name, '/') . '` \(.*?\) ENGINE=[^;]*;/s', $sql, $match) !== 1) {
+                    throw new \RuntimeException('the install SQL holds no definition of ' . $name);
+                }
+
+                $db->setQuery($match[0])->execute();
+                self::maintenanceLog(
+                    line: sprintf('Update to %s: the table %s was created.', self::SCHEMA_VERSION, $table),
+                    priority: \Joomla\CMS\Log\Log::INFO,
+                );
+            } catch (\Throwable $e) {
+                $failed[] = $table . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            $message = $this->installerText(
+                key:      'COM_ALFA_INSTALL_NEW_TABLES_FAILED',
+                fallback: 'Alfa Commerce %1$s could not create tables this version needs: %2$s. Install the package again; the pages that read them need them.',
                 values:   [$this->packageVersion, implode('; ', $failed)],
             );
             Factory::getApplication()->enqueueMessage($message, 'error');
@@ -1553,9 +1621,10 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
-        // 0. The columns no code reads are gone and the columns this release adds are there, then the Alfa tables
+        // 0. The columns no code reads are gone, the tables and columns this release adds are there, then the Alfa tables
         //    are at this package's schema: say so among them.
         $this->dropLeftoverColumns();
+        $this->createMissingTables();
         $this->addMissingColumns();
         $this->addMissingKeys();
         $this->exactPriceValues();
