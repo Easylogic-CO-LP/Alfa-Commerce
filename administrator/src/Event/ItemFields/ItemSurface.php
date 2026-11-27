@@ -48,4 +48,19 @@ enum ItemSurface: string
     /** Read-only specifications block: informational fields render here, after
         the interactive (variation/option) selectors. */
     case Specifications = 'specifications';
+
+    /** After the price block (item-price), before the stock line: a note, a unit, a badge. */
+    case Price = 'price';
+
+    /** The Specifications section of the page sections, under the two columns: a label and value table, one
+        row per contribution (the layout draws the cells of a table row). */
+    case SpecificationsSection = 'specifications-section';
+
+    /** The page sections under the two columns: each contribution is a section of its own, its layout data
+        carrying the section's title (and optionally its key), its layout drawing the body. */
+    case Sections = 'sections';
+
+    /** A slot no template prints: the field's surface exists for a template override that prints it where it
+        wants (through the item's fields, or Surface::render on this slot), and nowhere by itself. */
+    case Manual = 'manual';
 }

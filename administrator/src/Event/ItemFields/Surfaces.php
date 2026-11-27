@@ -113,9 +113,11 @@ final class Surfaces
      * Append one contributor's surfaces onto the page slot map, in insertion
      * order, carrying an optional showon attribute string for the descriptor.
      * An item-field contributor passes its field, so each descriptor carries
-     * fieldId + fieldName and a template can pick or skip it
-     * ({@see \Alfa\Component\Alfa\Site\Helper\Surface::render()}); any other
-     * contributor (payment, shipment, feature plugin) leaves both null.
+     * fieldId, fieldName and fieldType and a template can pick or skip it
+     * ({@see \Alfa\Component\Alfa\Site\Helper\Surface::render()}) and a template
+     * override of one field or one field type can take over its rendering (the
+     * layout item.field); any other contributor (payment, shipment, feature
+     * plugin) leaves all three null.
      *
      * @param array $target The page slot map, by reference (slot => list of descriptors).
      * @param object $event The contributor's event.
@@ -133,6 +135,7 @@ final class Surfaces
             $descriptor['showon'] = $showon;
             $descriptor['fieldId'] = $field !== null ? (int) $field->id : null;
             $descriptor['fieldName'] = $field !== null ? (string) ($field->field_name ?? '') : null;
+            $descriptor['fieldType'] = $field !== null ? (string) ($field->type ?? '') : null;
             $target[$slot][] = $descriptor;
         }
     }

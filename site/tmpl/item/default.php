@@ -4,6 +4,30 @@
      * @author     Agamemnon Fakas <info@easylogic.gr>
      * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
      * @license    GNU General Public License version 3 or later; see LICENSE
+     *
+     * The product page. What an override of this file (html/com_alfa/item/default.php) can read:
+     *
+     *   $this->item->fields          the product's fields by machine name, each an ItemField:
+     *                                  ->label        the field's name in the page's language
+     *                                  ->value        the pool values the item carries for it (objects with
+     *                                                 display_name), [] when none
+     *                                  ->placement    where the shop placed it (a FieldPlacement value)
+     *                                  ->render()     the field as its placement draws it, with its visibility
+     *                                                 rules and any template override of the field
+     *                                  ...            every property of the definition (id, type, values, ...)
+     *                                A field placed as Not shown automatically is drawn nowhere by this file:
+     *                                  echo $this->item->fields['colour']->render();
+     *                                prints it where the override wants. Any field prints the same way.
+     *   Surface::render($this->item, ItemSurface::Title, only: ['colour'])
+     *                                one slot's contributions, or some fields of it (only / except), see Surface.
+     *   $this->item->surfaces        every slot's contributions, read-only (SurfaceMap).
+     *   $this->sectionsMode          how the page sections are drawn: stacked, tabs or accordion (the menu item's
+     *                                choice), '' on a buy-form reload. The sections themselves are the layout
+     *                                item.sections (PageSections::collect builds them, common/sections.php draws).
+     *   $this->methodsMode           frame or hidden: whether the buy column lists the payment and shipping methods.
+     *
+     * A single field's markup is overridden without touching this file: html/layouts/com_alfa/item/field/<field
+     * name>.php, or item/field/<field type>.php for every field of a type (see layouts/item/field.php).
      */
 
     // No direct access
@@ -68,6 +92,7 @@
         <?php echo Surface::render($this->item, ItemSurface::ShortDescription); ?>
 
         <?php echo Layout::render('item.price', ['item' => $this->item, 'settings' => $priceSettings]); //passed data as $displayData in layout ?>
+        <?php echo Surface::render($this->item, ItemSurface::Price); ?>
 
         <?php echo Layout::render('item.stock_info', ['item' => $this->item]); ?>
 
@@ -99,24 +124,17 @@
         </div>
         <?php endif; ?>
 
-        <?php if (Surface::has($this->item, ItemSurface::PaymentMethods)): ?>
-        <div class="item-payment-methods">
-            <span class="item-payment-method-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_METHODS'); ?>:</span>
+        <?php // Payment and shipping: one framed block, one method per row (the part its plugin draws, else its image
+              // and name), unless the menu item hides it. ?>
+        <?php if ($this->methodsMode !== 'hidden' && (Surface::has($this->item, ItemSurface::PaymentMethods) || Surface::has($this->item, ItemSurface::ShipmentMethods))): ?>
+        <div class="item-methods">
+            <span class="item-methods-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_AND_SHIPPING'); ?></span>
 
-            <div class="item-payment-method-inner">
+            <div class="item-methods-inner">
                 <?php echo Surface::render($this->item, ItemSurface::PaymentMethods); ?>
+                <?php echo Surface::render($this->item, ItemSurface::ShipmentMethods); ?>
             </div>
         </div>
-
-        <?php endif; ?>
-
-        <?php if (Surface::has($this->item, ItemSurface::ShipmentMethods)): ?>
-        <div class="item-shipment-methods">
-            <span class="item-shipment-method-title"><?php echo Text::_('COM_ALFA_ITEM_SHIPMENT_METHODS'); ?>:</span>
-
-            <?php echo Surface::render($this->item, ItemSurface::ShipmentMethods); ?>
-        </div>
-
         <?php endif; ?>
 
         <?php echo Layout::render('cart.wrapper', $this->item); ?>
@@ -124,16 +142,16 @@
 
         <?php echo $sellsOnline ? '</form>' : '</div>'; ?>
 
-        <div class="item-full-description">
-            <?php echo nl2br($this->item->full_desc); ?>
-        </div>
-        <?php echo Surface::render($this->item, ItemSurface::FullDescription); ?>
-
         <?php echo $this->loadTemplate($this->manufacturersTpl); ?>
         <?php echo $this->loadTemplate($this->categoriesTpl); ?>
 
     </div>
 </div>
+
+<?php // The page sections (the description, the specifications, the shop's and the product's own sections, the fields
+      // placed in a section of their own, the plugins' sections), under the two columns and apart from the product's
+      // container: a variant change replaces the container and leaves them, and the chosen tab, as they are. ?>
+<?php echo Layout::render('item.sections', ['item' => $this->item, 'mode' => $this->sectionsMode]); ?>
 
 <?php // The related products, a part of their own after the product's container: a variant change replaces the
       // container and leaves them as they are. An override of this page shows them where it loads the part. ?>

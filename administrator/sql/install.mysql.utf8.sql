@@ -1090,6 +1090,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_fields` (
   `filterable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Expose in mod_alfa_filters',
   `searchable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Value names+aliases join keyword search',
   `show_on_listing` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Render on category cards (onItemListPrepare)',
+  `placement` varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)',
   `params` longtext DEFAULT NULL COMMENT 'JSON, plugin-specific config',
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -1309,6 +1310,22 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
   `custom` mediumtext DEFAULT NULL COMMENT 'JSON of the product''s own label (label_key custom): its name by language, colours, class, where it shows and its period; NULL on every other row',
   PRIMARY KEY (`item_id`, `label_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product shows: the ones it ticks with their corners, and its own label';
+
+--
+-- Table structure for table `#__alfa_item_sections`
+--
+-- A product's own sections of its page (the Sections tab): each replaces the general section of Options whose key it
+-- names, or is a section of its own. Title and body live in #__alfa_item_sections_<langtag>.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_item_sections` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK #__alfa_items.id',
+  `section_key` varchar(64) NOT NULL DEFAULT '' COMMENT 'The key of the general section (Options) this one replaces on the product page; empty for a section of its own',
+  `position` int(11) NOT NULL DEFAULT 0 COMMENT 'Its place among the page sections, with the general sections and the fields shown as sections, ascending',
+  PRIMARY KEY (`id`),
+  KEY `idx_item_position` (`item_id`, `position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='A product page''s own sections; title and body in #__alfa_item_sections_<langtag>';
 
 --
 -- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,

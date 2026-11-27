@@ -95,6 +95,7 @@ final class ReadOnlyFields
                 'showon' => '',
                 'fieldId' => (int) $field->id,
                 'fieldName' => (string) ($field->field_name ?? ''),
+                'fieldType' => (string) ($field->type ?? ''),
             ];
         }
 

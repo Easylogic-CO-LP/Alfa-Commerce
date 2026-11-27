@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSections;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\SeededNames;
 use Exception;
@@ -553,6 +554,11 @@ final class SyncHelper
             '#__alfa_item_combinations' => [
                 'pk' => 'id_item_combination',
                 'fields' => ItemFieldsAdminHelper::combinationTranslatableFields(),
+            ],
+            // A product's own page sections (the Sections tab's rows): title and body per language.
+            ItemSections::TABLE => [
+                'pk' => ItemSections::LANG_PK,
+                'fields' => ItemSections::TEXTS,
             ],
         ];
     }

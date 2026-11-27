@@ -45,12 +45,14 @@ final class Surface
      * @param BackedEnum $slot A *Surface enum case (its ->value is the slot key).
      * @param array $only Keep only these fields (int id / string field_name); [] = all.
      * @param array $except Drop these fields (int id / string field_name).
+     * @param string $tag The element wrapping each contribution: div, or tr inside a table whose contributions
+     *                    draw table cells (the Specifications section).
      *
      * @return string The rendered HTML ('' when nothing targets the slot).
      *
      * @since  2.0.0
      */
-    public static function render(object $owner, BackedEnum $slot, array $only = [], array $except = []): string
+    public static function render(object $owner, BackedEnum $slot, array $only = [], array $except = [], string $tag = 'div'): string
     {
         $list = self::select($owner, $slot, $only, $except);
 
@@ -62,6 +64,7 @@ final class Surface
             'surfaces' => $list,
             'slot' => $slot->value,
             'item' => $owner,
+            'tag' => $tag,
         ]);
     }
 

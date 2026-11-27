@@ -100,6 +100,7 @@ trait ContributedSurfaces
             $descriptor['showon'] = '';
             $descriptor['fieldId'] = null;
             $descriptor['fieldName'] = null;
+            $descriptor['fieldType'] = null;
             $target[$region][] = $descriptor;
         }
     }
