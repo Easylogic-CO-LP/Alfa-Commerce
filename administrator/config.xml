@@ -181,6 +181,69 @@
             </field>
         </fieldset>
 
+        <!-- The general sections of every product page: each a key (the product's Sections tab names it to replace
+             the section), a title and a body per language, an ordering number among the page sections, and the
+             categories it is limited to (none = every product). -->
+        <fieldset name="general_sections" label="COM_ALFA_CONFIG_FIELDSET_SECTIONS">
+            <field
+                    name="product_sections"
+                    type="subform"
+                    multiple="true"
+                    layout="joomla.form.field.subform.repeatable"
+                    buttons="add,remove,move"
+                    label="COM_ALFA_CONFIG_PRODUCT_SECTIONS_LABEL"
+                    description="COM_ALFA_CONFIG_PRODUCT_SECTIONS_DESC"
+            >
+                <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+                    <field
+                            name="key"
+                            type="text"
+                            filter="cmd"
+                            pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                            maxlength="64"
+                            required="true"
+                            label="COM_ALFA_SECTION_KEY_LABEL"
+                            description="COM_ALFA_SECTION_KEY_DESC"
+                            hint="warranty"
+                    />
+                    <field
+                            name="title"
+                            type="MultilingualText"
+                            required="true"
+                            label="COM_ALFA_SECTION_TITLE_LABEL"
+                            description="COM_ALFA_SECTION_TITLE_DESC"
+                    />
+                    <field
+                            name="body"
+                            type="MultilingualEditor"
+                            editor="|"
+                            buttons="true"
+                            filter="Joomla\CMS\Component\ComponentHelper::filterText"
+                            label="COM_ALFA_SECTION_BODY_LABEL"
+                            description="COM_ALFA_SECTION_BODY_DESC"
+                    />
+                    <field
+                            name="ordering"
+                            type="number"
+                            default="0"
+                            step="1"
+                            filter="integer"
+                            label="COM_ALFA_SECTION_ORDERING_LABEL"
+                            description="COM_ALFA_SECTION_ORDERING_DESC"
+                    />
+                    <field
+                            name="categories"
+                            type="categories"
+                            layout="joomla.form.field.list-fancy-select"
+                            multiple="true"
+                            showPath="true"
+                            label="COM_ALFA_SECTION_CATEGORIES_LABEL"
+                            description="COM_ALFA_SECTION_CATEGORIES_DESC"
+                    />
+                </form>
+            </field>
+        </fieldset>
+
         <!-- Floor of the listing chain: category -> menu item -> here.
              A visitor's own choice in the storefront's list tools still wins
              over all three; these only decide what an untouched URL shows.

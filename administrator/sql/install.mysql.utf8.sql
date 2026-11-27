@@ -1292,6 +1292,22 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_link_values` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The values a link preselects on the linked product''s card, one per field';
 
 --
+-- Table structure for table `#__alfa_item_sections`
+--
+-- A product's own sections of its page (the Sections tab): each replaces the general section of Options whose key it
+-- names, or is a section of its own. Title and body live in #__alfa_item_sections_<langtag>.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_item_sections` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK #__alfa_items.id',
+  `section_key` varchar(64) NOT NULL DEFAULT '' COMMENT 'The key of the general section (Options) this one replaces on the product page; empty for a section of its own',
+  `position` int(11) NOT NULL DEFAULT 0 COMMENT 'Its place among the page sections, with the general sections and the fields shown as sections, ascending',
+  PRIMARY KEY (`id`),
+  KEY `idx_item_position` (`item_id`, `position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='A product page''s own sections; title and body in #__alfa_item_sections_<langtag>';
+
+--
 -- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,
 -- compared without regard to letter case, so one SKU names one unit; every writer of a SKU keeps its product's rows
 -- here in its own transaction (SkuIndex::keep()), and the REST API finds a unit by its SKU through it.

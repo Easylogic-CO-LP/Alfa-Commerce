@@ -10,7 +10,7 @@
 namespace Alfa\Component\Alfa\Site\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSections;
 use Joomla\CMS\Language\Text;
 use Joomla\Registry\Registry;
 
@@ -121,8 +121,7 @@ final class PageSections
     }
 
     /**
-     * The general sections of Options, each with its title and body in the page's language, its ordering and the
-     * categories it is limited to ([] for every product), in the order they are listed.
+     * The general sections of Options ({@see ItemSections::general()}).
      *
      * @param Registry $params The component's Options.
      *
@@ -132,31 +131,11 @@ final class PageSections
      */
     public static function general(Registry $params): array
     {
-        $out = [];
-
-        foreach ((array) $params->get('product_sections', []) as $row) {
-            $row = (array) $row;
-            $key = self::key((string) ($row['key'] ?? ''));
-
-            if ($key === '') {
-                continue;
-            }
-
-            $out[] = [
-                'key' => $key,
-                'title' => MultilingualHelper::resolveLangMap($row['title'] ?? ''),
-                'body' => MultilingualHelper::resolveLangMap($row['body'] ?? ''),
-                'ordering' => (int) ($row['ordering'] ?? 0),
-                'categories' => array_values(array_filter(array_map('intval', (array) ($row['categories'] ?? [])))),
-            ];
-        }
-
-        return $out;
+        return ItemSections::general($params);
     }
 
     /**
-     * A section key as the page uses it: lower-case letters, digits and hyphens, at most 64 characters; '' when
-     * nothing of it is left.
+     * A section key as the page uses it ({@see ItemSections::key()}).
      *
      * @param string $key The key as stored.
      *
@@ -164,9 +143,7 @@ final class PageSections
      */
     public static function key(string $key): string
     {
-        $key = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower(trim($key))), '-');
-
-        return substr($key, 0, 64);
+        return ItemSections::key($key);
     }
 
     /**

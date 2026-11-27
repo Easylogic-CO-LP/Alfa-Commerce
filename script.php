@@ -217,6 +217,7 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_discount_items',
         '#__alfa_discount_excluded_items',
         '#__alfa_discount_excluded_categories',
+        '#__alfa_item_sections',
     ];
 
     /**

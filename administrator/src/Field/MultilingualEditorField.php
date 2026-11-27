@@ -32,6 +32,10 @@ use SimpleXMLElement;
  *   jform[{fieldName}_{langCode}]
  * e.g.  jform[desc_en_gb],  jform[desc_el_gr]
  *
+ * Without a language table bound (no multilingual_table attribute) the field is in value/JSON mode, as the
+ * MultilingualText field is: each editor posts jform[{fieldName}][{langCode}], the value is a {lang: html} map
+ * carried inline (Options, a subform row), and the field's filter attribute is applied to each language's text.
+ *
  * How values are loaded
  * The submitted value wins; the stored row is the fallback.
  *
@@ -106,6 +110,30 @@ class MultilingualEditorField extends EditorField implements MultilingualFieldIn
         $result = parent::setup($element, $value, $group);
 
         $languages = LanguageHelper::getLanguages('lang_code');
+
+        if ($this->isJsonMode()) {
+            // Value/JSON mode (no language table bound): the value is a {lang: html} map carried inline, an
+            // array, a stdClass from the Registry, or a JSON string; a bare string is the default language's text.
+            $default = $this->defaultLangCode();
+
+            if (\is_string($value)) {
+                $decoded = json_decode($value, true);
+                $map = \is_array($decoded) ? $decoded : ($value !== '' ? [$default => $value] : []);
+            } else {
+                $map = (array) $value;
+            }
+
+            $arrayValue = [];
+
+            foreach ($languages as $langCode => $language) {
+                $formatted = $this->formatLangCode($langCode);
+                $arrayValue[$formatted] = (string) ($map[$formatted] ?? '');
+            }
+
+            $this->value = $arrayValue;
+
+            return $result;
+        }
 
         // Table and PK come from XML attributes: makes this field reusable across any entity
         // without any model involvement.
@@ -208,10 +236,69 @@ class MultilingualEditorField extends EditorField implements MultilingualFieldIn
      */
     public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
     {
-        // From the filtered data when the form carries it, else from this editor's own POST.
-        $scalarValue = $this->submittedLanguageValue($this->defaultLangCode(), $input, $group);
+        if ($this->isJsonMode()) {
+            // The value is this field's {lang: html} map; the rules judge the default language's text.
+            $map = \is_string($value) ? (json_decode($value, true) ?: []) : (array) $value;
+            $scalarValue = (string) ($map[$this->defaultLangCode()] ?? '');
+        } else {
+            // From the filtered data when the form carries it, else from this editor's own POST.
+            $scalarValue = $this->submittedLanguageValue($this->defaultLangCode(), $input, $group);
+        }
 
         return parent::validate($scalarValue, $group, $input);
+    }
+
+    /**
+     * Filter the value: in value/JSON mode each language's text through the field's filter attribute, since the
+     * text filters take one text; in column mode as the parent does.
+     *
+     * @param mixed $value The {lang: html} map in JSON mode, else the base value.
+     * @param string|null $group The optional form group path.
+     * @param \Joomla\Registry\Registry|null $input The full form data registry.
+     *
+     * @return mixed The filtered value.
+     *
+     * @since  2.3.0
+     */
+    public function filter($value, $group = null, ?\Joomla\Registry\Registry $input = null)
+    {
+        if (!$this->isJsonMode()) {
+            return parent::filter($value, $group, $input);
+        }
+
+        $filtered = [];
+
+        foreach ((array) $value as $lang => $text) {
+            $filtered[$lang] = parent::filter(\is_scalar($text) ? (string) $text : '', $group, $input);
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Value/JSON mode is active when no language table is bound: the field then carries a {lang: html} map
+     * inline (Options, a subform row) instead of reading and writing language tables.
+     *
+     * @since  2.3.0
+     */
+    private function isJsonMode(): bool
+    {
+        return (string) ($this->element['multilingual_table'] ?? '') === '';
+    }
+
+    /**
+     * One language's input name: nested under the field's own name in JSON mode (jform[body][en_gb]), the flat
+     * per-language key in column mode (jform[desc_en_gb]).
+     *
+     * @param string $formattedLangCode e.g. 'en_gb'.
+     *
+     * @since  2.3.0
+     */
+    private function inputNameFor(string $formattedLangCode): string
+    {
+        return $this->isJsonMode()
+            ? $this->name . '[' . $formattedLangCode . ']'
+            : $this->buildLanguageInputName($formattedLangCode);
     }
 
     //  Private: layout builders
@@ -235,7 +322,7 @@ class MultilingualEditorField extends EditorField implements MultilingualFieldIn
         return $this->buildEditorHtml(
             editor: $editor,
             id:     $this->id . '_' . $formattedLangCode,
-            name:   $this->buildLanguageInputName($formattedLangCode),
+            name:   $this->inputNameFor($formattedLangCode),
             value:  $values[$formattedLangCode] ?? '',
         );
     }
@@ -291,7 +378,7 @@ class MultilingualEditorField extends EditorField implements MultilingualFieldIn
             $html .= $this->buildEditorHtml(
                 editor: $editor,
                 id:     $this->id . '_' . $entry['code'],
-                name:   $this->buildLanguageInputName($entry['code']),
+                name:   $this->inputNameFor($entry['code']),
                 value:  $values[$entry['code']] ?? '',
             );
 

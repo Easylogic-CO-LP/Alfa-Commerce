@@ -41,6 +41,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSections;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLinksRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
@@ -629,6 +630,9 @@ class ItemModel extends AlfaAdminModel
             // The related products, in their order, as the Related tab's rows.
             $item->related = RelatedItems::rows(db: $this->getDatabase(), itemId: (int) $item->id);
 
+            // The product's own page sections, as the Sections tab's rows.
+            $item->sections = ItemSections::rows(db: $this->getDatabase(), itemId: (int) $item->id);
+
             // get media origin (cat, man, item...)
             $item->medias = MediaHelper::getMediaData(
                 origin: $this->name,
@@ -1091,6 +1095,7 @@ class ItemModel extends AlfaAdminModel
         // inside it): DDL commits implicitly.
         MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_items', primaryColumnName: 'id_item', data: $data);
         ItemFieldsAdminHelper::ensureCombinationLangSchema();
+        ItemSections::ensureSchema();
 
         // The rebuild this save owes is recorded before its first write: an existing item's mark in a
         // statement of its own right before the transaction, a new item's in its insert. The item's lock is taken right
@@ -1251,6 +1256,10 @@ class ItemModel extends AlfaAdminModel
             // The related products, in the posted order: each written only while its product (and its combination)
             // exists, so one deleted since the check above leaves no link.
             RelatedItems::replace(db: $db, itemId: (int) $currentId, links: $relatedLinks);
+
+            // The product's own page sections, as the Sections tab posted them: a form with no row carries no list,
+            // which empties them as it empties the other lists.
+            ItemSections::replace(db: $db, itemId: (int) $currentId, rows: ItemSections::posted($data['sections'] ?? []));
 
             // ITEM FIELDS: options and specifications are ADDED by their pickers (item.addOptions, item.addInfoValues),
             // combinations by the generator. The item save writes the LIST edits through the one way they are written
@@ -3760,6 +3769,9 @@ class ItemModel extends AlfaAdminModel
             // The related products, on both sides: the links the deleted products hold and the links other
             // products hold to them. One statement of its own: the list above maps each table to one column.
             RelatedItems::deleteFor(db: $db, itemIds: $pks);
+
+            // The products' own page sections, with their texts.
+            ItemSections::deleteFor(db: $db, itemIds: $pks);
 
             // LIVE CART LINES HOLDING THE ITEM, and the clocks of the carts that
             // lose one. Cart storage is owned by CartRepository; this model states

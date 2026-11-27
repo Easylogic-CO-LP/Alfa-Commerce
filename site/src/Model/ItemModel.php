@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSections;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemField;
@@ -207,6 +208,9 @@ class ItemModel extends BaseItemModel
             // The shipping lists of the product and its combinations (ItemShipments), for its page and for a cart
             // line of it.
             $data->shipment_scope = ItemShipments::forItems($this->getDatabase(), [$pk])[$pk] ?? null;
+
+            // The product's own page sections, title and body in the page's language (PageSections draws them).
+            $data->sections = ItemSections::forDisplay($this->getDatabase(), $pk);
 
             // Item gallery: the fallback the variant overlay may replace.
             $data->medias = MediaHelper::getMediaData(origin: 'item', itemIDs: $pk);
