@@ -88,7 +88,7 @@
     --alfa-scheme: light;
 }
 
-/* alfa-dark-cut
+/* dark-cut
    The dark half of the palette, so the storefront does not depend on one template
    for it. Every extension that reads --alfa-* follows this without containing a
    dark value of its own, which is the point: one place to change, and the cart,
@@ -157,14 +157,14 @@
    own tokens under the same two selectors, and nothing else in the storefront moves:
 
        :is(:root[data-theme="dark"],
-           :root[data-theme-default="dark"]:not([data-theme])) .alfa-es {
+           :root[data-theme-default="dark"]:not([data-theme])) .alfasearch-wrapper {
            --alfa-es-bg: #0b1020;
            --alfa-es-accent: #f0c674;
        }
 
        @media (prefers-color-scheme: dark) {
            :is(:root[data-theme="auto"],
-               :root[data-theme-default="auto"]:not([data-theme])) .alfa-es {
+               :root[data-theme-default="auto"]:not([data-theme])) .alfasearch-wrapper {
                --alfa-es-bg: #0b1020;
                --alfa-es-accent: #f0c674;
            }

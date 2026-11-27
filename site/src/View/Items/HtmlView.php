@@ -43,6 +43,12 @@ use Throwable;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * @var string The page's class on the wrapper.
+     * @since  2.3.0
+     */
+    protected string $pageClass = 'items-list-page';
+
     protected $app;
     protected $items;
     protected $categories;

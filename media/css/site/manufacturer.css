@@ -1,4 +1,4 @@
-.manufacturer-container {
+:where(#alfa-app) .manufacturer-container {
     width: 100%;
     margin: 2rem 0;
 }
@@ -7,37 +7,37 @@
    manufacturer HAS a logo, and auto-fit collapses the track it would have taken,
    so a logo-less manufacturer gets the full width for its text instead of being
    pinned into the right half of an empty two-column grid. */
-.manufacturer-container article {
+:where(#alfa-app) .manufacturer-container article {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     column-gap: 3rem;
     row-gap: 1rem;
 }
 
-.manufacturer-image-wrapper {
+:where(#alfa-app) .manufacturer-image-wrapper {
     text-align: center;
 }
 
-.manufacturer-image-wrapper img {
+:where(#alfa-app) .manufacturer-image-wrapper img {
     width: 100%;
     max-width: 400px;
     height: auto;
     object-fit: contain;
 }
 
-.manufacturer-info {
+:where(#alfa-app) .manufacturer-info {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-.manufacturer-name h3 {
+:where(#alfa-app) .manufacturer-name h3 {
     margin: 0;
     font-size: 2rem;
     color: inherit;
 }
 
-.manufacturer-products a {
+:where(#alfa-app) .manufacturer-products a {
     display: inline-block;
     background-color: var(--alfa-action-primary-bg);
     color: var(--alfa-action-primary-color);
@@ -46,6 +46,6 @@
     margin-top: 10px;
 }
 
-.manufacturer-products:hover > a {
+:where(#alfa-app) .manufacturer-products:hover > a {
     color: var(--alfa-action-primary-color);
 }
