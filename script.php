@@ -290,6 +290,10 @@ class com_alfaInstallerScript extends InstallerScript
             'owner' => ["varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written'", 'finished_at'],
             'result' => ["mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise'", 'owner'],
             'cancel_requested' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled'", 'result'],
+            'rank' => ["tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'running' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 WHEN 'held' THEN 2 ELSE 3 END) STORED COMMENT 'The Background screen''s order: running, waiting, needs attention, finished; indexed with id'", 'cancel_requested'],
+        ],
+        '#__alfa_outbound_deliveries' => [
+            'rank' => ["tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'pending' THEN 0 WHEN 'dead' THEN 1 ELSE 2 END) STORED COMMENT 'The Background screen''s order: waiting (running while its job runs), given up, finished; indexed with id'", 'dead_at'],
         ],
         '#__alfa_order_payments' => [
             'id_dispute' => ["int(11) DEFAULT NULL COMMENT 'Chargeback or reversal: the dispute that booked this row; written once, by the ledger'", 'id_reversed_payment'],
@@ -306,6 +310,12 @@ class com_alfaInstallerScript extends InstallerScript
     private const NEW_KEYS = [
         '#__alfa_item_field_values' => [
             'uq_field_code' => 'UNIQUE KEY `uq_field_code` (`item_field_id`, `code`)',
+        ],
+        '#__alfa_tasks' => [
+            'idx_rank_id' => 'KEY `idx_rank_id` (`rank`, `id`)',
+        ],
+        '#__alfa_outbound_deliveries' => [
+            'idx_rank_id' => 'KEY `idx_rank_id` (`rank`, `id`)',
         ],
     ];
 
