@@ -4613,6 +4613,12 @@ class ItemFieldsAdminHelper
             // The variant's own shipping list, when the window posted the choice: as the product (no row), every
             // method (the wildcard row) or the chosen methods. A write that does not post it leaves the list as it is.
             if (\array_key_exists('shipments_scope', $row)) {
+                $shipmentsRefusal = ItemShipments::choiceRefusal(choice: (string) $row['shipments_scope'], ids: $row['shipments'] ?? []);
+
+                if ($shipmentsRefusal !== null) {
+                    throw new RuntimeException($shipmentsRefusal);
+                }
+
                 ItemShipments::replace(
                     db:            $db,
                     itemId:        $itemId,

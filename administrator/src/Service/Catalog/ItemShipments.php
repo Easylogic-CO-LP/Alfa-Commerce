@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -202,15 +203,85 @@ final class ItemShipments
     }
 
     /**
+     * Why a posted choice is not saved, or null when it is: the chosen methods only, with no method chosen. Limiting a
+     * product to nothing is not a way to say every method, which has its own choice, so the save is refused and says
+     * which of the two to choose.
+     *
+     * @param string $choice ALL, ONLY or AS_PRODUCT.
+     * @param mixed $ids The chosen method ids, as posted.
+     *
+     * @since  2.3.0
+     */
+    public static function choiceRefusal(string $choice, mixed $ids): ?string
+    {
+        if ($choice !== self::ONLY || self::methodIds(\is_array($ids) ? $ids : []) !== []) {
+            return null;
+        }
+
+        return Text::_('COM_ALFA_ITEM_SHIPMENTS_ONLY_NEEDS_METHOD');
+    }
+
+    /**
+     * The shipping methods a unit's list holds that are not published now, by id, each with its name and its state:
+     * what the forms add to the published methods they offer, marked, so a save keeps a method the shop only
+     * unpublished and the operator sees it and may take it off. One statement; a method that no longer exists is
+     * not among them.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The methods the list holds.
+     *
+     * @return array<int, object{id: int, name: string, state: int}>
+     *
+     * @since  2.3.0
+     */
+    public static function heldUnpublished(DatabaseInterface $db, array $shipmentIds): array
+    {
+        $ids = self::methodIds($shipmentIds);
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['a.id', 'a.state']))
+            ->from($db->quoteName('#__alfa_shipments', 'a'))
+            ->whereIn($db->quoteName('a.id'), $ids)
+            ->where($db->quoteName('a.state') . ' <> 1');
+
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_shipments',
+            langPrimaryColumn: 'id_shipment',
+            fields:            ['name'],
+        );
+
+        $held = [];
+
+        foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
+            $held[(int) $row->id] = (object) [
+                'id' => (int) $row->id,
+                'name' => Text::sprintf('COM_ALFA_ITEM_SHIPMENTS_HELD_NOT_PUBLISHED', (string) ($row->name ?? '') !== '' ? (string) $row->name : '#' . (int) $row->id),
+                'state' => (int) $row->state,
+            ];
+        }
+
+        return $held;
+    }
+
+    /**
      * The rows a posted choice stores for a unit, or null for none: every method is no row for a product and the
-     * wildcard row for a combination; the chosen methods are their rows; a choice with no method chosen restricts
-     * nothing; as the product is no row.
+     * wildcard row for a combination; the chosen methods are their rows; as the product is no row. The chosen
+     * methods only with none chosen is refused ({@see self::choiceRefusal()}).
      *
      * @param string $choice ALL, ONLY or AS_PRODUCT.
      * @param mixed $ids The chosen method ids, as posted.
      * @param bool $combination Whether the unit is a combination.
      *
      * @return int[]|null
+     *
+     * @throws RuntimeException For the chosen methods only with none chosen; nothing is stored.
      *
      * @since  2.3.0
      */
@@ -226,7 +297,9 @@ final class ItemShipments
                 return $chosen;
             }
 
-            $choice = $combination ? self::AS_PRODUCT : self::ALL;
+            // "The chosen methods only" with none chosen is not "every method": a restriction that names nothing
+            // is never stored as no restriction. The forms ask first (choiceRefusal()); nothing is saved.
+            throw new RuntimeException((string) self::choiceRefusal(choice: self::ONLY, ids: []));
         }
 
         if ($choice === self::ALL) {

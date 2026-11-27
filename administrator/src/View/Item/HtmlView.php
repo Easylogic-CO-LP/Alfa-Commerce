@@ -114,16 +114,18 @@ class HtmlView extends FormView
             );
 
             // The variant's own shipping list (none: as the product), the choice the window shows for it, and the
-            // published methods it may name.
+            // methods it may name: the published ones, and the ones its list holds that are not published now,
+            // marked, so a save keeps them unless the operator takes them off.
             $itemId = (int) ($this->item->id ?? 0);
             $combinationId = RequestScalar::int($input, 'combination_id');
-            $scope = ItemShipments::forItems(Factory::getContainer()->get(DatabaseInterface::class), [$itemId])[$itemId] ?? null;
+            $shipmentsDb = Factory::getContainer()->get(DatabaseInterface::class);
+            $scope = ItemShipments::forItems($shipmentsDb, [$itemId])[$itemId] ?? null;
             $own = $scope?->combinations[$combinationId] ?? null;
 
             $this->studioShipments = [
                 'choice'  => ItemShipments::combinationChoice($own),
                 'ids'     => array_map('intval', $own ?? []),
-                'methods' => AlfaHelper::getShipmentMethods(),
+                'methods' => AlfaHelper::getShipmentMethods() + ItemShipments::heldUnpublished($shipmentsDb, $own ?? []),
             ];
         }
     }

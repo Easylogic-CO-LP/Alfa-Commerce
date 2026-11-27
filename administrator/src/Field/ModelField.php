@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
+use Joomla\CMS\Language\Text;
 use Throwable;
 
 class ModelField extends ListField
@@ -63,7 +64,54 @@ class ModelField extends ListField
             $this->options[$modelName . '-' . $item['value']] = $item;
         }
 
+        foreach ($this->heldOptions() as $item) {
+            $this->options[$modelName . '-' . $item['value']] ??= $item;
+        }
+
         return $this->options;
+    }
+
+    /**
+     * The records the field's value holds that the listed state leaves out (held="marked" on a field that lists one
+     * state): offered after the others with their state said in words, so a form that is saved keeps what the record
+     * holds, and the operator sees it and may take it off. A record whose state changed is not a record the form
+     * may drop by not listing it.
+     *
+     * @return list<array{value: mixed, text: string, disable: bool}>
+     *
+     * @since  2.3.0
+     */
+    protected function heldOptions(): array
+    {
+        $state = (string) $this->getAttribute('state', '*');
+
+        if ((string) $this->getAttribute('held') !== 'marked' || $state === '*') {
+            return [];
+        }
+
+        $held = array_map('strval', array_filter((array) $this->value, static fn ($value): bool => \is_scalar($value) && (string) $value !== ''));
+
+        if ($held === []) {
+            return [];
+        }
+
+        $listed = array_map(static fn (array $item): string => (string) $item['value'], $this->loadModelRows() ?? []);
+        $missing = array_diff($held, $listed);
+
+        if ($missing === []) {
+            return [];
+        }
+
+        $options = [];
+
+        foreach ($this->loadItems(...[...$this->modelArguments(), '*']) ?? [] as $item) {
+            if (\in_array((string) $item['value'], $missing, true)) {
+                $item['text'] = Text::sprintf((string) $this->getAttribute('held_label', '%s'), (string) $item['text']);
+                $options[] = $item;
+            }
+        }
+
+        return $options;
     }
 
     /**
@@ -108,12 +156,13 @@ class ModelField extends ListField
      * @param string $columnText Record property used as the option label
      * @param string $orderBy Column to order by
      * @param string $orderDir Order direction ('ASC' or 'DESC')
+     * @param string|null $state The state of the records to read; the field's own (its state attribute) when omitted
      *
      * @return array|null List of ['value' => ..., 'text' => ..., 'disable' => false]; null when the
      *                    model could not be created or its rows could not be loaded
      * @since  1.0.0
      */
-    protected function loadItems(string $componentName, string $modelName, string $columnValue, string $columnText, string $orderBy, string $orderDir): ?array
+    protected function loadItems(string $componentName, string $modelName, string $columnValue, string $columnText, string $orderBy, string $orderDir, ?string $state = null): ?array
     {
         try {
             $app = Factory::getApplication();
@@ -131,7 +180,7 @@ class ModelField extends ListField
             $model->getState('list.ordering');
 
             // The records of one state when the field asks (state="1": the published ones); every record otherwise.
-            $model->setState('filter.state', (string) $this->getAttribute('state', '*'));
+            $model->setState('filter.state', $state ?? (string) $this->getAttribute('state', '*'));
             $model->setState('filter.search', '');
             $model->setState('list.limit', 0);
             $model->setState('list.start', 0);
