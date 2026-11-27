@@ -524,3 +524,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
 ALTER TABLE `#__alfa_items` ADD COLUMN `label_settings` text DEFAULT NULL COMMENT 'JSON: the product''s own label (own: its name by language, colours, class, where it shows, its period) and its choice for the automatic New label (new: shown 0 or 1, corner); NULL = no own label and the New label as the shop shows it' AFTER `discount_rules` /** CAN FAIL **/;
 
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right' AFTER `tag_class` /** CAN FAIL **/;
+
+-- The Background screen's order of the tasks and the deliveries, stored and indexed, so the list reads an index instead of sorting the table.
+ALTER TABLE `#__alfa_tasks` ADD COLUMN `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'running' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 WHEN 'held' THEN 2 ELSE 3 END) STORED COMMENT 'The Background screen''s order: running, waiting, needs attention, finished; indexed with id' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` ADD KEY `idx_rank_id` (`rank`, `id`) /** CAN FAIL **/;
+ALTER TABLE `#__alfa_outbound_deliveries` ADD COLUMN `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'pending' THEN 0 WHEN 'dead' THEN 1 ELSE 2 END) STORED COMMENT 'The Background screen''s order: waiting (running while its job runs), given up, finished; indexed with id' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_outbound_deliveries` ADD KEY `idx_rank_id` (`rank`, `id`) /** CAN FAIL **/;

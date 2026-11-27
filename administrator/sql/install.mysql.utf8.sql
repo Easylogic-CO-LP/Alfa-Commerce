@@ -3642,6 +3642,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
   `owner` varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written',
   `result` mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise',
   `cancel_requested` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled',
+  `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'running' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 WHEN 'held' THEN 2 ELSE 3 END) STORED COMMENT 'The Background screen''s order: running, waiting, needs attention, finished; indexed with id',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_owner_active_key` (`owner`, `active_key`),
   KEY `idx_owner_state` (`owner`, `state`),
@@ -3650,7 +3651,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
   KEY `idx_batch` (`batch`),
   KEY `idx_subject` (`subject_type`, `subject_id`, `id`),
   KEY `idx_handler_state_finished` (`handler`, `state`, `finished_at`),
-  KEY `idx_finished` (`finished_at`)
+  KEY `idx_finished` (`finished_at`),
+  KEY `idx_rank_id` (`rank`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa tasks: singles a change owes after its commit, and jobs with steps';
 
 CREATE TABLE IF NOT EXISTS `#__alfa_task_slots` (
@@ -3734,9 +3736,11 @@ CREATE TABLE IF NOT EXISTS `#__alfa_outbound_deliveries` (
   `created` datetime(6) NOT NULL COMMENT 'UTC, written with the change it tells',
   `sent_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, when the consumer took it',
   `dead_at` datetime(6) NULL DEFAULT NULL COMMENT 'UTC, when the shop gave up on it or staff discarded it',
+  `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'pending' THEN 0 WHEN 'dead' THEN 1 ELSE 2 END) STORED COMMENT 'The Background screen''s order: waiting (running while its job runs), given up, finished; indexed with id',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_waiting` (`consumer_id`, `topic`, `subject_id`, `unit_id`, `pending`),
   KEY `idx_due` (`consumer_id`, `state`, `next_attempt_at`, `id`),
   KEY `idx_state_due` (`state`, `next_attempt_at`),
-  KEY `idx_subject` (`consumer_id`, `subject_id`, `state`)
+  KEY `idx_subject` (`consumer_id`, `subject_id`, `state`),
+  KEY `idx_rank_id` (`rank`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='What the shop owes each consumer, written in the transaction of the change';

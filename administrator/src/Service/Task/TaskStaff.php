@@ -194,8 +194,9 @@ final class TaskStaff
     }
 
     /**
-     * SQL that ranks a row's state of work for the Background screen's order: running first, then waiting, then what
-     * needs attention, then the finished.
+     * The column that ranks a row for the Background screen's order: the stored rank of its state (running 0, waiting 1,
+     * needs attention 2, finished 3), indexed with the id, so the order reads the index instead of sorting the table. A
+     * waiting job being driven shows as running but ranks with the waiting.
      *
      * @param DatabaseDriver $db The connection.
      * @param string $alias The tasks table's alias in the query, '' for none.
@@ -204,7 +205,7 @@ final class TaskStaff
      */
     public static function rankSql(DatabaseDriver $db, string $alias = ''): string
     {
-        return 'FIELD(' . self::workSql(db: $db, alias: $alias) . ', ' . implode(', ', array_map([$db, 'quote'], self::WORK_STATES)) . ')';
+        return $db->quoteName($alias === '' ? 'rank' : $alias . '.rank');
     }
 
     /**
@@ -312,6 +313,7 @@ final class TaskStaff
                 str_starts_with($scope, $search) => Text::sprintf('COM_ALFA_TASKS_COVERS_SEARCH', Job\SearchRebuildJob::engineName(key: substr($scope, \strlen($search)))),
                 $scope === Job\ThumbnailsRecreateJob::NAME => Text::_((($row['report']['mode'] ?? ThumbnailRecreation::mode()) === ThumbnailRecreation::MODE_ALL)
                     ? 'COM_ALFA_TASKS_COVERS_THUMBNAILS_ALL' : 'COM_ALFA_TASKS_COVERS_THUMBNAILS_MISSING'),
+                str_starts_with($scope, Job\StockRepairJob::NAME . ':section:') => Text::sprintf('COM_ALFA_TASKS_COVERS_STOCK_REPAIR_SECTION', Text::_('COM_ALFA_INVENTORY_AUDIT_CATEGORY_' . strtoupper(substr($scope, \strlen(Job\StockRepairJob::NAME . ':section:'))))),
                 str_starts_with($scope, Job\StockRepairJob::NAME . ':') => Text::_('COM_ALFA_TASKS_COVERS_STOCK_REPAIR'),
                 default => Text::_('COM_ALFA_TASKS_COVERS_SHOP'),
             };
@@ -354,7 +356,7 @@ final class TaskStaff
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
                 ->whereIn($db->quoteName('state'), [Tasks::STATE_RUNNING, Tasks::STATE_PENDING], ParameterType::STRING)
-                ->order(self::rankSql(db: $db) . ' ASC, ' . $db->quoteName('id') . ' DESC'),
+                ->order(self::rankSql(db: $db) . ' ASC, ' . $db->quoteName('id') . ' ASC'),
             0,
             max(1, $limit),
         )->loadAssocList() ?: [];
@@ -469,7 +471,7 @@ final class TaskStaff
         }
 
         if ((string) $row['handler'] === Job\StockRepairJob::NAME) {
-            $lines = [Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', (int) $report['repaired'], (int) $report['total'], (int) $report['corrected'], (int) $report['released'])];
+            $lines = [Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', (int) $report['repaired'], (int) $report['checked'], (int) $report['total'], (int) $report['corrected'], (int) $report['released'])];
 
             if (\is_array($report['refused'])) {
                 $lines[] = Text::sprintf(
