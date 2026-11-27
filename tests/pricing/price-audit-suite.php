@@ -23,7 +23,8 @@
  *         start equal to the clock has begun, empty and null dates are open ends.
  *   [PE2] the discounts list filter (filter.period) narrows to the expired and the not started rules through the
  *         engine's own conditions; Joomla's status icon of a published rule with such dates is expired or pending.
- *   [RE1] ★ the Reach card counts the rule's products, the products its categories leave out, and the rules it stacks
+ *   [RE1] ★ the Reach card counts the rule's products (its link opening the Products list by the rule filter, whose set
+ *         is the reach's own), the products its categories leave out, and the rules it stacks
  *         with; a rule set to only this stacks with none.
  *   [PA1] ★ a sale above the price it replaces is a finding naming its row; a sale below half is one; a sale without
  *         an end date is one by option.
@@ -83,6 +84,7 @@ use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceAuditJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\RuleReach;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ConditionNotice;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
@@ -377,6 +379,19 @@ try {
     $reach3 = $reach->of($d3);
     $stacksWith = static fn (array $reach, int $id): ?int => array_values(array_filter($reach['stacks'], static fn (array $s): bool => $s['id'] === $id))[0]['count'] ?? null;
 
+    // The product list the card's link opens (the Products list's rule filter), against the reach's own set.
+    $itemsModel = $factory->createModel('Items', 'Administrator', ['ignore_request' => true]);
+    $itemsModel->setState('filter.discount', $d1);
+    $itemsModel->setState('filter.state', 1);
+    $itemsModel->setState('list.ordering', 'a.id');
+    $itemsModel->setState('list.direction', 'ASC');
+    $itemsModel->setState('list.limit', 0);
+    $listedByFilter = array_map(static fn (object $row): int => (int) $row->id, $itemsModel->getItems() ?: []);
+    sort($listedByFilter);
+    $reachSet = array_map('intval', $db->setQuery(
+        "SELECT a.id FROM `{$p}alfa_items` a WHERE a.state = 1 AND " . RuleReach::productSql(kind: RuleReach::DISCOUNT, ruleId: (string) $d1, itemId: 'a.id') . ' ORDER BY a.id',
+    )->loadColumn() ?: []);
+
     // The check, by its job's chunks in this transaction, two rows a chunk, read back from the store as the page reads it.
     PriceDataLoader::forgetLoaded();
     $store = new PriceAuditStore(db: $db);
@@ -463,6 +478,8 @@ try {
         'reach3' => $reach3,
         'stacks12' => $stacksWith($reach1, $d2),
         'stacks13' => $stacksWith($reach1, $d3),
+        'reachLink' => [str_contains($reach1['url'], 'filter%5Bdiscount%5D=' . $d1), str_contains($reach1['url'], 'filter%5Bstate%5D=1')],
+        'reachList' => ['same' => $listedByFilter === $reachSet, 'counted' => \count($reachSet) === (int) $reach1['reaches'], 'holds' => \in_array($pBelow, $listedByFilter, true) && \in_array($pStacked, $listedByFilter, true)],
         'context' => $context,
         'engine' => $report['engine'],
         'saleRows' => $saleRows,
@@ -512,14 +529,13 @@ if (isset($result['error'])) {
     echo "\nthe Reach card\n";
     $reach1 = $result['reach1'];
     check('[RE1] ★ the rule reaches at least its two products of the category and the manufacturer', $reach1['reaches'] >= 2, true);
-    check('[RE1] ★ the product list it opens is narrowed to the rule\'s category and manufacturer, published only',
-        [str_contains($reach1['url'], 'filter%5Bcategory%5D%5B0%5D=' . $catA), str_contains($reach1['url'], 'filter%5Bmanufacturer%5D%5B0%5D=' . $manufacturer), str_contains($reach1['url'], 'filter%5Bstate%5D=1')],
-        [true, true, true]);
+    check('[RE1] ★ the product list it opens is the Products list narrowed by the rule filter, published only', $result['reachLink'], [true, true]);
+    check('[RE1] ★ the list that filter opens is the reach\'s own set: the same products, the count the card shows, the rule\'s two products among them', $result['reachList'], ['same' => true, 'counted' => true, 'holds' => true]);
     check('[RE1] ★ at least one product of its manufacturer stays out for not being in its category', $reach1['outside'] >= 1, true);
     check('[RE1] ★ it stacks with the compounding rule on at least its two products', ($result['stacks12'] ?? 0) >= 2, true);
     check('[RE1] ★ it does not stack with the rule set to only this', $result['stacks13'], null);
     check('[RE1] the rule set to only this stacks with none and says so', [$result['reach3']['behavior'], $result['reach3']['stacks'], $result['reach3']['period']], [0, [], RulePeriod::UPCOMING]);
-    check('[RE1] the rule in its period is read as such', [$reach1['period'], $reach1['published'], $reach1['cap']], [RulePeriod::ACTIVE, true, DiscountReach::COMPARE_CAP]);
+    check('[RE1] the rule in its period is read as such, compared with every other combining rule', [$reach1['period'], $reach1['published'], $reach1['compared'] >= 1], [RulePeriod::ACTIVE, true, true]);
 
     echo "\nthe price check\n";
     $above = $result['above'];
