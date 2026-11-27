@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Pricing;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Task\DueRead;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceAuditJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskDocument;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Alfa\Component\Alfa\Administrator\Service\Task\WorkDeclarations;
@@ -34,7 +35,8 @@ use Throwable;
  *
  * The state is read from here and from the job's own rows (#__alfa_tasks): never run, running (the job waiting or
  * running, with its progress), complete, failed (the last run failed after the last complete one, with its reason) or
- * out of date; and when the schedule will run it next.
+ * out of date; and when the schedule will run it next. What there is to act on (attention()) is judged from that state
+ * alone, the one rule the dashboard tile and the bell follow.
  *
  * @since  2.3.0
  */
@@ -235,6 +237,29 @@ final class PriceAuditStore
             'failure' => $failure,
             'next_run_at' => $next,
             'scheduled' => $scheduled,
+        ];
+    }
+
+    /**
+     * What there is to act on, judged from a status (status()) and nothing else: the kinds of finding of the stored
+     * result with their counts, whether that result is complete, out of date or kept while a new run is on; and the
+     * failure of the last run, in its short form. Both are empty when the check never ran, when a run is on with no
+     * earlier finding, and when the result found nothing: then the dashboard shows no Prices tile and the bell holds
+     * no notice, the attention card being for things to act on.
+     *
+     * @param array $status A status, as status() answers it.
+     *
+     * @return array{counts: array<string, int>, failure: string}
+     *
+     * @since  2.3.0
+     */
+    public static function attention(array $status): array
+    {
+        $summary = $status['summary'] ?? null;
+
+        return [
+            'counts' => \is_array($summary) ? PriceAudit::counts(summary: $summary) : [],
+            'failure' => ($status['state'] ?? '') === self::STATE_FAILED ? TaskDocument::shortError(error: (string) ($status['failure'] ?? '')) : '',
         ];
     }
 

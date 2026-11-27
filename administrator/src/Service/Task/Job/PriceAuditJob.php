@@ -20,6 +20,8 @@ use Alfa\Component\Alfa\Administrator\Service\Task\JobChunk;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobHandler;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettleListener;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettlement;
 use Joomla\CMS\Factory;
 
 /**
@@ -35,9 +37,12 @@ use Joomla\CMS\Factory;
  * the checkpoint until then, so the previous complete result stays readable while a run is in progress, and a run that
  * stops goes on from its checkpoint. Light: it reads and prices, it writes the result only.
  *
+ * It hears how its runs end (TaskSettleListener): a run that failed for good, and a failed one staff marked resolved,
+ * bring the bell in line with where the check then stands, as the last piece does with a stored result.
+ *
  * @since  2.3.0
  */
-final class PriceAuditJob implements JobHandler
+final class PriceAuditJob implements JobHandler, TaskSettleListener
 {
     /**
      * The handler's name, and its one scope.
@@ -164,10 +169,11 @@ final class PriceAuditJob implements JobHandler
             'sections' => $state['sections'],
             'index' => $audit->index(),
         ];
-        (new PriceAuditStore(db: $db))->store(summary: $summary, rowsBySection: (array) $state['rows']);
+        $store = new PriceAuditStore(db: $db);
+        $store->store(summary: $summary, rowsBySection: (array) $state['rows']);
         $counts = PriceAudit::counts(summary: $summary);
         $sentence = PriceAudit::sentence(summary: $summary);
-        PriceAuditNotice::follow(counts: $counts, sentence: $sentence);
+        PriceAuditNotice::follow(status: $store->status());
 
         return new JobChunk(
             units: 1,
@@ -175,5 +181,18 @@ final class PriceAuditJob implements JobHandler
             finished: true,
             result: json_encode(['counts' => $counts, 'sentence' => $sentence], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         );
+    }
+
+    /**
+     * A run ended failed for good, or staff marked a failed one resolved: the bell follows where the check now stands
+     * (raised with the failure, or back to the findings of the stored result, or withdrawn).
+     *
+     * @param TaskSettlement $settlement What happened.
+     *
+     * @since  2.3.0
+     */
+    public function settled(TaskSettlement $settlement): void
+    {
+        PriceAuditNotice::follow(status: (new PriceAuditStore())->status());
     }
 }

@@ -1521,7 +1521,8 @@ final class Runner
      * Record a failed chunk (already rolled back): one more failure, retried after 30 s doubling to an hour, or on the
      * tasks' ladder (1 min to 24 h) for a job whose steps call other systems, at least as long as the failure asked;
      * failed for staff once failures reach max_failures, or at once when no retry can help (no handler, or a failure
-     * that says so); the lease cleared. An extension's job that fails tells its plugin in the same transaction.
+     * that says so); the lease cleared. An extension's job that fails tells its plugin in the same transaction; a job
+     * whose handler listens (TaskSettleListener) has it told after the commit, as a single's handler is.
      *
      * @param DatabaseDriver $db The connection.
      * @param int $id The job.
@@ -1542,6 +1543,7 @@ final class Runner
             ? 'ELT(LEAST(' . $db->quoteName('failures') . ', ' . \count(Tasks::BACKOFF_SECONDS) . '), ' . implode(', ', Tasks::BACKOFF_SECONDS) . ')'
             : 'LEAST(' . self::BACKOFF_CAP_SECONDS . ', ' . self::BACKOFF_SECONDS . ' * POW(2, ' . $db->quoteName('failures') . ' - 1))';
         $wait = 'GREATEST(' . ($failure instanceof TaskFailure ? $failure->after : 0) . ', ' . $step . ')';
+        $ended = null;
 
         try {
             $db->transactionStart(true);
@@ -1570,7 +1572,10 @@ final class Runner
             );
 
             if ($changed === 1) {
-                $ended = $db->setQuery('SELECT ' . $db->quoteName('owner') . ', ' . $db->quoteName('state') . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadAssoc();
+                $ended = $db->setQuery(
+                    'SELECT ' . implode(', ', $db->quoteName(['id', 'type', 'handler', 'owner', 'state', 'subject_type', 'subject_id', 'payload', 'history']))
+                    . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' WHERE ' . $db->quoteName('id') . ' = ' . $id,
+                )->loadAssoc();
 
                 if (\is_array($ended) && $ended['state'] === Tasks::STATE_FAILED) {
                     WorkSettled::owe(owner: (string) $ended['owner'], id: $id);
@@ -1580,10 +1585,16 @@ final class Runner
             TransactionState::commitLevel($db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
+            $ended = null;
             Tasks::log(entry: 'Runner: the failure of job #' . $id . ' could not be recorded; its lease lapses (' . self::LEASE_SECONDS . ' s): ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
         }
 
         Tasks::log(entry: 'Runner: job #' . $id . ' failed' . ($final ? ' for good' : ' and is retried with backoff') . ': ' . $error, priority: $final ? Log::ERROR : Log::WARNING);
+
+        // Failed for good: its handler hears it once the failure is recorded (a check's bell says the run failed).
+        if (\is_array($ended) && $ended['state'] === Tasks::STATE_FAILED) {
+            Tasks::notifySettled(row: $ended, event: TaskSettlement::RUN, state: Tasks::STATE_FAILED, history: Tasks::decodeHistory($ended['history']), error: $error);
+        }
     }
 
     /**

@@ -468,7 +468,7 @@ try {
     // [PA7] the notice followed the stored result in the job's last chunk; a result with nothing withdraws it.
     $toldWith = ConditionNotice::told(key: PriceAuditNotice::KEY);
     $followed = array_keys(PriceAudit::counts(summary: $summary));
-    PriceAuditNotice::follow(counts: [], sentence: '');
+    PriceAuditNotice::follow(status: ['state' => PriceAuditStore::STATE_COMPLETE, 'summary' => ['sections' => [], 'index' => ['complete' => true]], 'failure' => '']);
     $toldQuiet = ConditionNotice::told(key: PriceAuditNotice::KEY);
 
     $result = [
