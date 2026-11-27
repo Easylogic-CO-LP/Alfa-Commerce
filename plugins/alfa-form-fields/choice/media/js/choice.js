@@ -43,9 +43,9 @@
     function findHint(el) {
         const anchor = getHintAnchor(el);
         let hint = anchor.nextElementSibling;
-        if (!hint || !hint.classList || !hint.classList.contains('alfa-choice__hint')) {
+        if (!hint || !hint.classList || !hint.classList.contains('choice__hint')) {
             hint = document.createElement('small');
-            hint.className = 'alfa-choice__hint';
+            hint.className = 'choice__hint';
             hint.setAttribute('aria-live', 'polite');
             anchor.insertAdjacentElement('afterend', hint);
         }
@@ -55,7 +55,7 @@
     function setHint(el, msg, isError) {
         const hint = findHint(el);
         hint.textContent = msg;
-        hint.classList.toggle('alfa-choice__hint--error', !!isError);
+        hint.classList.toggle('choice__hint--error', !!isError);
     }
 
     function updateState(el) {

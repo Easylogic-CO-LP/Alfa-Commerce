@@ -103,10 +103,10 @@
     "modules/mod_easy_articles/media/css/look-editor.css": ["4b409f20872aa93a989638a6c4c9b02b3c27a63efb01929abdb5ced2c34ffa29", "30d7e9b6e994d165a6847e667a56319e7acce9afdd03c15c15af751459bad0d1"],
     "modules/mod_easy_articles/media/js/articles.js": ["8b1beaa297f526e13a8aa668d77403a56549d322b809f8a44c8492925a49e27f", "e33cb428e3ea39d57fdfdc4183f19c93bdec860d39510a13976328c0307d444a"],
     "modules/mod_easy_articles/media/js/look-editor.js": ["46bfb083cdac2449e7f3b125abc6d4bddae379aaafb7286011bf295e4cd08025", "2f497d463ac27ad2381a421af22b6ed890231e8d744705d8d133e2420f41d340"],
-    "plugins/alfa-form-fields/choice/media/css/choice.css": ["7b322895eaf59cd74cad77298b4a9acb1a33f7fa429e7c66c44cc2374e0da6d4", "3ea25076d5d26ffea58058ccab22257316b29c4da1e1ab2af7a81fa13ed562c0"],
-    "plugins/alfa-form-fields/choice/media/js/choice.js": ["0ef73144451d2b4cb343b64c0cfddd74a3e4e5460a155f9b7293a9c05380674e", "b7bcea5b7dd15041054bbd7be4f213c70b3a89404b4d0740f049ed42a3f49baa"],
-    "plugins/alfa-form-fields/tel/media/css/tel.css": ["adbc60137685b82fe8c9ea2669bd095b06f064e99535dd0b1c7cbac560f08f1b", "2c93b6ae2ce59136a52925c4ac28832c9c970b1744bc88b2d1879c4b2acffa47"],
-    "plugins/alfa-form-fields/tel/media/js/tel.js": ["f33d37f7443cdf70429be206fce460af46d6aa4abe290ac0567e3a2fafc50989", "7ad9b7a5484ac8e3f7bbec918beb35f687d2cf615df915204fa139bb1a987f47"],
-    "plugins/alfa-payments/standard/media/js/refund-partial.js": ["eb1c7ec0f8a4693ca42714c613a05a73acd742c48e96e38c36afb5fb60ccb1d6", "89c86cb50f42ec56b5052aaa4e24db1ff80f15d0ac96298b90f6680694425c98"]
+    "plugins/alfa-form-fields/choice/media/css/choice.css": ["02acf42d632a8f5ef4685b800e26d6d1dacb832fec155f28e0cb149af45717ed", "2a2c898c14e706c71a7f61579ff4544b619147fd18b4e2d43245c7de203c4b4d"],
+    "plugins/alfa-form-fields/choice/media/js/choice.js": ["8f82f5f2f1c564daceea42edd4508824fcc9540f9f0692de62ce9783f97ec3d8", "0d22be326487a40b7015467f4bbc1bd6096e3517ec7a5994d1d15872a1a96818"],
+    "plugins/alfa-form-fields/tel/media/css/tel.css": ["b9f1254c0ce44796b1ba499e80d2891ea5e8b9999c5150f2e8a4c8292664f858", "02cd68d3a2c508b007aff400346c68f313bf3e0fde136100a3e3afd89562d722"],
+    "plugins/alfa-form-fields/tel/media/js/tel.js": ["2684193f71d9c140cc446e66f2baa9ca2ac44318d2289e4374c470af1e6a8834", "440622dd5745ebcb4bd8799ddc469548fc1ea8d1a55aeae8bbe537bb2f2cf3dd"],
+    "plugins/alfa-payments/standard/media/js/refund-partial.js": ["d00585d904ebbdfd396502c3c19efae1c6858ebb3e2175a967d9d53dea677714", "89c86cb50f42ec56b5052aaa4e24db1ff80f15d0ac96298b90f6680694425c98"]
   }
 }

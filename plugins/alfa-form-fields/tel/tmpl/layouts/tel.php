@@ -68,16 +68,16 @@ $errors = [
     'bad_region' => 'PLG_ALFA_FORM_FIELDS_TEL_ERR_BAD_REGION',
 ];
 ?>
-<div class="alfa-tel">
+<div class="tel">
     <input type="text"
            name="<?php echo $name; ?>"
            id="<?php echo $id; ?>"
            value="<?php echo htmlspecialchars($value, ENT_COMPAT, 'UTF-8'); ?>"
            <?php echo implode(' ', array_filter($attributes)); ?>>
 
-    <div class="alfa-tel__hints" aria-live="polite">
+    <div class="tel__hints" aria-live="polite">
         <?php foreach ($errors as $key => $langKey) : ?>
-            <small class="alfa-tel__hint alfa-tel__hint--error"
+            <small class="tel__hint tel__hint--error"
                    data-err="<?php echo $key; ?>"
                    hidden><?php echo Text::_($langKey); ?></small>
         <?php endforeach; ?>

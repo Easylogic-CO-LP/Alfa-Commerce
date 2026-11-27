@@ -31,9 +31,9 @@ if (empty($displayData['unavailable'])) {
 $id = (string) ($displayData['id'] ?? '');
 $heldPlace = (string) ($displayData['heldPlace'] ?? '');
 ?>
-<div class="form-text" id="<?php echo htmlspecialchars($id . '-unavailable', ENT_QUOTES, 'UTF-8'); ?>" data-alfa-country-unavailable>
+<div class="form-text" id="<?php echo htmlspecialchars($id . '-unavailable', ENT_QUOTES, 'UTF-8'); ?>" data-country-unavailable>
     <?php if ($heldPlace !== '') : ?>
-        <strong data-alfa-country-held><?php echo htmlspecialchars($heldPlace, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></strong><br>
+        <strong data-country-held><?php echo htmlspecialchars($heldPlace, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></strong><br>
     <?php endif; ?>
     <?php echo Text::_('PLG_ALFA_FORM_FIELDS_COUNTRY_CHOOSE_AGAIN'); ?>
 </div>
