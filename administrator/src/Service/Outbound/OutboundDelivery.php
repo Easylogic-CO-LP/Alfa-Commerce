@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskRetention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Closure;
 use Joomla\CMS\Log\Log;
@@ -45,8 +46,9 @@ use Throwable;
  * the next change of the unit is told with the newest figure. An order's change waits while an older change of the
  * same order is neither sent nor given up, so an order's changes arrive in the order they happened.
  *
- * Settled rows are removed by the consumer's own deliveries: a sent change, or one no consumer took, after
- * {@see self::SENT_KEEP_DAYS} days, a given up or discarded one after {@see self::DEAD_KEEP_DAYS}.
+ * Settled rows are removed by the runner's retention pass ({@see TaskRetention}), every consumer's alike, paused or
+ * idle too: a sent change, or one no consumer took, after {@see self::SENT_KEEP_DAYS} days, a given up or discarded one
+ * after {@see self::DEAD_KEEP_DAYS}.
  *
  * @since  2.3.0
  */
@@ -95,13 +97,6 @@ final class OutboundDelivery
     public const USER_AGENT = 'AlfaCommerce-Webhook';
 
     /**
-     * Rows removed at most a delivery when it tidies its consumer's settled rows.
-     *
-     * @since  2.3.0
-     */
-    private const PRUNE_LIMIT = 500;
-
-    /**
      * How an address is vetted before a webhook is posted to it: OutboundAddressGuard::vet() unless another check is
      * given.
      *
@@ -143,8 +138,6 @@ final class OutboundDelivery
         $rows = $this->due(db: $db, consumerId: $consumerId);
 
         if ($rows === []) {
-            $this->prune(db: $db, consumerId: $consumerId);
-
             return ['units' => 0, 'more' => false];
         }
 
@@ -558,21 +551,26 @@ final class OutboundDelivery
     }
 
     /**
-     * Remove the consumer's settled rows past their keeping: sent after SENT_KEEP_DAYS, given up or discarded after
-     * DEAD_KEEP_DAYS.
+     * Remove settled rows past their keeping, of every consumer: sent, or taken by no consumer, after SENT_KEEP_DAYS;
+     * given up or discarded after DEAD_KEEP_DAYS. A batch at a time, for the retention pass that loops until none is
+     * left.
      *
-     * @param DatabaseDriver $db The connection.
-     * @param int $consumerId The consumer.
+     * @param int $limit The most rows removed.
+     *
+     * @return int The rows removed.
      *
      * @since  2.3.0
      */
-    private function prune(DatabaseDriver $db, int $consumerId): void
+    public static function pruneSettled(int $limit): int
     {
+        $db = OutboundConsumers::db();
         $db->setQuery(
-            'DELETE FROM ' . $db->quoteName(OutboundFeed::DELIVERIES) . ' WHERE ' . $db->quoteName('consumer_id') . ' = ' . $consumerId
-            . ' AND ((' . $db->quoteName('state') . ' IN (' . $db->quote(self::STATE_SENT) . ', ' . $db->quote(self::STATE_NO_CONSUMER) . ') AND ' . $db->quoteName('sent_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::SENT_KEEP_DAYS . ' DAY)'
-            . ' OR (' . $db->quoteName('state') . ' IN (' . $db->quote(self::STATE_DEAD) . ', ' . $db->quote(self::STATE_DISCARDED) . ') AND ' . $db->quoteName('dead_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::DEAD_KEEP_DAYS . ' DAY))'
-            . ' LIMIT ' . self::PRUNE_LIMIT,
+            'DELETE FROM ' . $db->quoteName(OutboundFeed::DELIVERIES)
+            . ' WHERE (' . $db->quoteName('state') . ' IN (' . $db->quote(self::STATE_SENT) . ', ' . $db->quote(self::STATE_NO_CONSUMER) . ') AND ' . $db->quoteName('sent_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::SENT_KEEP_DAYS . ' DAY)'
+            . ' OR (' . $db->quoteName('state') . ' IN (' . $db->quote(self::STATE_DEAD) . ', ' . $db->quote(self::STATE_DISCARDED) . ') AND ' . $db->quoteName('dead_at') . ' < UTC_TIMESTAMP(6) - INTERVAL ' . self::DEAD_KEEP_DAYS . ' DAY)'
+            . ' LIMIT ' . max(1, $limit),
         )->execute();
+
+        return (int) $db->getAffectedRows();
     }
 }
