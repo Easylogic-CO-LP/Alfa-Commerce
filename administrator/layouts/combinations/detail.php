@@ -239,20 +239,21 @@ try {
     <?php echo HTMLHelper::_('uitab.addTab', 'combinationStudioTabs', 'combo-general', Text::_('COM_ALFA_TAB_ITEM')); ?>
         <div class="studio-section">
             <h5><?php echo Text::_('COM_ALFA_COMBINATION_IDENTITY'); ?></h5>
-            <div class="studio-grid">
-                <div>
+            <?php // The three codes share the width in thirds, as on the product form, and stack on a phone. ?>
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
                     <label class="form-label small mb-0 text-muted"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_SKU'); ?></label>
                     <input type="text" class="form-control form-control-sm" name="<?php echo $base; ?>[sku]"
                            value="<?php echo $view->escape($combination->sku); ?>"
                            placeholder="<?php echo $parentPlaceholder('sku', '-'); ?>">
                 </div>
-                <div>
+                <div class="col-12 col-md-4">
                     <label class="form-label small mb-0 text-muted"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_GTIN'); ?></label>
                     <input type="text" class="form-control form-control-sm" name="<?php echo $base; ?>[gtin]"
                            value="<?php echo $view->escape($combination->gtin); ?>"
                            placeholder="<?php echo $parentPlaceholder('gtin', '-'); ?>">
                 </div>
-                <div>
+                <div class="col-12 col-md-4">
                     <label class="form-label small mb-0 text-muted"><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_MPN'); ?></label>
                     <input type="text" class="form-control form-control-sm" name="<?php echo $base; ?>[mpn]"
                            value="<?php echo $view->escape($combination->mpn); ?>"

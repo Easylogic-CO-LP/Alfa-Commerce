@@ -187,7 +187,7 @@ body:has(.alfa-studio) {
 }
 
 /* Responsive field grid: ~3 across, wrapping to a new line only when they no
-   longer fit (the identity + logistics override fields). */
+   longer fit (the logistics override fields). */
 .alfa-studio .studio-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
