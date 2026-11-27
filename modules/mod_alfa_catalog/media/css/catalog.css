@@ -168,7 +168,7 @@
     height: 100%;
     padding: var(--mod-alfa-catalog-card-padding, 10px);
     overflow: visible;
-    border: 1px solid black;
+    border: 1px solid var(--mod-alfa-catalog-card-border-color, black);
     /* Its width on each side; 0 removes it there. */
     border-width: var(--mod-alfa-catalog-card-border, 1px);
     border-radius: var(--mod-alfa-catalog-card-radius, 0);
