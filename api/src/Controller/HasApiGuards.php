@@ -92,9 +92,10 @@ trait HasApiGuards
     /**
      * Body keys this resource's write does not take. The admin models read more than their forms declare:
      * the jform bridge of {@see self::preprocessSaveData()} hands them the whole body, and
-     * MultilingualHelper::mergeValidatedFormData() keeps every undeclared key, so a key the edit form's grids post
-     * reaches the writer behind it from the API too. A POST or PATCH that carries one of these keys is refused with
-     * 422, naming them, before anything is saved and before core's edit() checks the record out.
+     * MultilingualHelper::mergeValidatedFormData() keeps every undeclared key (except a per-language key of a field
+     * the form does not translate, which it drops), so a key the edit form's grids post reaches the writer behind it
+     * from the API too. A POST or PATCH that carries one of these keys is refused with 422, naming them, before
+     * anything is saved and before core's edit() checks the record out.
      *
      * @return string[]
      *
