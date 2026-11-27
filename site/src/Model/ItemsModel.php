@@ -61,6 +61,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\DatabaseQuery;
 use Joomla\Database\ParameterType;
 use SimpleXMLElement;
 use Throwable;
@@ -225,6 +226,16 @@ class ItemsModel extends UrlListModel
      * @since  2.2.0
      */
     private bool $countingForStart = false;
+
+    /**
+     * The counts of the list made in this request, by the count statement and its bound values
+     * ({@see self::_getListCount()}).
+     *
+     * @var array<string, int>
+     *
+     * @since  2.3.0
+     */
+    private static array $listCounts = [];
 
     /**
      * The attribution of the current result set: what the view renders and the lifecycle event carries.
@@ -1500,6 +1511,44 @@ class ItemsModel extends UrlListModel
         $query->group('a.id');
 
         return $query;
+    }
+
+    /**
+     * How many products the list holds, counted by the database.
+     *
+     * The list groups by a.id, and Joomla's own count does not count a grouped query: it runs the whole select and
+     * counts the rows it fetched. This is the same statement, its joins and conditions, without the selected columns,
+     * the ordering and the grouping: COUNT(DISTINCT a.id), one for each row the list returns, so the pagination, the
+     * results counter and the list agree.
+     *
+     * Kept for the request by the statement and its bound values: the filters module reads the total of the same
+     * listing through a model of its own and is answered with the count the view's model already made.
+     *
+     * @param \Joomla\Database\QueryInterface|string $query The list query.
+     *
+     * @return int
+     *
+     * @since  2.3.0
+     */
+    protected function _getListCount($query)
+    {
+        if (!$query instanceof DatabaseQuery || $query->type !== 'select' || $query->having !== null
+            || $query->merge !== null || $query->querySet !== null) {
+            return parent::_getListCount($query);
+        }
+
+        $db = $this->getDatabase();
+        $count = clone $query;
+        $count->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->clear('limit')
+            ->clear('offset')
+            ->select('COUNT(DISTINCT ' . $db->quoteName('a.id') . ')');
+
+        $key = self::statementKey(query: $count);
+
+        return self::$listCounts[$key] ??= (int) $db->setQuery($count)->loadResult();
     }
 
     /**
