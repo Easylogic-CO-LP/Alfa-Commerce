@@ -863,7 +863,8 @@ class com_alfaInstallerScript extends InstallerScript
                     continue;
                 }
 
-                if (preg_match('/CREATE TABLE IF NOT EXISTS `' . preg_quote($name, '/') . '` \(.*?\) ENGINE=[^;]*;/s', $sql, $match) !== 1) {
+                // The statement ends at the first semicolon that closes a line: a column or table comment may hold one.
+                if (preg_match('/CREATE TABLE IF NOT EXISTS `' . preg_quote($name, '/') . '` \(.*?\) ENGINE=[^\n]*;[ \t]*$/ms', $sql, $match) !== 1) {
                     throw new \RuntimeException('the install SQL holds no definition of ' . $name);
                 }
 
