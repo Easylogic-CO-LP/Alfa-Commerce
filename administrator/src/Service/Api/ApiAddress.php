@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Api;
 \defined('_JEXEC') or die;
 
 /**
- * One address of the REST API as Tools, Security lists it: who adds it, its methods and pattern, the
+ * One address of the REST API as the API routes page lists it: who adds it, its methods and pattern, the
  * permissions it asks and who holds them.
  *
  * @since  2.3.0

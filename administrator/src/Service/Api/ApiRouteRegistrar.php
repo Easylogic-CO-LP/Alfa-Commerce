@@ -39,9 +39,9 @@ use Throwable;
  * under v1/alfa/ext/<element>/ boots that plugin alone and asks it, with the targeted event onAlfaBeforeApiRoute, to
  * write its routes on a router of its own; each route that keeps the rules of {@see self::accept()} is put on the
  * application's router, its controller rewritten to ext.dispatch, and kept in {@see ApiRouteRegistry} for
- * ExtController. Every other API request pays one string comparison. Tools, Security lists what the plugins declare
- * through {@see self::collect()}, the same reading, and core's own routes through {@see self::collectCore()}, which asks
- * the webservices plugin for its list, so the listing and the router cannot disagree.
+ * ExtController. Every other API request pays one string comparison. The API routes page lists what the plugins
+ * declare through {@see self::collect()}, the same reading, and core's own routes through {@see self::collectCore()},
+ * which asks the webservices plugin for its list, so the listing and the router cannot disagree.
  *
  * A plugin adds routes of its own under its prefix; it never replaces, removes or shadows a core route: its routes are
  * put after core's, under v1/alfa/ext/, where no core route is registered.
@@ -187,8 +187,8 @@ final class ApiRouteRegistrar
         $id = PluginId::from(PanelDispatcher::PLATFORM_GROUP, $element);
 
         // Nothing is logged at route time, before the token is checked (any caller could add a line): a reserved element
-        // and the refused declarations are said on Tools, Security (collect()), a plugin that cannot answer after the
-        // login (ExtController).
+        // and the refused declarations are said on the API routes page (collect()), a plugin that cannot answer after
+        // the login (ExtController).
         if (self::reservedElement($element) || !$plugins->isAvailable($id)) {
             return;
         }
@@ -231,9 +231,9 @@ final class ApiRouteRegistrar
     }
 
     /**
-     * What every enabled alfa plugin that declares routes declares, for Tools, Security: the accepted routes,
+     * What every enabled alfa plugin that declares routes declares, for the API routes page: the accepted routes,
      * the refused ones with their rule, and a plugin that cannot be loaded with the reason. The same reading as
-     * {@see self::registerFor()}; it boots those plugins, on that screen only.
+     * {@see self::registerFor()}; it boots those plugins, on the screens that list them only.
      *
      * @return list<array{element: string, name: string, accepted: list<ApiRouteDeclaration>, refused: list<ApiRouteRefusal>, unavailable: string}>
      *
@@ -287,7 +287,7 @@ final class ApiRouteRegistrar
     }
 
     /**
-     * The routes core puts on the REST API, for Tools, Security: Alfa's webservices plugin is asked for them on
+     * The routes core puts on the REST API, for the API routes page: Alfa's webservices plugin is asked for them on
      * a router of its own, through the handler that registers them at route time, so this reads the one list the
      * router serves; each route with what its controller's task asks ({@see ApiTaskAccess}, the declaration the
      * controller's own check enforces), null for a task the controller does not map.

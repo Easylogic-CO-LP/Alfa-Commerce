@@ -8,16 +8,16 @@
  */
 
 /**
- * The card of every Alfa Commerce endpoint and who may call it, on Tools, Security: Joomla's search tools, then three
- * sections that open on demand: Alfa Commerce's own endpoints, the extensions' endpoints (one section for each
+ * The report of every Alfa Commerce endpoint and who may call it, the API routes page: Joomla's search tools, then
+ * three sections that open on demand: Alfa Commerce's own endpoints, the extensions' endpoints (one section for each
  * extension, with the declarations core refused and whether it can answer now), and the API internals (the token's
  * sign-in groups, who holds each permission, the formats and the body limits). While a filter is set, the sections
  * that hold what it keeps are open.
  *
- * Rendered from {@see HtmlView::display()} through a fixed-path include, as the integrity verdict is, so a template
- * override cannot hide an endpoint, a permission or an account that holds a token. Read only.
+ * Rendered from {@see HtmlView::display()} through a fixed-path include, as the integrity verdict of Tools is, so a
+ * template override cannot hide an endpoint, a permission or an account that holds a token. Read only.
  *
- * @var \Alfa\Component\Alfa\Administrator\View\Tools\HtmlView $this
+ * @var \Alfa\Component\Alfa\Administrator\View\Apiroutes\HtmlView $this
  */
 
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
@@ -112,10 +112,10 @@ $endpoints = function (array $addresses, string $id, string $source) use ($permi
             <p><?php echo Text::sprintf('COM_ALFA_TOOLS_API_ROUTES_SUMMARY', $summary['addresses'], $summary['plugins'], $summary['accounts'], $summary['superUsers']); ?></p>
 
             <?php if ($this->filterForm !== null) : ?>
-                <?php /* The filters are kept for the user; #integrity opens this tab after the form is sent. */ ?>
-                <form action="<?php echo Route::_('index.php?option=com_alfa&view=tools'); ?>#integrity" method="get" id="alfaApiRoutesForm">
+                <?php /* The filters are kept for the user; the form reloads this page alone. */ ?>
+                <form action="<?php echo Route::_('index.php?option=com_alfa&view=apiroutes'); ?>" method="get" id="alfaApiRoutesForm">
                     <input type="hidden" name="option" value="com_alfa">
-                    <input type="hidden" name="view" value="tools">
+                    <input type="hidden" name="view" value="apiroutes">
                     <?php echo LayoutHelper::render('joomla.searchtools.default', ['view' => $this, 'options' => ['formSelector' => '#alfaApiRoutesForm']]); ?>
                 </form>
             <?php endif; ?>

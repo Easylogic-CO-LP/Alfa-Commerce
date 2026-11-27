@@ -24,10 +24,11 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 
 /**
- * Every address of the REST API and who may call it, for the table of Tools, Security: core's routes
- * ({@see ApiRouteRegistrar::collectCore()}) and the plugins' ({@see ApiRouteRegistrar::collect()}), the registrar's
- * own readings, each with the permissions it asks and the groups and token holders of {@see ApiPermissionHolders}.
- * The table cannot say other than the router and the controllers' checks: it reads what they read.
+ * Every address of the REST API and who may call it, for the API routes page and the counts on Tools, Security:
+ * core's routes ({@see ApiRouteRegistrar::collectCore()}) and the plugins' ({@see ApiRouteRegistrar::collect()}), the
+ * registrar's own readings, each with the permissions it asks and the groups and token holders of
+ * {@see ApiPermissionHolders}. The page cannot say other than the router and the controllers' checks: it reads what
+ * they read.
  *
  * @since  2.3.0
  */
@@ -51,7 +52,7 @@ final class ApiAddressListing
      * Read every address: core's in the webservices plugin's order, then each plugin's; the declarations core refused
      * and the plugins that cannot be loaded; the permissions' titles; whether the token's sign-in and the webservices
      * plugin are enabled, and the groups the token's sign-in takes. Building it boots the webservices plugin, the REST
-     * controllers and the alfa plugins that declare routes, on this screen only.
+     * controllers and the alfa plugins that declare routes, on the screens that show it only.
      *
      * @return array{addresses: list<ApiAddress>, refused: list<array{element: string, name: string, refusal: ApiRouteRefusal}>, unavailable: list<array{element: string, name: string, reason: string}>, titles: array<string, string>, tokenPlugin: bool, webservices: bool, tokenGroups: array{every: bool, titles: list<string>}}
      *
@@ -133,7 +134,7 @@ final class ApiAddressListing
     }
 
     /**
-     * The card's sections: Alfa Commerce's own endpoints, and each extension's, in their order, with the endpoints the
+     * The page's sections: Alfa Commerce's own endpoints, and each extension's, in their order, with the endpoints the
      * filters keep, the declarations core refused and whether the extension can answer now. An extension that adds no
      * endpoint still has its section when a declaration of it was refused or it cannot be loaded.
      *
