@@ -45,6 +45,7 @@ final class UnsavedItem
         private readonly int $id,
         private readonly array $categoryIds,
         private readonly array $manufacturerIds,
+        private readonly bool $rulesApply,
     ) {
     }
 
@@ -56,16 +57,30 @@ final class UnsavedItem
      * @param mixed $categories The category ids (a list, or one id).
      * @param mixed $manufacturers The manufacturer ids (a list, or one id).
      * @param int $itemId The product's id; 0 (the default) for a product not saved yet.
+     * @param mixed $discountRules The product's discount rules switch as posted: 0 excludes it from every rule.
      *
      * @since  2.1.0
      */
-    public static function fromForm(mixed $defaultCategory, mixed $categories, mixed $manufacturers, int $itemId = 0): self
+    public static function fromForm(mixed $defaultCategory, mixed $categories, mixed $manufacturers, int $itemId = 0, mixed $discountRules = 1): self
     {
         return new self(
             id: max(0, $itemId),
             categoryIds: self::ids(values: array_merge((array) $categories, (array) $defaultCategory)),
             manufacturerIds: self::ids(values: (array) $manufacturers),
+            // The product's own switch as the form holds it: anything but an explicit 0 lets the rules apply.
+            rulesApply: !is_numeric($discountRules) || (int) $discountRules !== 0,
         );
+    }
+
+    /**
+     * Whether the discount rules apply to the product as its form holds it; false when its switch excludes it from
+     * every rule.
+     *
+     * @since  2.3.0
+     */
+    public function rulesApply(): bool
+    {
+        return $this->rulesApply;
     }
 
     /**
@@ -125,7 +140,7 @@ final class UnsavedItem
         sort($categories);
         sort($manufacturers);
 
-        return 'unsaved:' . $this->id . ':' . implode(',', $categories) . '|' . implode(',', $manufacturers);
+        return 'unsaved:' . $this->id . ':' . implode(',', $categories) . '|' . implode(',', $manufacturers) . '|' . ($this->rulesApply ? '1' : '0');
     }
 
     /**

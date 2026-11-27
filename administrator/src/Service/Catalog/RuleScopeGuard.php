@@ -67,7 +67,7 @@ final class RuleScopeGuard
      * rule pivots as kind => [pivot table, rule column], and the cart-rule
      * condition type that names the axis (null: no condition names it).
      *
-     * @var array<string, array{table: string, column: string, refusal: string, excludes: ?string, pivots: array<string, array{0: string, 1: string}>, conditionType: ?string}>
+     * @var array<string, array{table: string, column: string, refusal: string, excludes: ?string, pivots: array<string, array{0: string, 1: string}>, conditionType: ?string, exclusionPivots?: array<string, array{0: string, 1: string}>, excludedBy?: string}>
      * @since 2.0.0
      */
     private const AXES = [
@@ -81,6 +81,12 @@ final class RuleScopeGuard
                 'tax' => ['#__alfa_tax_categories', 'tax_id'],
             ],
             'conditionType' => 'categories',
+            // A rule's exclusions: deleting a category a rule excludes would let the rule reach its products through
+            // their other categories, so every row counts, not only the last.
+            'exclusionPivots' => [
+                'discount' => ['#__alfa_discount_excluded_categories', 'discount_id'],
+            ],
+            'excludedBy' => 'COM_ALFA_CATEGORY_DELETE_RULE_EXCLUDES',
         ],
         self::AXIS_PLACE => [
             'table' => '#__alfa_places',
@@ -286,15 +292,30 @@ final class RuleScopeGuard
             }
         }
 
-        $refused = array_filter($refused);
+        // Rules that exclude an entity of the set: every row of an exclusion counts.
+        $excludedBy = [];
 
-        if ($refused === []) {
+        foreach ($spec['exclusionPivots'] ?? [] as $kind => [$pivot, $ruleColumn]) {
+            $ruleIds = array_values(array_unique(array_map('intval', (array) $db->setQuery(
+                'SELECT ' . $db->quoteName($ruleColumn) . ' FROM ' . $db->quoteName($pivot) . ' WHERE ' . $column . ' IN (' . $idList . ') FOR UPDATE',
+            )->loadColumn())));
+
+            if ($ruleIds !== []) {
+                $excludedBy[$kind] = self::existing(db: $db, kind: $kind, ids: $ruleIds);
+            }
+        }
+
+        $refused = array_filter($refused);
+        $excludedBy = array_filter($excludedBy);
+
+        if ($refused === [] && $excludedBy === []) {
             return;
         }
 
         $rules = self::describe(db: $db, refused: $refused);
         $scoped = array_values(array_filter($rules, static fn (array $rule): bool => $rule['kind'] !== 'cart_rule'));
         $excluding = array_values(array_filter($rules, static fn (array $rule): bool => $rule['kind'] === 'cart_rule'));
+        $excluders = self::describe(db: $db, refused: $excludedBy);
         $message = [];
         $plain = [];
 
@@ -308,9 +329,14 @@ final class RuleScopeGuard
             $plain[] = Text::sprintf($spec['excludes'], implode(', ', array_column($excluding, 'plainLabel')));
         }
 
+        if ($excluders !== []) {
+            $message[] = Text::sprintf($spec['excludedBy'], implode(', ', array_column($excluders, 'label')));
+            $plain[] = Text::sprintf($spec['excludedBy'], implode(', ', array_column($excluders, 'plainLabel')));
+        }
+
         throw new ScopeDeleteRefusedException(
             axis: $axis,
-            rules: array_map(static fn (array $rule): array => array_diff_key($rule, ['label' => true, 'plainLabel' => true]), $rules),
+            rules: array_map(static fn (array $rule): array => array_diff_key($rule, ['label' => true, 'plainLabel' => true]), array_merge($rules, $excluders)),
             message: implode(' ', $message),
             plain: implode(' ', $plain),
         );

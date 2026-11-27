@@ -54,7 +54,7 @@
     "media/js/admin/order-item.js": ["ef1578d7f8144f2d732f64202fb4289bfdd3abd2760dcbf29190d1787ca2be47", "f9904b1a4f656b4903b9489d184b574012dd3df93596c1741eeb65d2b1bc9971"],
     "media/js/admin/orders-list.js": ["e199adc7459f14281a8c9197acd5aab44ff930bc14476d3c0106029ad1baffcc", "dd6758cd8e2ef6f87530212ab094d13b0937e4fb9138f32f7edb41f85ff5fb35"],
     "media/js/admin/payment-checkup.js": ["8e007def278fe84b00786567db3ca2c71fb36c064fd3c74011a88d104caaa961", "893c0cb6bac1ffaba6fd1a1cf8bcd5879b0514505c16577d0ffd3b386ad8fe5f"],
-    "media/js/admin/prices.js": ["09e5bc7b11a578d27df5145ca1c17a4c4b8b6f60c4035db0500fdf0e4a118b9c", "ebc437c82fee718c678f7d670f5956fd60678555b5e1810efa69fab33420f572"],
+    "media/js/admin/prices.js": ["2143d36a2cc9e4268dc5d4ea2581358f370ab2fa06c22ad7318e89280883c85f", "fb26dfbb87c3bcc559fb02ec7373e713689122b50d5af63eda19edf99612fb6e"],
     "media/js/admin/related-products.js": ["899712bc07f15b8c8990bf4d35f018d3daee8314181fc5921f7fae4085678088", "7d288dc9f127684321ae69dbd69e301dc8f7dd0afcbd39bae71415133bf3b8c7"],
     "media/js/admin/runner-kick.js": ["d7bf594007e3bb26db6c51ffaf45d2a98b5d519e848313d17b220a6551026c99", "0e8b42b983b4a9c05ae13ce07e84d05323253ce1e29dd21a008fe6ac40fb0c51"],
     "media/js/admin/seo.js": ["73327aaed4ca9d74675f1fbc64aacda509ae6d312b453f5186a392abb2fc2b67", "a1ffed2e91b1b70faf5f507690e1730bb4de713e496838bd0647ce60971f2ead"],

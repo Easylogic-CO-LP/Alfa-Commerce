@@ -282,6 +282,24 @@
       <option value="0">COM_ALFA_FORM_USER_ALL</option>
     </field>
 
+    <!-- Except: a product or a category named here is never reached by the rule, whatever its scope takes in. -->
+    <field
+            name="excluded_items"
+            type="DiscountItems"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_EXCLUDED_ITEMS"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_EXCLUDED_ITEMS"
+    />
+
+    <field
+            name="excluded_categories"
+            type="categories"
+            showPath="true"
+            multiple="true"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_EXCLUDED_CATEGORIES"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_EXCLUDED_CATEGORIES"
+            layout="joomla.form.field.list-fancy-select"
+    />
+
     <field
             name="publish_up"
             type="calendar"

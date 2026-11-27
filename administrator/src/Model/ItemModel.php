@@ -3731,6 +3731,7 @@ class ItemModel extends AlfaAdminModel
                 '#__alfa_items_usergroups' => 'item_id',
                 '#__alfa_items_users' => 'item_id',
                 '#__alfa_discount_items' => 'item_id',
+                '#__alfa_discount_excluded_items' => 'item_id',
             ] as $table => $column) {
                 $db->setQuery(
                     $db->getQuery(true)

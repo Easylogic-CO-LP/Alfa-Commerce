@@ -13,11 +13,16 @@ namespace Alfa\Component\Alfa\Administrator\View\Discount;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountExclusions;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\Database\DatabaseInterface;
+use Throwable;
 
 /**
  * View class for a single Category.
@@ -31,6 +36,16 @@ class HtmlView extends FormView
      * @since  2.0.0
      */
     protected string $alfaEntity = 'discount';
+
+    /**
+     * How many products the saved rule's scope takes in and never reaches: excluded by the rule, and excluded on their
+     * own (DiscountExclusions::counts()); null for a new rule, or when the counts could not be read (logged).
+     *
+     * @var array{by_rule: int, own: int}|null
+     *
+     * @since  2.3.0
+     */
+    public ?array $exclusions = null;
 
     /**
      * Render the edit form view.
@@ -63,6 +78,18 @@ class HtmlView extends FormView
         $this->form
             ->addControlField('task', '')
             ->addControlField('return', RequestScalar::read($input, 'return', '', 'base64'));
+
+        // The exclusion counts are the saved rule's; a rule not saved yet has nothing to count.
+        $discountId = (int) ($this->item->id ?? 0);
+
+        if ($discountId > 0) {
+            try {
+                $this->exclusions = (new DiscountExclusions(db: Factory::getContainer()->get(DatabaseInterface::class)))->counts(discountId: $discountId);
+            } catch (Throwable $e) {
+                Log::add('Discount #' . $discountId . ': the exclusion counts could not be read: ' . $e::class . ': ' . ErrorText::of($e), Log::WARNING, 'com_alfa');
+                $this->exclusions = null;
+            }
+        }
     }
 
     /**

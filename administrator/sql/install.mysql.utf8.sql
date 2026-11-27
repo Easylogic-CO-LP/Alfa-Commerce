@@ -527,6 +527,34 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `#__alfa_discount_excluded_items`
+--
+-- The products a discount rule never reaches, whatever its scope takes in. Written by the discount's save; a
+-- product's delete removes its rows.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_excluded_items` (
+  `discount_id` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `item_id`),
+  KEY `idx_item_id` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `#__alfa_discount_excluded_categories`
+--
+-- The categories whose products a discount rule never reaches, whatever its scope takes in. Written by the
+-- discount's save; a category's delete is refused while a rule excludes it (RuleScopeGuard).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_excluded_categories` (
+  `discount_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `#__alfa_form_field_groups`
 --
 
@@ -942,6 +970,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_combinations` (
   `manage_stock` tinyint(1) DEFAULT NULL,
   `backorder` varchar(12) DEFAULT NULL COMMENT 'NULL = inherit item; empty string = skip the item and follow the shop default; else deny|allow|allow_notify',
   `min_qty` float DEFAULT NULL COMMENT 'Safety stock for THIS variant; NULL = inherit item. Two-level by design: no skip-the-item sentinel',
+  `discount_rules` tinyint(1) DEFAULT NULL COMMENT 'NULL = as the product; 1 = the discount rules apply; 0 = excluded from every discount rule',
   `state` tinyint(1) DEFAULT 1 COMMENT 'Catalogue state: 1 published, 0 unpublished, 2 archived (kept only as the stock identity of order history; excluded from every catalogue surface)',
   `ordering` int(11) DEFAULT 0,
   `created_by` int(11) DEFAULT 0,
@@ -1138,6 +1167,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `depth` decimal(24,8) NOT NULL DEFAULT 0.00000000,
   `weight` decimal(24,8) NOT NULL DEFAULT 0.00000000,
   `is_virtual` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Needs no shipping. Explicit flag, never inferred from weight/dimensions.',
+  `discount_rules` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the discount rules apply; 0 = excluded from every discount rule, whatever the rules say',
   `meta_data` text NOT NULL DEFAULT ('{}'),
   `layouts` text NOT NULL DEFAULT ('{}') COMMENT 'Layout overrides JSON {layout,card,images,manufacturers,categories}; empty key = inherit category/menu/global',
   `state` tinyint(1) DEFAULT 1 COMMENT 'Catalogue state: 1 published, 0 unpublished, 2 archived (removed from current commerce and kept as the stock identity of order history), -2 trashed',

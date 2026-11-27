@@ -99,6 +99,15 @@ class PriceDataLoader
      */
     private ?UnsavedItem $unsaved = null;
 
+    /**
+     * The discount rules switch of each combination read in this process (see combinationDiscountSwitch()).
+     *
+     * @var array<int, int|null>
+     *
+     * @since  2.3.0
+     */
+    private static array $combinationSwitches = [];
+
     public function __construct()
     {
         $this->db = Factory::getContainer()->get('DatabaseDriver');
@@ -159,9 +168,9 @@ class PriceDataLoader
             . ($this->unsaved === null ? '' : '|' . $this->unsaved->cacheKey());
 
         if (isset(self::$loaded[$cacheKey])) {
-            [$prices, $discounts, $taxes] = self::$loaded[$cacheKey];
+            [$prices, $discounts, $taxes, $rules, $excluded] = self::$loaded[$cacheKey];
 
-            return new PriceDataCollection($prices, $discounts, $taxes);
+            return new PriceDataCollection($prices, $discounts, $taxes, $rules, $excluded);
         }
 
         $prices = $this->executeBatched(
@@ -169,7 +178,7 @@ class PriceDataLoader
             $productIds,
         );
 
-        $discounts = $this->executeBatched(
+        $rules = $this->executeBatched(
             fn ($chunk) => $this->fetchDiscounts($chunk, $context),
             $productIds,
         );
@@ -179,9 +188,99 @@ class PriceDataLoader
             $productIds,
         );
 
-        self::$loaded[$cacheKey] = [$prices, $discounts, $taxes];
+        // The product's own switch: an excluded product keeps no rule, whatever the rules say. The rules as matched
+        // stay on the collection for a variant that takes them on its own.
+        $excluded = $this->excludedItems(productIds: $productIds);
+        $discounts = $rules;
 
-        return new PriceDataCollection($prices, $discounts, $taxes);
+        foreach ($excluded as $itemId) {
+            $discounts[$itemId] = [];
+        }
+
+        self::$loaded[$cacheKey] = [$prices, $discounts, $taxes, $rules, $excluded];
+
+        return new PriceDataCollection($prices, $discounts, $taxes, $rules, $excluded);
+    }
+
+    /**
+     * The products among some whose own switch excludes them from every discount rule: the form's switch for the
+     * product as its item form holds it, the stored switch for every other.
+     *
+     * @param array $productIds The products.
+     *
+     * @return int[]
+     *
+     * @since  2.3.0
+     */
+    private function excludedItems(array $productIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $productIds), static fn (int $id): bool => $id >= 0)));
+
+        if ($this->unsaved !== null) {
+            return $this->unsaved->rulesApply() ? [] : [$this->unsaved->id()];
+        }
+
+        $stored = array_values(array_filter($ids, static fn (int $id): bool => $id > 0));
+
+        if ($stored === []) {
+            return [];
+        }
+
+        return array_map('intval', $this->db->setQuery(
+            $this->db->getQuery(true)
+                ->select($this->db->qn('id'))
+                ->from($this->db->qn('#__alfa_items'))
+                ->whereIn($this->db->qn('id'), $stored)
+                ->where($this->db->qn('discount_rules') . ' = 0'),
+        )->loadColumn() ?: []);
+    }
+
+    /**
+     * A combination's own discount rules switch: 1 the rules apply, 0 excluded from every rule, null as its product.
+     * Read once a process for each combination; {@see self::loadCombinationPriceRowsFor()} reads a batch at once.
+     *
+     * @param int $combinationId The combination.
+     *
+     * @since  2.3.0
+     */
+    public function combinationDiscountSwitch(int $combinationId): ?int
+    {
+        if ($combinationId <= 0) {
+            return null;
+        }
+
+        if (!\array_key_exists($combinationId, self::$combinationSwitches)) {
+            $this->readCombinationSwitches(combinationIds: [$combinationId]);
+        }
+
+        return self::$combinationSwitches[$combinationId] ?? null;
+    }
+
+    /**
+     * Read the discount rules switch of some combinations, once a process.
+     *
+     * @param int[] $combinationIds The combinations.
+     *
+     * @since  2.3.0
+     */
+    private function readCombinationSwitches(array $combinationIds): void
+    {
+        $missing = array_values(array_filter(array_unique(array_map('intval', $combinationIds)), static fn (int $id): bool => $id > 0 && !\array_key_exists($id, self::$combinationSwitches)));
+
+        foreach (array_chunk($missing, self::CHUNK_SIZE) as $chunk) {
+            foreach ($chunk as $id) {
+                self::$combinationSwitches[$id] = null;
+            }
+
+            foreach ($this->db->setQuery(
+                $this->db->getQuery(true)
+                    ->select($this->db->qn(['id', 'discount_rules']))
+                    ->from($this->db->qn('#__alfa_item_combinations'))
+                    ->whereIn($this->db->qn('id'), $chunk),
+            )->loadObjectList() ?: [] as $row) {
+                self::$combinationSwitches[(int) $row->id] = $row->discount_rules === null ? null : (int) $row->discount_rules;
+            }
+        }
     }
 
     /**
@@ -199,6 +298,7 @@ class PriceDataLoader
     {
         self::$loaded = [];
         self::$rowsOf = [];
+        self::$combinationSwitches = [];
     }
 
     /**
@@ -464,6 +564,8 @@ class PriceDataLoader
             return [];
         }
 
+        // The switches of the batch in one read, for the pricing that follows.
+        $this->readCombinationSwitches(combinationIds: $combinationIds);
         $byCombination = [];
 
         foreach ($this->publishedRowsOf(itemIds: $itemIds) as $rows) {
@@ -523,6 +625,10 @@ class PriceDataLoader
      *                          that target all manufacturers
      *   6. Product scope      - discount names no product (no row) or names
      *                          this product
+     *
+     * Then the rule's exclusions: a product it names, or a product in a category it names, is never reached. The
+     * product's own switch is applied on the collection (loadBatch()), not here, so a variant set to take the rules
+     * still finds them.
      *   3. Place scope        - discount targets all places (place_id=0/NULL)
      *                          or the visitor's place or a place above it
      *                          (RulePrecedence orders what matched)
@@ -595,6 +701,12 @@ class PriceDataLoader
             // product it reaches (the 0 row, should one be written, reads as every product like the other parts).
             ->join('LEFT', '#__alfa_discount_items AS di ON di.discount_id = d.id')
             ->where('(di.discount_id IS NULL OR di.item_id = 0 OR di.item_id = ic.item_id)')
+
+            // Except: a product the rule names, or a product in a category it names, is never reached, whatever the
+            // scope above takes in.
+            ->where('NOT EXISTS (SELECT 1 FROM #__alfa_discount_excluded_items AS xi WHERE xi.discount_id = d.id AND xi.item_id = ic.item_id)')
+            ->where('NOT EXISTS (SELECT 1 FROM #__alfa_discount_excluded_categories AS xc INNER JOIN ' . $this->categoryLinks() . ' AS xic'
+                . ' ON xic.item_id = ic.item_id WHERE xc.discount_id = d.id AND xc.category_id = xic.category_id)')
 
             // Scope 3: Place
             // Matches when: no place restriction exists, applies-to-all-places (0),

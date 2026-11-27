@@ -425,3 +425,26 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_items` (
   PRIMARY KEY (`discount_id`, `item_id`),
   KEY `idx_item_id` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A discount rule's exclusions, and the product's own switch
+
+-- The products and the categories a rule never reaches, whatever its scope takes in; and on the product the switch
+-- that takes it out of every rule (its variants follow it unless they say otherwise). The install SQL has the same
+-- tables and columns; each statement runs again harmlessly.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_excluded_items` (
+  `discount_id` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `item_id`),
+  KEY `idx_item_id` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_excluded_categories` (
+  `discount_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `category_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `#__alfa_items` ADD COLUMN `discount_rules` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the discount rules apply; 0 = excluded from every discount rule, whatever the rules say' AFTER `is_virtual` /** CAN FAIL **/;
+ALTER TABLE `#__alfa_item_combinations` ADD COLUMN `discount_rules` tinyint(1) DEFAULT NULL COMMENT 'NULL = as the product; 1 = the discount rules apply; 0 = excluded from every discount rule' AFTER `min_qty` /** CAN FAIL **/;

@@ -295,6 +295,11 @@ $calendarForm = PriceRowDates::form(control: $base, row: $row);
                 </div>
             </div>
 
+            <!-- The product's own switch: excluded from every discount rule, so no rule reaches this row. -->
+            <div class="price-cell" data-price-rules-excluded <?php echo !empty($preview['excluded']) ? '' : 'hidden'; ?>>
+                <span class="override-hint text-warning"><?php echo Text::_('COM_ALFA_PRICES_RULES_EXCLUDED'); ?></span>
+            </div>
+
             <!-- Custom discount: replaces every regular discount with one
                  fixed price. Segmented: Off / pins the starting (net)
                  price (taxes still apply on top) / pins the final gross

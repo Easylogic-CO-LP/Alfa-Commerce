@@ -1503,12 +1503,14 @@ class ItemController extends FormController
         $formContext = $itemId <= 0
             || $this->input->exists('id_category_default')
             || $this->input->exists('categories')
-            || $this->input->exists('manufacturers');
+            || $this->input->exists('manufacturers')
+            || $this->input->exists('discount_rules');
         $unsaved = !$formContext ? null : UnsavedItem::fromForm(
             defaultCategory: RequestScalar::string($this->input, 'id_category_default'),
             categories: $this->input->get('categories', [], 'array'),
             manufacturers: $this->input->get('manufacturers', [], 'array'),
             itemId: max(0, $itemId),
+            discountRules: $this->input->exists('discount_rules') ? RequestScalar::string($this->input, 'discount_rules') : 1,
         );
 
         if ($unsaved !== null && !$unsaved->hasCategory()) {
