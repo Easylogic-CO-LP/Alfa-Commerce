@@ -41,6 +41,7 @@ use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Throwable;
 
@@ -330,6 +331,17 @@ final class CoreToolProvider
             $tasksAction->meta('notice', 'COM_ALFA_TOOLS_TASKS_RUN_OWED');
         }
 
+        // EVERYTHING PENDING, IN ORDER: the tasks a save left, the stock movements still owed, the list prices
+        // waiting to be prepared, each through its own path above, one step at a time, and one message at the end.
+        $event->add(self::ID, 'tasks.pending', 'COM_ALFA_TASKS_RUN_PENDING')
+            ->icon('loop')
+            ->mutating()
+            ->css($tasksOwed || $stockOwed || $priceSets['owed'] ? 'btn-warning' : 'btn-primary')
+            ->priority(110)
+            ->meta('surface', 'background')
+            ->meta('chunked', true)
+            ->meta('description', 'COM_ALFA_TASKS_RUN_PENDING_DESC');
+
         // FINISHED TASKS DELETED NOW: what the runner's hourly prune deletes, by the same rules
         // (TaskRetention), until nothing they let go is left; the count of what went.
         $event->add(self::ID, 'tasks.prune', 'COM_ALFA_TOOLS_TASKS_PRUNE_TITLE')
@@ -403,6 +415,7 @@ final class CoreToolProvider
             'pricing.check' => $this->checkPriceIndex($event),
             'inventory.effects' => $this->applyStockEffects($event),
             'tasks.run' => $this->runOutstandingTasks($event),
+            'tasks.pending' => $this->runPending($event),
             'tasks.prune' => $this->pruneFinishedTasks($event),
             'tours.reseed' => $this->reseedTours($event),
             'tours.export' => $this->exportTours($event),
@@ -509,6 +522,146 @@ final class CoreToolProvider
         } catch (Throwable $e) {
             $event->setError(ErrorText::of($e));
         }
+    }
+
+    /**
+     * Run everything pending, in order, one step a request: the tasks a save left (a sweep, as Run outstanding tasks
+     * does), then the stock movements still owed (a step of the drain job, as Apply outstanding stock movements does),
+     * then the list prices waiting (a step of the oldest waiting set's job, as Prepare waiting list prices does). Each
+     * kind runs through its own path with its own locks, batches and time limits, so a job another process holds (the
+     * cron) is not run twice: that kind stops and its records count as still pending. A kind that fails is counted as
+     * an error and the kinds after it still run. The plan queues what the single actions queue and counts what is
+     * pending; the last step says what the run did ({@see PendingRun::message()}), and the page loads itself again.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     *
+     * @since  2.3.0
+     */
+    private function runPending(ExecuteToolActionEvent $event): void
+    {
+        try {
+            if ($event->isPlanning()) {
+                PendingRun::start();
+                InventoryEffectOutbox::reopenFailed();
+                StockEffectsDrainJob::enqueue();
+                (new PriceIndexSyncService())->queueWaitingContexts();
+                $event->setTotal(max(1, Tasks::dueCount() + InventoryEffectOutbox::outstandingCount() + self::pricesWaiting()));
+
+                return;
+            }
+
+            $steps = PendingRun::step();
+            $advanced = false;
+            $stopped = $steps > PendingRun::STEPS_MAX;
+
+            if (!$stopped) {
+                [$advanced, $stopped] = $this->pendingStep();
+            }
+
+            $pending = Tasks::dueCount() + InventoryEffectOutbox::owedCount() + self::pricesWaiting();
+            $event->setTotal(max(PendingRun::done() + $pending, PendingRun::done() + 1));
+
+            if ($advanced) {
+                $event->setNextOffset(PendingRun::done());
+
+                return;
+            }
+
+            TaskAttention::sync();
+            $event->setMessage(PendingRun::finish(pending: $pending, stopped: $stopped || $pending > 0));
+            $event->setRefresh();
+        } catch (Throwable $e) {
+            $event->setError(ErrorText::of($e));
+        }
+    }
+
+    /**
+     * One step of Run pending: the first kind with work, in order. Whether the step advanced (another step follows),
+     * and whether a kind could not advance though it has work (held by another process, or waiting out a retry), which
+     * stops the run with records pending.
+     *
+     * @return array{bool, bool}
+     *
+     * @since  2.3.0
+     */
+    private function pendingStep(): array
+    {
+        $stopped = false;
+
+        // The tasks a save left: one sweep while any is due. A sweep that takes nothing though tasks are due waits
+        // for their retry times, or another process holds them: on to the next kind.
+        try {
+            if (Tasks::dueCount() > 0) {
+                $stats = Tasks::sweepSingles(budgetMs: self::TASKS_CHUNK_MS, trigger: 'tools');
+                PendingRun::add('jobs', (int) $stats['claimed']);
+                PendingRun::add('errors', (int) $stats['failed'] + (int) $stats['held'] + (int) $stats['lost']);
+
+                if ((int) $stats['claimed'] > 0) {
+                    return [true, false];
+                }
+
+                $stopped = true;
+            }
+        } catch (Throwable $e) {
+            PendingRun::add('errors', 1);
+            Tasks::log(entry: 'Run pending: the tasks could not be swept: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
+        }
+
+        // The stock movements still owed: a step of the drain job while it waits or runs.
+        $job = Runner::latestJob(scopeKey: StockEffectsDrainJob::NAME);
+
+        if ($job !== null && \in_array($job['state'], [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
+            try {
+                $tick = Runner::tick(trigger: 'tools', budgetMs: self::JOB_STEP_MS, onlyJob: $job['id']);
+                PendingRun::add('stock', $tick->units);
+                PendingRun::add('errors', $tick->failed);
+
+                if ($tick->chunks > 0) {
+                    return [true, false];
+                }
+
+                $stopped = true;
+            } catch (Throwable $e) {
+                PendingRun::add('errors', 1);
+                Tasks::log(entry: 'Run pending: the stock movements could not be applied: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
+            }
+        }
+
+        // The list prices waiting: a step of the oldest waiting set's job.
+        try {
+            foreach (PriceIndexSyncService::preparationState()['waiting'] as $set) {
+                if (!\in_array($set['job']['state'] ?? '', [Tasks::STATE_PENDING, Tasks::STATE_RUNNING], true)) {
+                    continue;
+                }
+
+                $tick = Runner::tick(trigger: 'tools', budgetMs: self::JOB_STEP_MS, onlyJob: (int) $set['job']['id']);
+                PendingRun::add('prices', $tick->units);
+                PendingRun::add('errors', $tick->failed);
+
+                return [$tick->chunks > 0, $tick->chunks === 0 || $stopped];
+            }
+        } catch (Throwable $e) {
+            PendingRun::add('errors', 1);
+            Tasks::log(entry: 'Run pending: the list prices could not be prepared: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
+        }
+
+        return [false, $stopped];
+    }
+
+    /**
+     * How many products the waiting pricing contexts still have to prepare.
+     *
+     * @since  2.3.0
+     */
+    private static function pricesWaiting(): int
+    {
+        $waiting = 0;
+
+        foreach (PriceIndexSyncService::preparationState()['waiting'] as $set) {
+            $waiting += max(0, (int) $set['products'] - (int) $set['done']);
+        }
+
+        return $waiting;
     }
 
     /**
