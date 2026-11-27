@@ -41,6 +41,28 @@
                 layout="joomla.form.field.list-fancy-select"
         />
 
+        <!-- The status change's note to the customer and whether the customer is e-mailed about it. Shown only while
+             the chosen status differs from the stored one (OrderModel::getForm sets the rule), read by save() and
+             handed to the status change; neither is a column of the order. The box follows the chosen status
+             (ticked when that status e-mails the customer) until the operator sets it for this change. -->
+        <field
+                name="status_note"
+                type="textarea"
+                label="COM_ALFA_ORDER_STATUS_NOTE_LABEL"
+                description="COM_ALFA_ORDER_STATUS_NOTE_DESC"
+                rows="3"
+                maxlength="2000"
+                filter="string"
+        />
+        <field
+                name="status_notify"
+                type="checkbox"
+                value="1"
+                label="COM_ALFA_ORDER_STATUS_NOTIFY_LABEL"
+                description="COM_ALFA_ORDER_STATUS_NOTIFY_DESC"
+                filter="integer"
+        />
+
         <!-- The order's currency by name. Read-only: an order's currency is written once, when it is placed. -->
         <field name="id_currency" type="sql" readonly="true"
                query="SELECT `id`, `name` FROM `#__alfa_currencies` ORDER BY `name`"

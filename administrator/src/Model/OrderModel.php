@@ -675,6 +675,10 @@ class OrderModel extends AlfaAdminModel
             if ($initialStatusId !== null) {
                 $form->setFieldAttribute('id_order_status', 'default', (string) $initialStatusId);
             }
+
+            // A new order opens in its status; there is no change to note or to tell the customer about.
+            $form->removeField('status_note');
+            $form->removeField('status_notify');
         }
 
         // created_by is an audit fact set by the writer (0 = guest checkout,
@@ -705,6 +709,12 @@ class OrderModel extends AlfaAdminModel
             // The delivery record is the order's own, read from the stored order by save(): the hidden field is
             // dropped from the save like id_user, so an id posted in its place is never read.
             $form->setFieldAttribute('id_address_delivery', 'filter', 'unset');
+
+            // The note to the customer and the e-mail choice belong to a status CHANGE: shown while the chosen
+            // status differs from the stored one, and read by save() only then.
+            $storedStatus = 'id_order_status!:' . (int) ($this->item->id_order_status ?? 0);
+            $form->setFieldAttribute('status_note', 'showon', $storedStatus);
+            $form->setFieldAttribute('status_notify', 'showon', $storedStatus);
         }
 
         // Two buckets, same field names, identical to the storefront checkout:
@@ -4763,6 +4773,14 @@ class OrderModel extends AlfaAdminModel
         // written: it is not edited through this screen or through the API.
         $prevOrder = !$isNew ? $this->getItem($pk) : null;
 
+        // What the order screen says about the status change it posts: the note to the customer and whether the
+        // customer is e-mailed (absent from a submission that says nothing: the inline list, the API, which leave
+        // the e-mail to the status). Neither is a column, so they are taken off the data here and handed to the
+        // change below.
+        $customerNote = trim((string) ($data['status_note'] ?? ''));
+        $notifyCustomer = \array_key_exists('status_notify', $data) ? !empty($data['status_notify']) : null;
+        unset($data['status_note'], $data['status_notify']);
+
         // The target status is validated before the row is written:
         // parent::save() persists id_order_status itself, so leaving it to
         // Transition would strand the order in an unknown or unpublished
@@ -5159,7 +5177,7 @@ class OrderModel extends AlfaAdminModel
         // Past the commit. The order is whole and correct as it stands, so
         // nothing below may turn this into a failed save.
         if ($targetStatusId !== $oldStatusId) {
-            $this->applyStatusChange($orderId, $oldStatusId, $targetStatusId);
+            $this->applyStatusChange($orderId, $oldStatusId, $targetStatusId, $customerNote, $notifyCustomer);
         }
 
         // Phase F
@@ -5273,11 +5291,14 @@ class OrderModel extends AlfaAdminModel
      * @param int $orderId The order being moved.
      * @param int $from The status it was in when this save began.
      * @param int $target The status the operator asked for.
+     * @param string $customerNote The operator's note to the customer, for the e-mail and the history; '' for none.
+     * @param bool|null $notifyCustomer Whether the customer is e-mailed about the change: the operator's choice, or
+     *                                  null for the status's own.
      *
      *
      * @since  2.0.0
      */
-    protected function applyStatusChange(int $orderId, int $from, int $target): void
+    protected function applyStatusChange(int $orderId, int $from, int $target, string $customerNote = '', ?bool $notifyCustomer = null): void
     {
         $app = Factory::getApplication();
         $db = $this->getDatabase();
@@ -5295,6 +5316,19 @@ class OrderModel extends AlfaAdminModel
         // under its own lock, writes the new one, and owns the consequences:
         // the same contract every other producer in the tree uses.
         $transition = Transition::for($orderId)->to($target)->force();
+
+        // The operator's note goes into the customer's e-mail and onto the history; the e-mail choice is theirs
+        // when they made one, the status's when the submission made none.
+        if ($customerNote !== '') {
+            $transition->customerNote($customerNote);
+        }
+
+        if ($notifyCustomer === true) {
+            $transition->tellCustomer();
+        } elseif ($notifyCustomer === false) {
+            $transition->silentCustomer();
+        }
+
         $threw = false;
 
         try {

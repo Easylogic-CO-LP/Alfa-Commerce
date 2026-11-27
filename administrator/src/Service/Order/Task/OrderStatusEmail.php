@@ -97,6 +97,10 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
                 // false for a change made silent for the customer; a single that carries no such key tells
                 // the customer.
                 customer: ($run->payload()['customer'] ?? true) !== false,
+                // Staff asked for the customer's e-mail (the order screen's tick, or sending it again): the customer
+                // is told whatever the status says; the note they typed goes into the e-mail.
+                customerAsked: !empty($run->payload()['customer_asked']),
+                note: (string) ($run->payload()['note'] ?? ''),
                 attempt: static fn (string $unit): bool => $run->shouldAttempt(unit: $unit),
                 outcome: static function (string $unit, string $outcome, string $error) use ($run, &$failed, &$unknown, &$off): void {
                     $run->unit(unit: $unit, outcome: match ($outcome) {
@@ -160,12 +164,17 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
             return;
         }
 
-        $text = self::text('COM_ALFA_ORDER_TASK_EMAIL_SENT', $this->what($settlement->payload), $settlement->taskId, self::sentList(sent: $sent));
+        // With the note the e-mail carried, so the history says what the customer was told and when.
+        $note = trim((string) ($settlement->payload['note'] ?? ''));
+        $text = $note === ''
+            ? self::text('COM_ALFA_ORDER_TASK_EMAIL_SENT', $this->what($settlement->payload), $settlement->taskId, self::sentList(sent: $sent))
+            : self::text('COM_ALFA_ORDER_TASK_EMAIL_SENT_NOTE', $this->what($settlement->payload), $settlement->taskId, self::sentList(sent: $sent), $note);
         OrderModel::logOrderActivityStrict(
             orderId: $settlement->subjectId,
             event: 'order.email_sent',
             summary: self::english(text: $text),
-            context: ['task' => $settlement->taskId, 'handler' => $settlement->handler, 'sent' => $sent, 'text' => $text],
+            context: ['task' => $settlement->taskId, 'handler' => $settlement->handler, 'sent' => $sent, 'text' => $text]
+                + ($note !== '' ? ['note_to_customer' => $note] : []),
             actorId: 0,
         );
     }

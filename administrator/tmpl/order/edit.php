@@ -25,6 +25,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -43,6 +44,15 @@ $wa->useScript('keepalive')
 	->useScript('com_alfa.showon.engine')
 	->useStyle('com_alfa.validate')
 	->useStyle('com_alfa.admin');
+
+if (!empty($this->order->id)) {
+	// The status change's "Notify the customer" box follows the chosen status: which statuses e-mail the customer
+	// by themselves.
+	$wa->useScript('com_alfa.admin.order-status-note');
+	$this->document->addScriptOptions('com_alfa.orderStatusNote', [
+		'notifies' => array_map(static fn (object $status): int => (int) ($status->notify_customer ?? 0), AlfaHelper::getOrderStatuses()),
+	]);
+}
 
 Text::script('JCLOSE'); //used by action modal popups
 

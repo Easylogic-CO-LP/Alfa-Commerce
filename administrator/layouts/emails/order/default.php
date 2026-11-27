@@ -19,6 +19,12 @@
  *                              = a new editor on the form (discovered via a
  *                              collector render) + a per-recipient show/hide
  *                              toggle. Tokens inside resolve later.
+ *                              The one position no editor exists for is
+ *                              'note': the note to the customer staff typed
+ *                              on the order for THIS send (a status change,
+ *                              or the status e-mail sent again). Rendered
+ *                              below after the intro; an override may move
+ *                              it. Empty on a send without a note.
  *    $hasPosition($name)     - true when that slot has content (guard
  *                              wrappers, like Joomla's countModules()).
  *    $render($id, $data?)    - render a sub-layout, e.g.
@@ -196,14 +202,24 @@ extract($displayData);
 
                     <?php // Positions
                           // Body content the admin authors. Order:
-                          //   header -> intro -> [items/totals] -> outro -> legal
+                          //   header -> intro -> note -> [items/totals] -> outro -> legal
                           // header is the brand top slot; intro is the message
-                          // (greeting + status line); outro follows the table;
-                          // legal is the muted fine-print footer. ?>
+                          // (greeting + status line); note is what staff typed for
+                          // this send; outro follows the table; legal is the muted
+                          // fine-print footer. ?>
                     <?php if ($hasPosition('intro')) : ?>
                     <tr>
                         <td class="email__pad email__body" style="padding:12px 44px 0 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#111827;">
                             <?php echo $position('intro'); ?>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+
+                    <?php // The note to the customer of this send, typed by staff on the order. ?>
+                    <?php if ($hasPosition('note')) : ?>
+                    <tr>
+                        <td class="email__pad email__body" style="padding:14px 44px 0 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#111827;">
+                            <?php echo $position('note'); ?>
                         </td>
                     </tr>
                     <?php endif; ?>
