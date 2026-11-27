@@ -60,8 +60,8 @@ class OutboundModel extends AlfaListModel
     }
 
     /**
-     * The list's state: running first by default, then waiting, what needs attention and the finished, newest first
-     * within each; the date window against the moment the change was recorded.
+     * The list's state: waiting first by default (running while its job runs), then given up and finished, oldest
+     * first within each (the stored rank's index); the date window against the moment the change was recorded.
      *
      * @param string $ordering The default ordering.
      * @param string $direction The default direction.
@@ -172,7 +172,8 @@ class OutboundModel extends AlfaListModel
         $ordering = (string) $this->getState('list.ordering', 'rank');
         $direction = strtoupper((string) $this->getState('list.direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
         $query->order(match ($ordering) {
-            'rank' => 'FIELD(' . OutboundConsumers::workSql(db: $db, alias: 'd') . ', ' . implode(', ', array_map([$db, 'quote'], TaskStaff::WORK_STATES)) . ') ' . $direction . ', ' . $db->quoteName('d.id') . ' DESC',
+            // The stored rank with the id, one direction: the index the table keeps for this order.
+            'rank' => $db->quoteName('d.rank') . ' ' . $direction . ', ' . $db->quoteName('d.id') . ' ' . $direction,
             'finished' => 'COALESCE(' . $db->quoteName('d.sent_at') . ', ' . $db->quoteName('d.dead_at') . ') ' . $direction,
             default => $db->quoteName($ordering) . ' ' . $direction,
         });

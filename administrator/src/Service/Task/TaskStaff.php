@@ -194,8 +194,9 @@ final class TaskStaff
     }
 
     /**
-     * SQL that ranks a row's state of work for the Background screen's order: running first, then waiting, then what
-     * needs attention, then the finished.
+     * The column that ranks a row for the Background screen's order: the stored rank of its state (running 0, waiting 1,
+     * needs attention 2, finished 3), indexed with the id, so the order reads the index instead of sorting the table. A
+     * waiting job being driven shows as running but ranks with the waiting.
      *
      * @param DatabaseDriver $db The connection.
      * @param string $alias The tasks table's alias in the query, '' for none.
@@ -204,7 +205,7 @@ final class TaskStaff
      */
     public static function rankSql(DatabaseDriver $db, string $alias = ''): string
     {
-        return 'FIELD(' . self::workSql(db: $db, alias: $alias) . ', ' . implode(', ', array_map([$db, 'quote'], self::WORK_STATES)) . ')';
+        return $db->quoteName($alias === '' ? 'rank' : $alias . '.rank');
     }
 
     /**
@@ -355,7 +356,7 @@ final class TaskStaff
                 ->from($db->quoteName(Tasks::TABLE))
                 ->where($db->quoteName('type') . ' = ' . $db->quote(Tasks::TYPE_JOB))
                 ->whereIn($db->quoteName('state'), [Tasks::STATE_RUNNING, Tasks::STATE_PENDING], ParameterType::STRING)
-                ->order(self::rankSql(db: $db) . ' ASC, ' . $db->quoteName('id') . ' DESC'),
+                ->order(self::rankSql(db: $db) . ' ASC, ' . $db->quoteName('id') . ' ASC'),
             0,
             max(1, $limit),
         )->loadAssocList() ?: [];
