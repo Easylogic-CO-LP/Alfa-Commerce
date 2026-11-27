@@ -75,6 +75,12 @@ final class RuleScopeGuard
     /** @var string Products: #__alfa_discount_items. @since 2.3.0 */
     public const AXIS_ITEM = 'item';
 
+    /** @var string Joomla's user groups, as the customer groups of a discount, tax, payment or shipping method. @since 2.3.0 */
+    public const AXIS_USERGROUP = 'usergroup';
+
+    /** @var string Joomla's accounts, as the customers of a discount, tax, payment or shipping method. @since 2.3.0 */
+    public const AXIS_USER = 'user';
+
     /**
      * Per axis: the entity table and column, the refusal's language keys, the
      * rule pivots as kind => [pivot table, rule column], and the cart-rule
@@ -143,6 +149,37 @@ final class RuleScopeGuard
             'excludes' => null,
             'pivots' => [
                 'discount' => ['#__alfa_discount_items', 'discount_id'],
+            ],
+            'conditionType' => null,
+        ],
+        // A group or an account is Joomla's, deleted in Joomla: the users plugin event asks this before a group is
+        // deleted, which Joomla lets a plugin refuse; an account's delete cannot be refused there, so its rules are
+        // named to staff afterwards (named()).
+        self::AXIS_USERGROUP => [
+            'table' => '#__usergroups',
+            'column' => 'usergroup_id',
+            'refusal' => 'COM_ALFA_USERGROUP_DELETE_LAST_RULE_SCOPE',
+            'excludes' => null,
+            'methodRefusal' => 'COM_ALFA_USERGROUP_DELETE_LAST_METHOD_SCOPE',
+            'pivots' => [
+                'discount' => ['#__alfa_discount_usergroups', 'discount_id'],
+                'tax' => ['#__alfa_tax_usergroups', 'tax_id'],
+                'payment' => ['#__alfa_payment_usergroups', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_usergroups', 'shipment_id'],
+            ],
+            'conditionType' => null,
+        ],
+        self::AXIS_USER => [
+            'table' => '#__users',
+            'column' => 'user_id',
+            'refusal' => 'COM_ALFA_USER_DELETE_LAST_RULE_SCOPE',
+            'excludes' => null,
+            'methodRefusal' => 'COM_ALFA_USER_DELETE_LAST_METHOD_SCOPE',
+            'pivots' => [
+                'discount' => ['#__alfa_discount_users', 'discount_id'],
+                'tax' => ['#__alfa_tax_users', 'tax_id'],
+                'payment' => ['#__alfa_payment_users', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_users', 'shipment_id'],
             ],
             'conditionType' => null,
         ],
@@ -389,6 +426,47 @@ final class RuleScopeGuard
             message: implode(' ', $message),
             plain: implode(' ', $plain),
         );
+    }
+
+    /**
+     * The rules and methods whose scope on an axis names any of these entities, with their names: what is said to
+     * staff when an entity was deleted where no delete could be refused, and its rows now name nothing. One read a
+     * pivot by its entity index, no lock: nothing is judged or written here.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $axis One of the AXIS_* constants.
+     * @param int[] $ids The entities.
+     *
+     * @return array<int, array{kind: string, id: int, name: string, label: string, plainLabel: string}>
+     *
+     * @throws LogicException When the axis is unknown.
+     *
+     * @since   2.3.0
+     */
+    public static function named(DatabaseDriver $db, string $axis, array $ids): array
+    {
+        $spec = self::AXES[$axis] ?? throw new LogicException('Unknown rule scope axis: ' . $axis);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $naming = [];
+
+        foreach ($spec['pivots'] as $kind => [$pivot, $ruleColumn]) {
+            $ruleIds = array_values(array_unique(array_map('intval', (array) $db->setQuery(
+                'SELECT r.' . $db->quoteName('id') . ' FROM ' . $db->quoteName($pivot) . ' AS p'
+                . ' INNER JOIN ' . $db->quoteName(self::KINDS[$kind]['table']) . ' AS r ON r.' . $db->quoteName('id') . ' = p.' . $db->quoteName($ruleColumn)
+                . ' WHERE p.' . $db->quoteName($spec['column']) . ' IN (' . implode(',', $ids) . ') ORDER BY r.' . $db->quoteName('id'),
+            )->loadColumn())));
+
+            if ($ruleIds !== []) {
+                $naming[$kind] = $ruleIds;
+            }
+        }
+
+        return self::describe(db: $db, refused: $naming);
     }
 
     /**

@@ -38,14 +38,19 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Card\CardRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginFollower;
 use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartOwner;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\OpeningCombination;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ScopeDeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Log\ErrorRecorder;
@@ -69,6 +74,7 @@ use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Event\Module\AfterModuleListEvent;
 use Joomla\CMS\Event\PageCache\IsExcludedEvent;
 use Joomla\CMS\Event\PageCache\SetCachingEvent;
+use Joomla\CMS\Event\Result\ResultAwareInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Language\Text;
@@ -145,6 +151,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             'onUserAfterSave' => 'onUserAfterSave',
             'onAfterRoute' => 'onAfterRoute',
             'onUserAfterSaveGroup' => 'onUserAfterSaveGroup',
+            'onUserBeforeDeleteGroup' => 'onUserBeforeDeleteGroup',
             'onUserAfterDeleteGroup' => 'onUserAfterDeleteGroup',
             'onUserAfterDelete' => 'onUserAfterDelete',
 
@@ -650,6 +657,107 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
+     * Called before a Joomla user group is deleted (Users > Groups). Joomla's group model refuses the delete when a
+     * listener answers false, and shows the error set on the group's record, so the delete of a group that a rule
+     * or a method would be left without is refused here, the Joomla way: the last customer group of a discount, a
+     * tax, a payment method or a shipping method (RuleScopeGuard, as a category's delete is judged), and a group
+     * that price rows are for. An emptied part is saved as every group, and a price row without its group would be
+     * a price for every group.
+     *
+     * Joomla deletes the groups of a selection one by one and asks before each, so of two groups that are a rule's
+     * only two the first is deleted and the second refused: the rule keeps a group either way. Joomla holds no
+     * transaction over the question and its delete, so a rule saved between the two is not seen; the pickers keep a
+     * deleted group on its part, so that rule does not widen either.
+     *
+     * A judgement that cannot be read refuses nothing: the group's rows stay, and a rule that names only a deleted
+     * group reaches nobody.
+     *
+     * @param Event|array $event
+     *
+     * @since  2.3.0
+     */
+    public function onUserBeforeDeleteGroup($event): void
+    {
+        if (!$event instanceof Event || $this->paused()) {
+            return;
+        }
+
+        $group = $event->getArgument('subject');
+        $groupId = (int) (\is_object($group) ? ($group->id ?? 0) : (((array) $group)['id'] ?? 0));
+
+        if ($groupId <= 0) {
+            return;
+        }
+
+        try {
+            $refusal = $this->groupDeleteRefusal(groupId: $groupId);
+        } catch (Throwable $e) {
+            $this->logError(caller: 'onUserBeforeDeleteGroup', message: ErrorText::of($e), context: ['group_id' => $groupId]);
+
+            return;
+        }
+
+        if ($refusal === null) {
+            return;
+        }
+
+        // The sentence names rules and methods by the shop's own text: escaped, since Joomla prints the error as HTML.
+        if (\is_object($group) && method_exists($group, 'setError')) {
+            $group->setError(htmlspecialchars($refusal, ENT_QUOTES, 'UTF-8'));
+        }
+
+        if ($event instanceof ResultAwareInterface) {
+            $event->addResult(false);
+        } else {
+            $event->setArgument('result', array_merge((array) $event->getArgument('result', []), [false]));
+        }
+    }
+
+    /**
+     * Why a customer group is not deleted, or null when nothing names it alone: the rules and methods it is the
+     * last group of, and the price rows that are for it, counted.
+     *
+     * @param int $groupId The group.
+     *
+     * @since  2.3.0
+     */
+    private function groupDeleteRefusal(int $groupId): ?string
+    {
+        // The sentences are the component's: its language file is not loaded on Joomla's Users screens.
+        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+
+        $db = TransactionState::driver(db: $this->getDatabase());
+        $sentences = [];
+
+        // The guard reads under locks, inside a transaction: this one holds only its reads.
+        $db->transactionStart(true);
+
+        try {
+            RuleScopeGuard::assertScopesSurvive(db: $db, axis: RuleScopeGuard::AXIS_USERGROUP, ids: [$groupId]);
+        } catch (ScopeDeleteRefusedException $refused) {
+            $sentences[] = $refused->plain;
+        } finally {
+            TransactionState::commitLevel(db: $db);
+        }
+
+        // A price row is for one group: every row that names this one would lose its only group. One statement on
+        // the rows' group index.
+        $priced = $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*) AS ' . $db->quoteName('rows'))
+                ->select('COUNT(DISTINCT ' . $db->quoteName('item_id') . ') AS ' . $db->quoteName('products'))
+                ->from($db->quoteName('#__alfa_items_prices'))
+                ->where($db->quoteName('usergroup_id') . ' = ' . $groupId),
+        )->loadObject();
+
+        if ((int) ($priced->rows ?? 0) > 0) {
+            $sentences[] = Text::sprintf('COM_ALFA_USERGROUP_DELETE_HAS_PRICE_ROWS', (int) $priced->rows, (int) $priced->products);
+        }
+
+        return $sentences === [] ? null : implode(' ', $sentences);
+    }
+
+    /**
      * Called after a Joomla usergroup is deleted (Users -> Groups). Joomla
      * removes the groups under it with it.
      *
@@ -815,6 +923,49 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         // The account's set of pricing groups may be held by nobody now.
         $this->followCustomerGroups(caller: 'onUserAfterDelete');
+
+        $this->noticeAccountStillNamed(userId: $userId);
+    }
+
+    /**
+     * An account was deleted that rules, methods or price rows are for. Joomla asks nobody before it deletes an
+     * account (it raises onUserBeforeDelete and reads no answer), so the delete cannot be refused; the rows are kept,
+     * since a rule that names only a deleted account reaches nobody and widens nothing, and staff are told which
+     * rules and how many price rows now name it. Their forms list the deleted account on its part, so a later save
+     * keeps the part as it is unless staff change it.
+     *
+     * @param int $userId The deleted account.
+     *
+     * @since  2.3.0
+     */
+    private function noticeAccountStillNamed(int $userId): void
+    {
+        try {
+            $db = TransactionState::driver(db: $this->getDatabase());
+            $named = array_column(RuleScopeGuard::named(db: $db, axis: RuleScopeGuard::AXIS_USER, ids: [$userId]), 'plainLabel');
+            $rows = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_items_prices'))
+                    ->where($db->quoteName('user_id') . ' = ' . $userId),
+            )->loadResult();
+
+            if ($named === [] && $rows === 0) {
+                return;
+            }
+
+            NotificationHelper::push(
+                'scope.account_deleted.' . $userId,
+                NotificationText::of('COM_ALFA_NOTIFY_ACCOUNT_DELETED_SCOPES_TITLE', $userId),
+                [
+                    'severity' => 'warning',
+                    'group' => NotificationHelper::GROUP_GENERAL,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_ACCOUNT_DELETED_SCOPES_MSG', $named === [] ? '-' : implode(', ', $named), $rows),
+                ],
+            );
+        } catch (Throwable $e) {
+            $this->logError(caller: 'onUserAfterDelete', message: ErrorText::of($e), context: ['user_id' => $userId, 'step' => 'scope notice']);
+        }
     }
 
     // Content event handlers: uncomment in getSubscribedEvents() to activate
