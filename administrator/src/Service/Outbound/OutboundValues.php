@@ -37,7 +37,8 @@ use Joomla\Database\DatabaseDriver;
  *   currency) at the quantity it opens with, without tax (net) and with it (gross), at the currency's places, priced by
  *   the pricing engine the price index is written from at the moment the batch leaves; null when no price applies; and
  *   prices_state, the state of the unit's own price rows that a price write sends back ({@see PricesState}).
- * - order.created: the order and the status it opened in.
+ * - order.created: the order and the status it opened in (status_id, null for a change recorded before the status was
+ *   kept with it).
  * - order.status: the order, the status it left and the status it entered.
  * - order.dispute: the order and its dispute: its id and the state the change moved it to, with its last decision,
  *   amount in the order's currency and when it was decided as they stand when the batch leaves.

@@ -518,16 +518,19 @@ final class OutboundDelivery
                     $this->discard(db: $db, id: $id, reason: 'COM_ALFA_OUTBOUND_REASON_OVERTAKEN');
                 }
 
-                // An order's later changes wait with its oldest one, so they are not read as due while it waits.
+                // An order's later changes wait with its oldest one, to the very moment written on it (read back from
+                // the row, not the clock again), so none of them is read as due while it waits.
                 if ($waitUntil !== null && !$merged) {
+                    $table = $db->quoteName(OutboundFeed::DELIVERIES);
                     $db->setQuery(
-                        $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))
-                            ->set($db->quoteName('next_attempt_at') . ' = ' . $waitUntil)
-                            ->where($db->quoteName('consumer_id') . ' = ' . $consumerId)
-                            ->where($db->quoteName('subject_id') . ' = ' . (int) $row->subject_id)
-                            ->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
-                            ->where($db->quoteName('id') . ' > ' . $id)
-                            ->whereIn($db->quoteName('topic'), OutboundTopics::ORDERS, ParameterType::STRING),
+                        'UPDATE ' . $table . ' AS ' . $db->quoteName('d')
+                        . ' INNER JOIN (SELECT ' . $db->quoteName('next_attempt_at') . ' AS ' . $db->quoteName('at') . ' FROM ' . $table . ' WHERE ' . $db->quoteName('id') . ' = ' . $id . ') AS ' . $db->quoteName('o')
+                        . ' SET ' . $db->quoteName('d.next_attempt_at') . ' = ' . $db->quoteName('o.at')
+                        . ' WHERE ' . $db->quoteName('d.consumer_id') . ' = ' . $consumerId
+                        . ' AND ' . $db->quoteName('d.subject_id') . ' = ' . (int) $row->subject_id
+                        . ' AND ' . $db->quoteName('d.state') . ' = ' . $db->quote(self::STATE_PENDING)
+                        . ' AND ' . $db->quoteName('d.id') . ' > ' . $id
+                        . ' AND ' . $db->quoteName('d.topic') . ' IN (' . implode(', ', array_map([$db, 'quote'], OutboundTopics::ORDERS)) . ')',
                     )->execute();
                 }
             }
