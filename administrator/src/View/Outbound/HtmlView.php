@@ -11,9 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Outbound;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
-use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
@@ -24,14 +24,14 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Uri\Uri;
 use Throwable;
 
 /**
  * The outgoing notifications: every change the shop owes or owed a consumer (a webhook, or an extension that tells
  * another system), as one list with its own search, filters, order and pages, the card of who is told above it with
- * the staff actions on each consumer, and Delete for the finished entries checked. At home with the webhooks: the way
- * back leads to the Webhooks list, or to the page the screen was opened from when that page said so (return).
+ * the staff actions on each consumer, and Delete for the finished entries checked. At home with the webhooks: Back
+ * leads to the page the screen was opened from when that page said so (return), else to the Webhooks list, and the
+ * Webhooks button beside it leads there always.
  *
  * @since  2.3.0
  */
@@ -99,6 +99,15 @@ class HtmlView extends BaseHtmlView
     public array $consumers = ['rows' => [], 'unreadable' => false];
 
     /**
+     * The page this screen was opened from, when the link that opened it named one (return, an internal address), else
+     * ''. Back leads there, and the screen's own forms carry it on, so the way back stays while the list is filtered,
+     * paged or acted on.
+     *
+     * @since  2.3.0
+     */
+    public string $returnAddress = '';
+
+    /**
      * Display the screen.
      *
      * @param string|null $tpl The template.
@@ -120,12 +129,14 @@ class HtmlView extends BaseHtmlView
         $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
         $this->consumers = $this->consumers();
+        $this->returnAddress = AlfaHelper::returnAddress(Factory::getApplication()->getInput());
 
         $this->addToolbar();
 
         $this->filterForm
             ->addControlField('task', '')
-            ->addControlField('boxchecked', '0');
+            ->addControlField('boxchecked', '0')
+            ->addControlField('return', $this->returnAddress === '' ? '' : base64_encode($this->returnAddress));
 
         parent::display($tpl);
     }
@@ -160,12 +171,10 @@ class HtmlView extends BaseHtmlView
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_OUTBOUND'), 'generic');
 
-        // The way back to the page this screen opened from (return, an internal address), else to the Webhooks list.
-        $return = base64_decode((string) RequestScalar::read(Factory::getApplication()->getInput(), 'return', '', 'base64'), true);
-        $back = \is_string($return) && $return !== '' && Uri::isInternal($return);
+        // Back, wherever it leads: the page this screen was opened from, else the Webhooks list.
         $toolbar->linkButton('back')
-            ->text($back ? 'JTOOLBAR_BACK' : 'COM_ALFA_TITLE_WEBHOOKS')
-            ->url($back ? $return : Route::_('index.php?option=com_alfa&view=webhooks'))
+            ->text('JTOOLBAR_BACK')
+            ->url($this->returnAddress !== '' ? $this->returnAddress : Route::_('index.php?option=com_alfa&view=webhooks'))
             ->icon('icon-arrow-left');
 
         // Webhooks, whatever page this one opened from.

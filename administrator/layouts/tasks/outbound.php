@@ -10,6 +10,7 @@
  * Available $displayData:
  *   - rows       (array) OutboundConsumers::cardRows()
  *   - unreadable (bool)  the consumers could not be read: one line instead of the list
+ *   - return     (string) the page the screen was opened from, base64 encoded, '' for none: each action carries it on
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -30,10 +31,13 @@ use Joomla\CMS\Router\Route;
 $rows = (array) ($displayData['rows'] ?? []);
 $e    = static fn ($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $said = static fn (string $result): string => str_starts_with($result, 'COM_ALFA_') ? Text::_($result) : $result;
-$form = static function (string $task, int $id, string $label, string $class): string {
+$return = (string) ($displayData['return'] ?? '');
+$form = static function (string $task, int $id, string $label, string $class) use ($e, $return): string {
     return '<form method="post" class="d-inline-block me-1 mb-1" action="' . Route::_('index.php?option=com_alfa&task=outbound.' . $task) . '">'
         . '<button type="submit" class="btn btn-sm ' . $class . '">' . Text::_($label) . '</button>'
-        . '<input type="hidden" name="id" value="' . $id . '">' . HTMLHelper::_('form.token') . '</form>';
+        . '<input type="hidden" name="id" value="' . $id . '">'
+        . ($return === '' ? '' : '<input type="hidden" name="return" value="' . $e($return) . '">')
+        . HTMLHelper::_('form.token') . '</form>';
 };
 ?>
 <div class="card mb-3" data-outbound-card>

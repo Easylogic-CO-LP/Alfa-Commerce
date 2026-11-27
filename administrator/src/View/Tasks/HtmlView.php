@@ -302,7 +302,7 @@ class HtmlView extends BaseHtmlView
             ->listCheck(true);
 
         // The outgoing notifications, listed on their own screen; its way back is this page.
-        $toolbar->link(Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'), AlfaHelper::withReturn('index.php?option=com_alfa&view=outbound'))
+        $toolbar->link(Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'), 'index.php?option=com_alfa&view=outbound&return=' . rawurlencode(AlfaHelper::returnPage()))
             ->icon('icon-out-2');
 
         if ($user->authorise('core.admin', 'com_alfa')) {

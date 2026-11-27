@@ -239,8 +239,8 @@ $reasonInput = fn (string $form, int $id): string => '<label class="form-label s
                     </div>
                 <?php endif; ?>
                 <?php if ($isJob && str_starts_with((string) $item->scope_key, OutboundDeliveryJob::NAME . ':')) : ?>
-                    <?php // The deliveries this job sends, on their own screen, filtered to its consumer. ?>
-                    <a class="btn btn-sm btn-outline-secondary mb-2" href="<?php echo Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&view=outbound&filter[kind]=' . (int) substr((string) $item->scope_key, \strlen(OutboundDeliveryJob::NAME) + 1))); ?>"><?php echo Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'); ?></a>
+                    <?php // The deliveries this job sends, on their own screen, filtered to its consumer; its way back is this page. ?>
+                    <a class="btn btn-sm btn-outline-secondary mb-2" href="<?php echo Route::_('index.php?option=com_alfa&view=outbound&filter[kind]=' . (int) substr((string) $item->scope_key, \strlen(OutboundDeliveryJob::NAME) + 1) . '&return=' . rawurlencode(AlfaHelper::returnPage())); ?>"><?php echo Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'); ?></a>
                 <?php endif; ?>
                 <?php if ($item->cancellable) : ?>
                     <div class="mb-2">

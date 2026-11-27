@@ -9,6 +9,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ToolRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\ResetToDefault;
@@ -134,7 +135,7 @@ $coreSurfaces = ['maintenance', 'tasks', 'security', 'extensions', 'development'
                     <span class="icon-loop" aria-hidden="true"></span>
                     <?php echo Text::_('COM_ALFA_TOOLS_BACKGROUND_BTN'); ?>
                 </a>
-                <a class="btn <?php echo (int) ($this->background['deliveries']['attention'] ?? 0) > 0 ? 'btn-warning' : 'btn-secondary'; ?>" href="<?php echo Route::_('index.php?option=com_alfa&view=outbound'); ?>">
+                <a class="btn <?php echo (int) ($this->background['deliveries']['attention'] ?? 0) > 0 ? 'btn-warning' : 'btn-secondary'; ?>" href="<?php echo Route::_('index.php?option=com_alfa&view=outbound&return=' . rawurlencode(AlfaHelper::returnPage())); ?>">
                     <span class="icon-out-2" aria-hidden="true"></span>
                     <?php echo Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'); ?>
                 </a>

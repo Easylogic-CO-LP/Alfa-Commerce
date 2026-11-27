@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
@@ -49,7 +50,7 @@ class OutboundController extends BaseController
      */
     public function delete(): void
     {
-        $page = Route::_(self::PAGE, false);
+        $page = $this->page();
 
         if (strtoupper($this->input->getMethod()) !== 'POST' || !$this->checkToken('post', false)) {
             $this->setRedirect($page, Text::_('JINVALID_TOKEN_NOTICE'), 'error');
@@ -151,7 +152,7 @@ class OutboundController extends BaseController
      */
     private function act(callable $call): void
     {
-        $page = Route::_(self::PAGE, false);
+        $page = $this->page();
 
         if (strtoupper($this->input->getMethod()) !== 'POST' || !$this->checkToken('post', false)) {
             $this->setRedirect($page, Text::_('JINVALID_TOKEN_NOTICE'), 'error');
@@ -173,5 +174,18 @@ class OutboundController extends BaseController
             Log::add('Background (' . $this->getTask() . ') on consumer #' . $id . ' stopped with ' . $e::class . ': ' . ErrorText::of($e), Log::ERROR, OutboundFeed::LOG);
             $this->setRedirect($page, Text::_('COM_ALFA_TASKS_ACTION_ERROR'), 'error');
         }
+    }
+
+    /**
+     * The screen an action returns to, with the page the screen was opened from when the action's form carried it
+     * on, so the screen's way back stays.
+     *
+     * @since  2.3.0
+     */
+    private function page(): string
+    {
+        $return = AlfaHelper::returnAddress($this->input);
+
+        return Route::_(self::PAGE . ($return === '' ? '' : '&return=' . rawurlencode(base64_encode($return))), false);
     }
 }
