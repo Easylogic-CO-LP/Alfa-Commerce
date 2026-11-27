@@ -83,10 +83,11 @@ class HtmlView extends BaseHtmlView
 
         ToolbarHelper::title(Text::_('COM_ALFA_RESERVATIONS_TITLE'), 'generic');
 
-        $toolbar->linkButton('inventorymovements')
+        // The way back to the list this screen opens from, first in the bar, as the stock audit has it.
+        $toolbar->linkButton('back')
             ->text('COM_ALFA_INVENTORYMOVEMENTS_TITLE')
             ->url(Route::_('index.php?option=com_alfa&view=inventorymovements'))
-            ->icon('icon-list');
+            ->icon('icon-arrow-left');
 
         // Options opens com_config, which itself requires core.admin.
         if ($this->getCurrentUser()->authorise('core.admin', 'com_alfa')) {
