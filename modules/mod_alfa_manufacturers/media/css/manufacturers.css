@@ -7,7 +7,7 @@
 
 /* The module's own tokens: each takes the storefront palette where it is loaded, else the value after it. A site
    changes the look by setting a token on .mod-alfa-manufacturers, or on one module's .mod-alfa-manufacturers-<id>. */
-.mod-alfa-manufacturers {
+:where(.mod-alfa-manufacturers) {
     --mod-alfa-manufacturers-gap: 1rem;
     /* The narrowest an entry gets: the grid holds as many columns as fit, two on a phone and in a sidebar. */
     --mod-alfa-manufacturers-min: 7rem;
@@ -20,7 +20,7 @@
     --mod-alfa-manufacturers-accent: var(--alfa-action-primary-bg, currentColor);
 }
 
-.mod-alfa-manufacturers .list {
+:where(.mod-alfa-manufacturers) .list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mod-alfa-manufacturers-min)), 1fr));
     gap: var(--mod-alfa-manufacturers-gap);
@@ -29,12 +29,12 @@
     list-style: none;
 }
 
-.mod-alfa-manufacturers .entry {
+:where(.mod-alfa-manufacturers) .entry {
     display: flex;
     min-width: 0;
 }
 
-.mod-alfa-manufacturers .link {
+:where(.mod-alfa-manufacturers) .link {
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -52,18 +52,18 @@
     transition: border-color 0.2s ease;
 }
 
-.mod-alfa-manufacturers .link:hover,
-.mod-alfa-manufacturers .link:focus-visible {
+:where(.mod-alfa-manufacturers) .link:hover,
+:where(.mod-alfa-manufacturers) .link:focus-visible {
     border-color: var(--mod-alfa-manufacturers-accent);
 }
 
-.mod-alfa-manufacturers .logo {
+:where(.mod-alfa-manufacturers) .logo {
     display: block;
     max-width: 100%;
     height: var(--mod-alfa-manufacturers-logo-height);
     object-fit: contain;
 }
 
-.mod-alfa-manufacturers .name {
+:where(.mod-alfa-manufacturers) .name {
     overflow-wrap: anywhere;
 }

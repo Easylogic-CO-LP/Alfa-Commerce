@@ -2,7 +2,7 @@
    template's own variables, and declares each one once here. The fallbacks are the
    literals this module shipped with, so nothing changes where com_alfa's CSS is
    absent. A pill stays 999px: that is a shape, not a size. */
-.alfasearch-wrapper {
+:where(.alfasearch-wrapper) {
     --alfa-search-surface: var(--alfa-surface, #fff);
     /* Writing on that surface. `inherit` by default, so the module keeps taking
        the page's own text colour until a merchant or the palette says otherwise. */
@@ -23,11 +23,11 @@
     color: var(--alfa-search-surface-color);
 }
 
-.alfasearch-wrapper .search-container {
+:where(.alfasearch-wrapper) .search-container {
     position: relative;
 }
 
-.alfasearch-wrapper .search-container .loading-img {
+:where(.alfasearch-wrapper) .search-container .loading-img {
     display: none;
     justify-content: center;
     align-items: center;
@@ -39,11 +39,11 @@
     height: 100%;
 }
 
-.alfasearch-wrapper .search-container .loading-img.show {
+:where(.alfasearch-wrapper) .search-container .loading-img.show {
     display: flex;
 }
 
-.alfasearch-wrapper .searchbar-popup {
+:where(.alfasearch-wrapper) .searchbar-popup {
     position: absolute;
     z-index: 100;
     background-color: var(--alfa-search-surface);
@@ -55,20 +55,20 @@
     padding: 20px;
 }
 
-.alfasearch-wrapper .searchbar-popup {
+:where(.alfasearch-wrapper) .searchbar-popup {
     overflow-y: scroll;
     scrollbar-width: none;
     -ms-overflow-style: none;
     /*max-height: 100px;*/
 }
 
-.alfasearch-wrapper .searchbar-popup::-webkit-scrollbar,
-.alfasearch-wrapper .searchbar-popup::-webkit-scrollbar {
+:where(.alfasearch-wrapper) .searchbar-popup::-webkit-scrollbar,
+:where(.alfasearch-wrapper) .searchbar-popup::-webkit-scrollbar {
     width: 0;
     height: 0;
 }
 
-.alfasearch-wrapper .searchbar-popup .search-product-item {
+:where(.alfasearch-wrapper) .searchbar-popup .search-product-item {
     display: flex;
     width: 100%;
     height: 100%;
@@ -80,32 +80,32 @@
     transition: all 0.1s linear;
 }
 
-.alfasearch-wrapper .searchbar-popup .search-product-item .search-product-title{
+:where(.alfasearch-wrapper) .searchbar-popup .search-product-item .search-product-title{
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
 }
 
-.alfasearch-wrapper .searchbar-popup .search-product-item:hover {
+:where(.alfasearch-wrapper) .searchbar-popup .search-product-item:hover {
     background-color: var(--alfa-search-chip-hover);
 }
 
-.alfasearch-wrapper .searchbar-popup .search-product-item:not(:last-child) {
+:where(.alfasearch-wrapper) .searchbar-popup .search-product-item:not(:last-child) {
     border-bottom: 1px solid var(--alfa-search-hairline);
 }
 
-.searchbar-popup .search-image-container {
+:where(.alfasearch-wrapper) .searchbar-popup .search-image-container {
     width: 150px;
 }
 
 /* The product's thumbnail fits its column, whatever size it was stored at. */
-.searchbar-popup .search-image-container img {
+:where(.alfasearch-wrapper) .searchbar-popup .search-image-container img {
     display: block;
     max-width: 100%;
     height: auto;
 }
 
-.searchbar-popup .search-info-container {
+:where(.alfasearch-wrapper) .searchbar-popup .search-info-container {
     width: 50%;
     max-width: 300px;
     display: flex;
@@ -113,13 +113,13 @@
     gap: 12px;
 }
 
-.searchbar-popup.active {
+:where(.alfasearch-wrapper) .searchbar-popup.active {
     display: block;
 }
 
 /* Query completions (the greeklish bridge). Chips a shopper clicks to run the
    real search with the canonical word; hidden entirely when JS is off. */
-.searchbar-popup .search-suggestions {
+:where(.alfasearch-wrapper) .searchbar-popup .search-suggestions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -127,7 +127,7 @@
     border-bottom: 1px solid var(--alfa-search-hairline);
 }
 
-.searchbar-popup .search-suggestion {
+:where(.alfasearch-wrapper) .searchbar-popup .search-suggestion {
     font: inherit;
     cursor: pointer;
     padding: 6px 12px;
@@ -138,8 +138,8 @@
     line-height: 1.2;
 }
 
-.searchbar-popup .search-suggestion:hover,
-.searchbar-popup .search-suggestion:focus {
+:where(.alfasearch-wrapper) .searchbar-popup .search-suggestion:hover,
+:where(.alfasearch-wrapper) .searchbar-popup .search-suggestion:focus {
     background: var(--alfa-search-chip-hover);
     border-color: var(--alfa-search-hairline);
     outline: none;
@@ -178,9 +178,9 @@
 
 /* The descriptions under each result, and the empty state: secondary by role, so
    they take the muted colour instead of full-strength text. */
-.alfasearch-wrapper .search-product-description,
-.alfasearch-wrapper .search-category-description,
-.alfasearch-wrapper .search-manufacturer-description,
-.alfasearch-wrapper .search-no-results {
+:where(.alfasearch-wrapper) .search-product-description,
+:where(.alfasearch-wrapper) .search-category-description,
+:where(.alfasearch-wrapper) .search-manufacturer-description,
+:where(.alfasearch-wrapper) .search-no-results {
     color: var(--alfa-search-muted);
 }

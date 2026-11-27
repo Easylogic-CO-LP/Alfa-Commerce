@@ -324,11 +324,11 @@
 
     function initModule(root) {
         // Another edition of this module may share the page; each script binds its own roots once.
-        if (root.dataset.alfaItemsReady) {
+        if (root.dataset.itemsReady) {
             return;
         }
 
-        root.dataset.alfaItemsReady = 'true';
+        root.dataset.itemsReady = 'true';
 
         root.addEventListener('click', (event) => {
             const tab = event.target.closest('[data-action="tab"]');

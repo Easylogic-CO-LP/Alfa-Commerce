@@ -10,8 +10,8 @@
  * - Option groups: their search box, opener and Show more
  *
  * The panel opens from anywhere on the page: any element carrying
- * data-alfa-filters-open="<module id>" opens it when pressed, data-alfa-filters-toggle
- * opens or closes it, data-alfa-filters-close closes it. Each opener carries
+ * data-filters-open="<module id>" opens it when pressed, data-filters-toggle
+ * opens or closes it, data-filters-close closes it. Each opener carries
  * aria-expanded while the panel is open, and the focus returns to the one that opened it
  * when it closes. A script does the same through window.AlfaFilters.open(id),
  * .close(id) and .toggle(id). Where the panel sits in the page as a column (a screen
@@ -98,9 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Cache DOM elements scoped to this wrapper
             this.filterForm = qs('form[name="alfaFilterForm"]', this.wrapper);
-            this.offCanvas = qs('.alfa-filters-offcanvas', this.wrapper);
-            this.toggler = qs('.alfa-filters-offcanvas-toggler', this.wrapper);
-            this.loadingOverlay = qs('.alfa-filters-loading-overlay', this.wrapper);
+            this.offCanvas = qs('.filters-offcanvas', this.wrapper);
+            this.toggler = qs('.filters-offcanvas-toggler', this.wrapper);
+            this.loadingOverlay = qs('.filters-loading-overlay', this.wrapper);
             this.resultsStatus = qs('[data-af-results-status]', this.wrapper);
 
             // State
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // ONE handler, attached to each rendered button. It cannot be delegated
                 // from the wrapper: the panel stops click propagation at
-                // .alfa-filters-wrapper-inner so a backdrop click can close it, and a
+                // .filters-wrapper-inner so a backdrop click can close it, and a
                 // wrapper listener would never see the reset at all.
                 const resetAll = () => {
 
@@ -757,8 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initOffCanvas() {
             if (!this.offCanvas || !this.toggler) return;
 
-            const closeBtn = qs('.alfa-filters-close-btn', this.offCanvas);
-            const innerWrapper = qs('.alfa-filters-wrapper-inner', this.offCanvas);
+            const closeBtn = qs('.filters-close-btn', this.offCanvas);
+            const innerWrapper = qs('.filters-wrapper-inner', this.offCanvas);
             const htmlElement = document.documentElement;
 
             if (!innerWrapper) return;
@@ -777,20 +777,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     self.offCanvas.toggleAttribute('open', true);
-                    htmlElement.classList.remove('alfa-filters-noscroll');
+                    htmlElement.classList.remove('filters-noscroll');
                 } else {
                     if (!self.offCanvas.open) {
                         self.offCanvas.showModal();
                         self.offCanvas.getBoundingClientRect();
                     }
 
-                    htmlElement.classList.add('alfa-filters-noscroll');
+                    htmlElement.classList.add('filters-noscroll');
                 }
 
                 self.offCanvas.classList.add(
-                    'alfa-filters-offcanvas--animatable',
-                    'alfa-filters-offcanvas--visible',
-                    'alfa-filters-offcanvas--visible-inner'
+                    'filters-offcanvas--animatable',
+                    'filters-offcanvas--visible',
+                    'filters-offcanvas--visible-inner'
                 );
 
                 self.tellOpeners(true);
@@ -808,8 +808,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                self.offCanvas.classList.add('alfa-filters-offcanvas--animatable');
-                self.offCanvas.classList.remove('alfa-filters-offcanvas--visible-inner');
+                self.offCanvas.classList.add('filters-offcanvas--animatable');
+                self.offCanvas.classList.remove('filters-offcanvas--visible-inner');
                 self.closeWhenStill();
             };
 
@@ -824,11 +824,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 self.isVisible = false;
                 self.offCanvas.classList.remove(
-                    'alfa-filters-offcanvas--animatable',
-                    'alfa-filters-offcanvas--visible-inner',
-                    'alfa-filters-offcanvas--visible'
+                    'filters-offcanvas--animatable',
+                    'filters-offcanvas--visible-inner',
+                    'filters-offcanvas--visible'
                 );
-                htmlElement.classList.remove('alfa-filters-noscroll');
+                htmlElement.classList.remove('filters-noscroll');
                 self.tellOpeners(false);
 
                 const back = self.opener;
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.offCanvas.addEventListener('transitionend', (event) => {
                 if (event.target === innerWrapper) {
-                    self.offCanvas.classList.remove('alfa-filters-offcanvas--animatable');
+                    self.offCanvas.classList.remove('filters-offcanvas--animatable');
                 }
             });
 
@@ -902,7 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = this.moduleId;
 
             this.toggler?.setAttribute('aria-expanded', open ? 'true' : 'false');
-            document.querySelectorAll(`[data-alfa-filters-open="${id}"], [data-alfa-filters-toggle="${id}"]`).forEach((element) => {
+            document.querySelectorAll(`[data-filters-open="${id}"], [data-filters-toggle="${id}"]`).forEach((element) => {
                 element.setAttribute('aria-expanded', open ? 'true' : 'false');
             });
         }
@@ -940,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.opener = from instanceof Element ? from : this.toggler;
             this.open();
-            qs('.alfa-filters-close-btn', this.offCanvas)?.focus({ preventScroll: true });
+            qs('.filters-close-btn', this.offCanvas)?.focus({ preventScroll: true });
         }
 
         /**
@@ -1047,8 +1047,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 maxRange.value = visualMax;
             }
 
-            const lockScroll = () => this.filterForm.classList.add('alfa-filters-form-noscroll');
-            const unlockScroll = () => this.filterForm.classList.remove('alfa-filters-form-noscroll');
+            const lockScroll = () => this.filterForm.classList.add('filters-form-noscroll');
+            const unlockScroll = () => this.filterForm.classList.remove('filters-form-noscroll');
 
             [minRange, maxRange].forEach(slider => {
                 slider.addEventListener('touchstart', lockScroll, { passive: true });
@@ -1547,15 +1547,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // so one added later works too. In the capture phase, because the panel keeps clicks
     // inside it from bubbling (its backdrop closes it) and a close control may sit there.
     document.addEventListener('click', (event) => {
-        const element = event.target.closest?.('[data-alfa-filters-open], [data-alfa-filters-toggle], [data-alfa-filters-close]');
+        const element = event.target.closest?.('[data-filters-open], [data-filters-toggle], [data-filters-close]');
 
         if (!element) {
             return;
         }
 
-        const action = element.hasAttribute('data-alfa-filters-open') ? 'open'
-            : (element.hasAttribute('data-alfa-filters-toggle') ? 'toggle' : 'close');
-        const instance = window.alfaFiltersInstances[element.getAttribute(`data-alfa-filters-${action}`)];
+        const action = element.hasAttribute('data-filters-open') ? 'open'
+            : (element.hasAttribute('data-filters-toggle') ? 'toggle' : 'close');
+        const instance = window.alfaFiltersInstances[element.getAttribute(`data-filters-${action}`)];
 
         if (instance) {
             event.preventDefault();
