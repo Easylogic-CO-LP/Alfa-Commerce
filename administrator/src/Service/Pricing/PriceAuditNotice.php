@@ -16,10 +16,11 @@ use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ConditionNotice;
 
 /**
- * The bell notice of the price check: raised when the daily check finds something, brought up to date when the kinds
- * of finding change, withdrawn when nothing is left (ConditionNotice::follow()). Its facts are the kinds of finding,
- * not their counts, so a count that moves within the same kinds does not ring the bell again; a new kind does, unread,
- * even when the last notice was dismissed. Super Users see it and open the price check from it.
+ * The bell notice of the price check: raised when a check finds something, brought up to date when the kinds of
+ * finding change, withdrawn when nothing is left (ConditionNotice::follow()). Written by the check's job from the
+ * result it just stored, never from a page. Its facts are the kinds of finding, not their counts, so a count that
+ * moves within the same kinds does not ring the bell again; a new kind does, unread, even when the last notice was
+ * dismissed. Super Users see it and open the price check from it.
  *
  * @since  2.3.0
  */
@@ -33,17 +34,18 @@ final class PriceAuditNotice
     public const KEY = 'price-audit';
 
     /**
-     * Follow a report: raise, update or withdraw the notice.
+     * Follow a stored result: raise, update or withdraw the notice.
      *
-     * @param array $report A report of PriceAudit.
+     * @param array<string, int> $counts The sections with findings and their counts (PriceAudit::counts()).
+     * @param string $sentence The findings in one sentence (PriceAudit::sentence()).
      *
      * @return list<string> The kinds of finding it names; empty when it is withdrawn.
      *
      * @since  2.3.0
      */
-    public static function follow(array $report): array
+    public static function follow(array $counts, string $sentence): array
     {
-        $facts = array_keys(PriceAudit::counts(report: $report));
+        $facts = array_keys($counts);
 
         ConditionNotice::follow(
             key: self::KEY,
@@ -54,7 +56,7 @@ final class PriceAuditNotice
                 options: [
                     'group' => NotificationHelper::GROUP_GENERAL,
                     'severity' => 'warning',
-                    'message' => NotificationText::of('COM_ALFA_NOTIFY_PRICE_AUDIT_MSG', PriceAudit::sentence(report: $report)),
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_PRICE_AUDIT_MSG', $sentence),
                     'url' => 'index.php?option=com_alfa&view=priceaudit',
                     'dismissible' => true,
                     'view' => ['action' => 'core.admin', 'asset' => 'com_alfa'],

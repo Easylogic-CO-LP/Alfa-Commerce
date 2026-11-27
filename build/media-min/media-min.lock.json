@@ -2,7 +2,7 @@
   "tools": {"css":"1","terser":"5.51.3"},
   "files": {
     "media/css/admin/action-page.css": ["79619527438ee31b75960305dba8039b6a8f9b925b068b957158308ea45126a2", "3c4bf05d0828b58b75266524bbe3162228a0c574a40fd1ebd625938276af1217"],
-    "media/css/admin/admin.css": ["78ce2a2c0bac0a18759568607c9a7a6f4bd428633f5a399207804b535ab52d2e", "5b3fc3bab1fdd34d7555eaf539c3629286d6c96eba2a3f56352695e4372df9d9"],
+    "media/css/admin/admin.css": ["612eb44a6e4dab052478f55b54b32c4e1014ba720fd623b76aac0a8d4b92439c", "7c7f31131465acb25344d9cd7f8841db719481631bbf9640d4cf5ebd91277ed8"],
     "media/css/admin/charts.css": ["848ce9d0455347e26bb5dd9aa31b474e82fe8745a2a4230a39dc3f0059d2ba0f", "3f7043561fa59f29d9f58bfbe5c116fefcf14fa1ef20c8efcbe3e05a64de80d8"],
     "media/css/admin/combinations.css": ["7a2c40ab066c616bf67b38241b40aa1677b5c3e2171b32c6caa08fcf444e9975", "38c29d54a51e8d3c3508e99c9eb211d9c95e6c8a1f653ab5dadc080161840b0b"],
     "media/css/admin/email-positions.css": ["e89061d6263b101b19f7b94ec59c0fef1d191de26083c3ffc22e3ec887221764", "c6fd2e610f9d09b2684f09be3d7813bdd9f5f472dc84ce6d0048b9c3144f3944"],
@@ -44,6 +44,7 @@
     "media/js/admin/charts.js": ["f5a0f0e7ebc2cd95e2c79f800b1838fd955e97246c459d06230ea783138c84a9", "1e8dee97572b1fca26ea979a800ea86249904a9df92e818df8735f198fb19bba"],
     "media/js/admin/combinations.js": ["bc45502dab2a28e47c7f9f836842b7f8c6cfe23d2b75e92be68a6402b79cb012", "c1f31bbed4b649697c25fa3d0074bba1d4e7667b1bd0361e282b18f0b0da2c2f"],
     "media/js/admin/credit-refund-partial.js": ["2421a178226b76a0ba75b6108be1af49f728451b0896c19ba64e74ffb47ad1e7", "657f9edefddbd9deb989b7ea391592f9313f47271d7a748a563b10e5d1e1c032"],
+    "media/js/admin/discount-reach.js": ["ed302791414e903d496b7fe453785f4ac5c40ead6dafa32274204f8c23f4f48a", "9b6f0e9ebdce9a57a588a0ba4447476c4ed98ae06aca8300455fbb4ebbaef2df"],
     "media/js/admin/document-issue.js": ["65c13ff9e2715605e0cb52230230f2554630a25074d50d6b521c0a048498b63e", "6e368369e84fd91de160737528c0ca1db82f2de9a7f4212d6ddc8b3889e4c539"],
     "media/js/admin/email-positions.js": ["d589d62608f78003d4d29ae2e540a52e42e62344bff26a9784a4c13370a025fb", "6c1876bca87846b2b0ef1e0ebee9244f6bfa53c9be73f9acfa7a1bc1cd8f770b"],
     "media/js/admin/inline-edit.js": ["3fde67836361b9356621abcaa39b6cfe016891bfd17d426f4d7dbb28f25943b4", "4b741b652b356a8cc6a1d6015ad0547e5b095ed0a6bab1c8b8638ede6614fb83"],

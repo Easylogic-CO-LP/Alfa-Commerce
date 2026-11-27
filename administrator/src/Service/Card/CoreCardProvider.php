@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardStatsService;
 use Alfa\Component\Alfa\Administrator\Service\Stats\StatsCards;
@@ -485,16 +486,18 @@ final class CoreCardProvider
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_DOCUMENTS'),
                     'url' => $list('orders', ['payment' => 'refunded', 'date_range' => $window]),
                 ],
-                // The price check's findings: the total as the figure, each kind on its own line leading to its
-                // section of the price check, and the page itself as the verb.
+                // The price check as its job last stored it: the total as the figure, each kind on its own line
+                // leading to its section of the price check, where the check stands as the last line, the page itself
+                // as the verb, and the same job queued again as the action.
                 'prices' => [
-                    'severity' => 'warning',
+                    'severity' => \in_array((string) ($extra['state'] ?? ''), [PriceAuditStore::STATE_FAILED, PriceAuditStore::STATE_NEVER], true) ? 'danger' : 'warning',
                     'kind' => Text::_('COM_ALFA_DASHCARD_ATTENTION_KIND_PRICES'),
                     'value' => number_format($finding['count']),
                     'text' => '',
-                    'lines' => $this->priceLines(counts: (array) ($extra['counts'] ?? []), building: (bool) ($extra['building'] ?? false)),
+                    'lines' => $this->priceLines(extra: $extra),
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_PRICES'),
                     'url' => Route::_('index.php?option=com_alfa&view=priceaudit', false),
+                    'action' => ['url' => Route::_('index.php?option=com_alfa&task=priceaudit.recheck', false), 'label' => Text::_('COM_ALFA_PRICE_AUDIT_RECHECK')],
                 ],
                 default => null,
             };
@@ -509,27 +512,41 @@ final class CoreCardProvider
     }
 
     /**
-     * The price check's kinds of finding as the Prices tile's lines: one short phrase a kind, with its count, each
-     * leading to that section of the price check (its anchor on the page).
+     * The Prices tile's lines: one short phrase a kind of finding, with its count, each leading to that section of the
+     * price check (its anchor on the page); last, where the check stands (when it ran, out of date since, running,
+     * failed, never run), leading to the page.
      *
-     * @param array<string, int> $counts The sections with findings and their counts (PriceAudit::counts()).
-     * @param bool $building Whether the price index is being built after the update.
+     * @param array $extra The signal's extra: counts, building, share, state, finished_at, stale_since, failure, percent.
      *
      * @return list<array{text: string, url: string}>
      *
      * @since  2.3.0
      */
-    private function priceLines(array $counts, bool $building): array
+    private function priceLines(array $extra): array
     {
         $page = Route::_('index.php?option=com_alfa&view=priceaudit', false);
         $lines = [];
+        $building = (bool) ($extra['building'] ?? false);
+        $share = (string) ($extra['share'] ?? PriceAudit::LARGE_SHARE_DEFAULT);
 
-        foreach ($counts as $key => $count) {
+        foreach ((array) ($extra['counts'] ?? []) as $key => $count) {
             $lines[] = [
-                'text' => PriceAudit::sentenceOf(counts: [(string) $key => (int) $count], building: $building),
+                'text' => PriceAudit::sentenceOf(counts: [(string) $key => (int) $count], building: $building, share: $share),
                 'url' => $page . '#price-audit-' . (string) $key,
             ];
         }
+
+        $date = static fn (string $utc): string => $utc === '' ? '-' : HTMLHelper::_('date', $utc, Text::_('DATE_FORMAT_LC5'));
+        $lines[] = [
+            'text' => match ((string) ($extra['state'] ?? '')) {
+                PriceAuditStore::STATE_NEVER => Text::_('COM_ALFA_PRICE_AUDIT_STATE_NEVER'),
+                PriceAuditStore::STATE_RUNNING => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_RUNNING_PERCENT', (int) ($extra['percent'] ?? 0)),
+                PriceAuditStore::STATE_FAILED => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_FAILED', (string) ($extra['failure'] ?? '')),
+                PriceAuditStore::STATE_STALE => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_STALE', $date((string) ($extra['stale_since'] ?? ''))),
+                default => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_COMPLETE', $date((string) ($extra['finished_at'] ?? ''))),
+            },
+            'url' => $page,
+        ];
 
         return $lines;
     }

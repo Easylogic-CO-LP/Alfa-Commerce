@@ -69,6 +69,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitRetirementException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\Projection\IndexRebuildLock;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Refusal;
@@ -1310,6 +1311,11 @@ class ItemModel extends AlfaAdminModel
             }
 
             $this->setPrices($currentId, $data['prices'] ?? null);
+
+            if (\is_array($data['prices'] ?? null)) {
+                // The price check's stored result is out of date from this change: one write, no check here.
+                PriceAuditStore::markStale(db: $db);
+            }
 
             // What the product sells for or has to sell may have changed with this save (its prices, its own fields,
             // its combinations): recorded in the save's transaction, for the REST API's filter[changed_since].

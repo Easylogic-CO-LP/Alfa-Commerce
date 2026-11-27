@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use DateInterval;
 use DateTime;
@@ -1569,22 +1570,30 @@ final class DashboardStatsService
     }
 
     /**
-     * The price check's findings (PriceAudit): products without a price, sales above the price they replace or
-     * taking more than half of it, sales giving less than the rules, rules published outside their period, untaxed
-     * products, stacked rules above half, price rows with the period on the wrong row, and the price index while it is
-     * not complete. The count is the findings over every kind; the kinds with their counts travel in extra, for the
-     * sentence. No money is attached: a finding is a price that may be wrong, not money taken or lost.
+     * The price check as its job last stored it (PriceAuditStore): products without a price, sales above the price
+     * they replace or taking more than the set share of it, sales giving less than the rules, rules published outside
+     * their period, untaxed products, stacked rules above the share, price rows with the period on the wrong row, and
+     * the price index while it is not complete. The count is the findings over every kind; the kinds with their counts
+     * and where the check stands travel in extra. No money is attached: a finding is a price that may be wrong, not
+     * money taken or lost. Nothing is computed here, and nothing is read for a viewer who may not open the check.
      *
-     * @return array{key: string, count: int, money: float, extra: array{counts: array<string, int>, building: bool}}|null Null when nothing is found.
+     * @return array{key: string, count: int, money: float, extra: array}|null Null when the check is complete, current
+     *                                                                        and found nothing, or for a viewer who
+     *                                                                        may not open it.
      *
      * @since  2.3.0
      */
     private function prices(): ?array
     {
-        $report = PriceAudit::read();
-        $counts = PriceAudit::counts(report: $report);
+        if (!(bool) Factory::getApplication()->getIdentity()?->authorise('core.admin', 'com_alfa')) {
+            return null;
+        }
 
-        if ($counts === []) {
+        $status = (new PriceAuditStore())->status();
+        $summary = $status['summary'];
+        $counts = $summary === null ? [] : PriceAudit::counts(summary: $summary);
+
+        if ($counts === [] && $status['state'] === PriceAuditStore::STATE_COMPLETE) {
             return null;
         }
 
@@ -1592,7 +1601,16 @@ final class DashboardStatsService
             'key' => 'prices',
             'count' => (int) array_sum($counts),
             'money' => 0.0,
-            'extra' => ['counts' => $counts, 'building' => (bool) ($report['index']['building'] ?? false)],
+            'extra' => [
+                'counts' => $counts,
+                'building' => (bool) ($summary['index']['building'] ?? false),
+                'share' => (string) ($summary['options']['large_share'] ?? PriceAudit::LARGE_SHARE_DEFAULT),
+                'state' => $status['state'],
+                'finished_at' => (string) ($summary['finished_at'] ?? ''),
+                'stale_since' => (string) ($status['stale_since'] ?? ''),
+                'failure' => (string) $status['failure'],
+                'percent' => $status['job'] === null ? null : (int) ($status['job']['percent'] ?? 0),
+            ],
         ];
     }
 }

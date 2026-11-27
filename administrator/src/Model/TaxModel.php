@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncOutcome;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -347,6 +348,7 @@ class TaxModel extends AlfaAdminModel
             $outcome = PriceIndexSyncOutcome::left();
         }
 
+        PriceAuditStore::markStale();
         $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
@@ -405,6 +407,7 @@ class TaxModel extends AlfaAdminModel
             }
         }
 
+        PriceAuditStore::markStale();
         $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
@@ -529,6 +532,9 @@ class TaxModel extends AlfaAdminModel
                 $outcome = PriceIndexSyncOutcome::left();
             }
         }
+
+        PriceAuditStore::markStale();
+        $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
     }

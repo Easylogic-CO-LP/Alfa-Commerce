@@ -627,7 +627,7 @@
 
 #alfa-app [id]:target,
 :where(#alfa-app) .com-alfa-tools [id]:target,
-:where(#alfa-app) .com-alfa-audit [id]:target {
+:where(#alfa-app) .audit-report [id]:target {
     scroll-margin-top: var(--alfa-anchor-offset);
 }
 
@@ -648,37 +648,37 @@
    header, one block holding the title row (caret, title, count) and the description under it;
    the table opens under the header. The caret stands in for the marker the summary drops, and
    turns with the block. */
-:where(#alfa-app) .com-alfa-audit > details {
+:where(#alfa-app) .audit-report > details {
     margin: 0 0 1.5rem;
     padding: 0;
 }
 
-:where(#alfa-app) .com-alfa-audit > details > summary {
+:where(#alfa-app) .audit-report > details > summary {
     cursor: pointer;
     list-style: none;
     border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
 }
 
-:where(#alfa-app) .com-alfa-audit > details > summary::-webkit-details-marker {
+:where(#alfa-app) .audit-report > details > summary::-webkit-details-marker {
     display: none;
 }
 
-:where(#alfa-app) .com-alfa-audit > details:not([open]) > summary {
+:where(#alfa-app) .audit-report > details:not([open]) > summary {
     border-bottom: 0;
     border-radius: calc(0.25rem - 1px);
 }
 
-:where(#alfa-app) .com-alfa-audit .audit-caret {
+:where(#alfa-app) .audit-report .audit-caret {
     display: inline-block;
     transition: transform 0.15s ease-in-out;
 }
 
-:where(#alfa-app) .com-alfa-audit > details:not([open]) .audit-caret {
+:where(#alfa-app) .audit-report > details:not([open]) .audit-caret {
     transform: rotate(-90deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    :where(#alfa-app) .com-alfa-audit .audit-caret {
+    :where(#alfa-app) .audit-report .audit-caret {
         transition: none;
     }
 }
