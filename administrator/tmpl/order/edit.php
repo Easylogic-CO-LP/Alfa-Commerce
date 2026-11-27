@@ -27,6 +27,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
@@ -47,8 +48,10 @@ $wa->useScript('keepalive')
 
 if (!empty($this->order->id)) {
 	// The status change's "Notify the customer" box follows the chosen status: which statuses e-mail the customer
-	// by themselves.
-	$wa->useScript('com_alfa.admin.order-status-note');
+	// by themselves. The Status e-mail card below the details shows by Joomla's showon rule while the stored status
+	// is the one chosen.
+	$wa->useScript('com_alfa.admin.order-status-note')
+		->useScript('showon');
 	$this->document->addScriptOptions('com_alfa.orderStatusNote', [
 		'notifies' => array_map(static fn (object $status): int => (int) ($status->notify_customer ?? 0), AlfaHelper::getOrderStatuses()),
 	]);
@@ -96,6 +99,24 @@ HTMLHelper::_('bootstrap.tooltip');
                 <legend><?php echo Text::_('COM_ALFA_FIELDSET_ORDER_DETAILS'); ?></legend>
                 <?php echo $this->form->renderFieldset('order_details'); ?>
             </fieldset>
+
+            <?php if (!empty($this->order->id)) : ?>
+                <?php // Send the e-mail of the stored status again, with a note: shown while that status is the one
+                      // chosen; the change's own note and e-mail box take over when another is picked. ?>
+                <?php echo LayoutHelper::render(
+                    'order.status_email',
+                    [
+                        'order'       => $this->order,
+                        'statusName'  => (string) (AlfaHelper::getOrderStatuses()[(int) $this->order->id_order_status]->name ?? '#' . (int) $this->order->id_order_status),
+                        'recipient'   => OrderIdentity::notificationEmail($this->order),
+                        'canEdit'     => AlfaHelper::can(section: 'orders', action: 'edit', user: $this->getCurrentUser()),
+                        'formId'      => 'alfa-order-email-form',
+                        'formControl' => 'status_email',
+                    ],
+                    null,
+                    ['component' => 'com_alfa', 'client' => 1],
+                ); ?>
+            <?php endif; ?>
 
             <?php echo $this->renderSlot('order-details'); ?>
         </div>
@@ -193,5 +214,12 @@ foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
 
 <?php // Sibling form for the Coupons card (edit_coupons.php), for the same reasons. ?>
 <form id="alfa-order-coupon-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+	<?php echo HTMLHelper::_('form.token'); ?>
+</form>
+
+<?php // Sibling form for the Status e-mail card (layouts/order/status_email.php): its note and button name it
+      // through the form attribute, for the same reasons. ?>
+<form id="alfa-order-email-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+    <input type="hidden" name="id_order" value="<?php echo (int) $this->order->id; ?>"/>
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>

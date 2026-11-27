@@ -27,6 +27,8 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
+use Alfa\Component\Alfa\Administrator\Background\WorkState;
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\ActionLogHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
@@ -55,6 +57,8 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCoupons;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
 use Alfa\Component\Alfa\Site\Service\CartRules\CouponOutcome;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Order\PayAgain;
@@ -68,6 +72,7 @@ use Exception;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
+use Joomla\CMS\Form\FormFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\FormController;
@@ -1776,6 +1781,100 @@ class OrderController extends FormController
             $sent['outcome'] === EmailService::OUTCOME_MAIL_OFF => $app->enqueueMessage($said[EmailService::OUTCOME_MAIL_OFF], 'error'),
             $sent['recipient'] === '' => $app->enqueueMessage($said['no_address'], 'error'),
             default => $app->enqueueMessage(sprintf($said[EmailService::OUTCOME_FAILED], htmlspecialchars($sent['error'], ENT_QUOTES, 'UTF-8')), 'error'),
+        };
+    }
+
+    /**
+     * Send the e-mail of the order's current status again, with an optional note to the customer: the Status e-mail
+     * card on the order screen.
+     *
+     * POST, token-checked, Orders edit. The customer is told whatever the status says, since that is what the
+     * operator asks, and the staff the status tells get theirs; the lines, totals, payments and parcels are the
+     * order's as they stand now. The ask goes on the history in the operator's name, the e-mail's own record follows
+     * it, and the operator is told the outcome the single ended in.
+     *
+     * @since  2.3.0
+     */
+    public function resendStatusEmail(): void
+    {
+        $this->checkToken();
+        $this->assertCanEdit();
+
+        $app = $this->app;
+        $orderId = RequestScalar::int($this->input, 'id_order');
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false));
+
+        // The note as the card's form defines it: filtered and validated through the one definition.
+        $form = Factory::getContainer()->get(FormFactoryInterface::class)->createForm('com_alfa.order.status_email', ['control' => 'status_email']);
+        $form->loadFile(JPATH_ADMINISTRATOR . '/components/com_alfa/forms/order_status_email.xml');
+        $data = $form->filter((array) $this->input->post->get('status_email', [], 'array'));
+
+        if (!$form->validate($data)) {
+            foreach ($form->getErrors() as $error) {
+                $app->enqueueMessage(ErrorText::of($error), 'error');
+            }
+
+            return;
+        }
+
+        $note = trim((string) ($data['note'] ?? ''));
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $order = $db->setQuery(
+            $db->getQuery(true)
+                ->select('*')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = ' . $orderId),
+        )->loadObject();
+        $statusId = (int) ($order->id_order_status ?? 0);
+
+        if ($order === null || $statusId <= 0) {
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_NOT_FOUND'), 'error');
+
+            return;
+        }
+
+        $statusName = (string) (AlfaHelper::getOrderStatuses()[$statusId]->name ?? '#' . $statusId);
+        $recipient = OrderIdentity::notificationEmail($order);
+
+        if ($recipient === '') {
+            $app->enqueueMessage(Text::_('COM_ALFA_ORDER_STATUS_EMAIL_NO_ADDRESS'), 'warning');
+
+            return;
+        }
+
+        try {
+            $taskId = OrderStatusEmail::sendAgain(orderId: $orderId, statusId: $statusId, note: $note, userId: (int) $app->getIdentity()->id);
+        } catch (Throwable $e) {
+            $app->enqueueMessage(Text::sprintf('COM_ALFA_ORDER_STATUS_EMAIL_FAILED', htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8')), 'error');
+
+            return;
+        }
+
+        ActionLogHelper::write(
+            extension: 'com_alfa',
+            languageKey: 'COM_ALFA_ACTIONLOG_ORDER_STATUS_EMAIL_RESENT',
+            facts: [
+                'title' => EmailService::orderNumber(order: $order),
+                'itemlink' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                'email' => $recipient,
+            ],
+            itemId: $orderId,
+            actor: $app->getIdentity(),
+        );
+
+        // The single ran at the commit when nothing held it; the operator reads where it ended. One still waiting
+        // (a lock scope held it) is reported as such, and the history shows its outcome.
+        $status = BackgroundWork::core()->find($taskId);
+        $said = htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8');
+        $to = htmlspecialchars($recipient, ENT_QUOTES, 'UTF-8');
+
+        match ($status?->state) {
+            WorkState::Done => $app->enqueueMessage(Text::sprintf('COM_ALFA_ORDER_STATUS_EMAIL_SENT', $said, $to), 'success'),
+            WorkState::Failed, WorkState::Held => $app->enqueueMessage(
+                Text::sprintf('COM_ALFA_ORDER_STATUS_EMAIL_NOT_SENT', $said, htmlspecialchars($status->failure, ENT_QUOTES, 'UTF-8'), $taskId),
+                'error',
+            ),
+            default => $app->enqueueMessage(Text::sprintf('COM_ALFA_ORDER_STATUS_EMAIL_PENDING', $said, $taskId), 'message'),
         };
     }
 

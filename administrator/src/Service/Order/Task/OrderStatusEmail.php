@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order\Task;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Background\BackgroundWork;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
@@ -21,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Service\Task\TaskRun;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettlement;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettleRecorder;
+use Joomla\CMS\Factory;
 use Throwable;
 
 /**
@@ -77,6 +80,62 @@ class OrderStatusEmail extends OrderTaskHandler implements TaskSettleRecorder
             attention: 'danger',
             sequence: self::SEQUENCE,
         );
+    }
+
+    /**
+     * Send the status e-mail again, asked by staff on the order screen: a new single of this handler for the order's
+     * current status, carrying the operator's note to the customer. The customer is told whatever the status says
+     * (that is what was asked), and the staff the status tells get theirs; the order is read as it stands when the
+     * single runs. The ask is recorded on the order's history in the operator's name, then the single is written,
+     * both in one transaction: the e-mail's own records follow the ask, and the single runs once the transaction has
+     * committed, at once when none was open.
+     *
+     * @param int $orderId The order.
+     * @param int $statusId Its current status.
+     * @param string $note The note to the customer; '' for none.
+     * @param int $userId Who asked.
+     *
+     * @return int The single's id.
+     *
+     * @throws Throwable When the record or the single could not be written (nothing was sent).
+     *
+     * @since  2.3.0
+     */
+    public static function sendAgain(int $orderId, int $statusId, string $note, int $userId): int
+    {
+        $note = trim($note);
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $db->transactionStart(true);
+
+        try {
+            $task = BackgroundWork::core()->task(self::NAME)->about('order', $orderId)->with([
+                'status' => $statusId,
+                'customer' => true,
+                'customer_asked' => true,
+                'note' => $note,
+            ])->enqueue()->id;
+
+            $what = self::text('COM_ALFA_ORDER_TASK_STATUS_EMAIL', ['status' => $statusId]);
+            $text = $note === ''
+                ? self::text('COM_ALFA_ORDER_TASK_EMAIL_AGAIN', $what, $task)
+                : self::text('COM_ALFA_ORDER_TASK_EMAIL_AGAIN_NOTE', $what, $task, $note);
+
+            OrderModel::logOrderActivityStrict(
+                orderId: $orderId,
+                event: 'order.email_resent',
+                summary: self::english(text: $text),
+                context: ['task' => $task, 'handler' => self::NAME, 'text' => $text] + ($note !== '' ? ['note_to_customer' => $note] : []),
+                actorId: $userId,
+            );
+
+            TransactionState::commitLevel($db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
+
+        return $task;
     }
 
     /**
