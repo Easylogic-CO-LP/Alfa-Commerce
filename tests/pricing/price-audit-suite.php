@@ -36,7 +36,9 @@
  *   [PA7] the notice follows the report: its facts are the kinds found, and a report with nothing withdraws them.
  *   [PR1] the product's price row says the sale replaces the rules it names, or which rules apply now; prices.js keeps
  *         that sentence live.
- *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
+ *   [T1]  nothing of the run outlived the rollback, by the ids it knows: a row of its products, rules or tax found on
+ *         a second connection is a failure, removed and named; and every table holds exactly the rows it held, a
+ *         table that moved with none of the run's rows named with its newest rows (another writer's, on a shared shop).
  *
  * Fixtures: products, discounts and taxes of this run's own, in two published categories and one published
  * manufacturer of the shop (read, not written). The run needs those three to exist; it says so and stops otherwise.
@@ -64,6 +66,7 @@ require_once JPATH_BASE . '/includes/framework.php';
 
 use Alfa\Component\Alfa\Administrator\Field\AlfapricesField;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditNotice;
@@ -149,10 +152,11 @@ function check(string $what, $got, $want): void
 echo "The price check finds what the catalogue's prices say wrong\n", str_repeat('=', 70), "\n";
 
 /** Every table's row count, on the second connection. */
-$census = static function () use ($oracle, $p): array {
+$like = str_replace('_', '\\_', $p);
+$census = static function () use ($oracle, $like): array {
     $out = [];
 
-    foreach ($oracle->setQuery("SHOW TABLES LIKE '" . str_replace('_', '\\_', $p) . "%'")->loadColumn() as $table) {
+    foreach ($oracle->setQuery("SHOW TABLES LIKE '" . $like . "%'")->loadColumn() as $table) {
         if (str_contains($table, 'session')) {
             continue;
         }
@@ -251,16 +255,21 @@ $saveItem = static function (array $data) use ($app, $itemModel, $itemController
     return (int) $itemModel->getState('item.id');
 };
 
+// The ids of the run's rows, by the column that references them: what the sweep after the rollback looks for.
+$runIds = ['item_id' => [], 'discount_id' => [], 'tax_id' => []];
+
 /** A published product of this run in a category, with or without a manufacturer, with the price rows given. */
-$product = static function (string $tag, int $category, ?int $manufacturer, array $rows) use ($saveItem, $named, $run): int {
+$product = static function (string $tag, int $category, ?int $manufacturer, array $rows) use ($saveItem, $named, $run, &$runIds): int {
     $data = [
         'id' => 0, 'state' => 1, 'sku' => 'PA-' . strtoupper($run) . '-' . $tag,
         'id_category_default' => $category, 'categories' => [$category],
         'manufacturers' => $manufacturer === null ? [] : [$manufacturer],
         'prices' => $rows,
     ] + $named('PA disposable ' . $tag . ' ' . $run, 'pa-disposable-' . $tag . '-' . $run);
+    $id = $saveItem($data);
+    $runIds['item_id'][] = $id;
 
-    return $saveItem($data);
+    return $id;
 };
 
 /** A price row as the item screen posts it. */
@@ -271,7 +280,7 @@ $row = static fn (string $value, string $sale = '', string $pins = 'start', stri
 ];
 
 /** A discount or a tax saved through its model, as its form posts it. */
-$saveRule = static function (string $kind, array $data) use ($app, $factory, $ruleNamed, $run): int {
+$saveRule = static function (string $kind, array $data) use ($app, $factory, $ruleNamed, $run, &$runIds): int {
     $data += ['id' => 0, 'state' => 1, 'places' => [0], 'usergroups' => [0], 'users' => [0]] + $ruleNamed('PA disposable ' . $kind . ' ' . ($data['tag'] ?? '') . ' ' . $run);
     unset($data['tag']);
     $app->getInput()->post->set('jform', $data);
@@ -281,7 +290,10 @@ $saveRule = static function (string $kind, array $data) use ($app, $factory, $ru
         throw new \RuntimeException($kind . ' save refused: ' . $model->getError());
     }
 
-    return (int) $model->getState($kind . '.id');
+    $id = (int) $model->getState($kind . '.id');
+    $runIds[$kind . '_id'][] = $id;
+
+    return $id;
 };
 
 /** The rows of a section whose product is the one given. */
@@ -421,7 +433,8 @@ try {
 } catch (\Throwable $e) {
     $result = ['error' => \get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine()];
 } finally {
-    $db->transactionRollback();
+    // Closed through TransactionState: the work the saves deferred to their commit goes with the transaction.
+    TransactionState::rollBackLevel(db: $db);
 }
 
 if (isset($result['error'])) {
@@ -494,16 +507,68 @@ check('[PR1] prices.js keeps the sentence live from the preview\'s rules, the ro
     [str_contains($pricesJs, "row.querySelector('[data-price-rules-note]')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_REPLACES_RULES')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_RULES_APPLIED')"), str_contains($pricesJs, 'note.dataset.ruleNames = discounts.map(ruleLabel)'), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_RULES_EXCLUDED')")],
     [true, true, true, true, true]);
 
+// [T1] The run's rows, by the ids it knows: a product, rule or tax id of this run in a table that references them
+// (information_schema names the columns) outlived the rollback. Looked for in the tables whose count moved, since a
+// row of the run moves its table's count; removed, so the shop is left as found, and named as the failure it is.
 $after = $census();
-$moved = [];
+$moved = array_filter($before, static fn (int $count, string $table): bool => ($after[$table] ?? null) !== $count, ARRAY_FILTER_USE_BOTH);
+$known = ['item_id' => $runIds['item_id'], 'id_item' => $runIds['item_id'], 'discount_id' => $runIds['discount_id'], 'id_discount' => $runIds['discount_id'], 'tax_id' => $runIds['tax_id'], 'id_tax' => $runIds['tax_id']];
+$primary = [$p . 'alfa_items' => $runIds['item_id'], $p . 'alfa_discounts' => $runIds['discount_id'], $p . 'alfa_taxes' => $runIds['tax_id']];
+$columns = [];
 
-foreach ($before as $key => $count) {
-    if (($after[$key] ?? null) !== $count) {
-        $moved[$key] = [$count, $after[$key] ?? null];
+foreach ($oracle->setQuery("SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '" . $like . "%'")->loadRowList() ?: [] as [$table, $column]) {
+    $columns[$table][] = $column;
+}
+
+$outlived = [];
+
+foreach (array_keys($moved) as $table) {
+    $where = [];
+
+    foreach ($columns[$table] ?? [] as $column) {
+        $ids = $column === 'id' ? ($primary[$table] ?? []) : ($known[$column] ?? []);
+
+        if ($ids !== []) {
+            $where[] = "`{$column}` IN (" . implode(',', $ids) . ')';
+        }
+    }
+
+    if ($where === []) {
+        continue;
+    }
+
+    $found = (int) $oracle->setQuery("SELECT COUNT(*) FROM `{$table}` WHERE " . implode(' OR ', $where))->loadResult();
+
+    if ($found > 0) {
+        $oracle->setQuery("DELETE FROM `{$table}` WHERE " . implode(' OR ', $where))->execute();
+        $outlived[$table] = $found;
+        $after[$table] = (int) $oracle->setQuery("SELECT COUNT(*) FROM `{$table}`")->loadResult();
     }
 }
 
-check('[T1] every table holds exactly the rows it held (' . \count($before) . ' read on a second connection)', $moved, []);
+check('[T1] ★ nothing of the run outlived the rollback, by the ids it knows (a row found is removed and named)', $outlived, []);
+
+// Every other table as it was. One that moved holds none of the run's rows: its newest rows are named, with the
+// columns that say who wrote them when it has them, so a writer sharing the shop during the run can be told apart.
+$telling = ['id', 'created_at', 'created', 'modified', 'handler', 'origin', 'subject_type', 'dedup_key', 'name'];
+$others = [];
+
+foreach ($moved as $table => $count) {
+    if (($after[$table] ?? null) === $count) {
+        continue;
+    }
+
+    $shown = array_values(array_intersect($telling, $columns[$table] ?? []));
+    $newest = [];
+
+    if (\in_array('id', $shown, true) && ($after[$table] ?? 0) > $count) {
+        $newest = $oracle->setQuery('SELECT `' . implode('`, `', $shown) . "` FROM `{$table}` ORDER BY `id` DESC", 0, min(3, $after[$table] - $count))->loadAssocList();
+    }
+
+    $others[$table] = ['held' => $count, 'holds' => $after[$table] ?? null, 'newest' => $newest];
+}
+
+check('[T1] every table holds exactly the rows it held (' . \count($before) . ' read on a second connection)', $others, []);
 
 echo "\nprice audit: {$pass} passed, {$fail} failed\n";
 
