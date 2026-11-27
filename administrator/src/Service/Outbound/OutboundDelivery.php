@@ -437,7 +437,8 @@ final class OutboundDelivery
      * Settle a batch by its answers, in one transaction: taken, retried on the backoff (given up after the last
      * retry), given up at once, taken by no consumer, or held one backoff step without counting an attempt. A stock or
      * price row retried or held stands for its unit again (pending), unless a newer change of the unit already waits:
-     * then it is discarded as overtaken, the waiting row telling the unit's value.
+     * then it is discarded as overtaken, the waiting row telling the unit's value. An order's row retried or held takes
+     * its later rows along to the same moment, so none of them is read as due while the oldest waits.
      *
      * @param DatabaseDriver $db The connection.
      * @param int $consumerId The consumer.
@@ -467,6 +468,7 @@ final class OutboundDelivery
                 }
 
                 $query = $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))->where($db->quoteName('id') . ' = ' . $id);
+                $waitUntil = null;
 
                 if ($waitsAgain) {
                     $query->set($db->quoteName('pending') . ' = 1');
@@ -490,12 +492,14 @@ final class OutboundDelivery
                         ->set($db->quoteName('last_error') . ' = ' . $db->quote(substr($reason, 0, 500)));
                 } elseif ($answer === 'hold') {
                     $wait = Tasks::BACKOFF_SECONDS[min((int) $row->attempts, \count(Tasks::BACKOFF_SECONDS) - 1)];
-                    $query->set($db->quoteName('next_attempt_at') . ' = UTC_TIMESTAMP(6) + INTERVAL ' . $wait . ' SECOND')
+                    $waitUntil = 'UTC_TIMESTAMP(6) + INTERVAL ' . $wait . ' SECOND';
+                    $query->set($db->quoteName('next_attempt_at') . ' = ' . $waitUntil)
                         ->set($db->quoteName('last_error') . ' = ' . $db->quote(substr($reason, 0, 500)));
                 } else {
                     $wait = max(Tasks::BACKOFF_SECONDS[min($failed - 1, \count(Tasks::BACKOFF_SECONDS) - 1)], min((int) $retryAfter, 86400));
+                    $waitUntil = 'UTC_TIMESTAMP(6) + INTERVAL ' . $wait . ' SECOND';
                     $query->set($db->quoteName('attempts') . ' = ' . $failed)
-                        ->set($db->quoteName('next_attempt_at') . ' = UTC_TIMESTAMP(6) + INTERVAL ' . $wait . ' SECOND')
+                        ->set($db->quoteName('next_attempt_at') . ' = ' . $waitUntil)
                         ->set($db->quoteName('last_error') . ' = ' . $db->quote(substr($reason, 0, 500)));
                 }
 
@@ -508,6 +512,19 @@ final class OutboundDelivery
                     }
 
                     $this->discard(db: $db, id: $id, reason: 'COM_ALFA_OUTBOUND_REASON_OVERTAKEN');
+                }
+
+                // An order's later changes wait with its oldest one, so they are not read as due while it waits.
+                if ($waitUntil !== null && !$merged) {
+                    $db->setQuery(
+                        $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))
+                            ->set($db->quoteName('next_attempt_at') . ' = ' . $waitUntil)
+                            ->where($db->quoteName('consumer_id') . ' = ' . $consumerId)
+                            ->where($db->quoteName('subject_id') . ' = ' . (int) $row->subject_id)
+                            ->where($db->quoteName('state') . ' = ' . $db->quote(self::STATE_PENDING))
+                            ->where($db->quoteName('id') . ' > ' . $id)
+                            ->whereIn($db->quoteName('topic'), OutboundTopics::ORDERS, ParameterType::STRING),
+                    )->execute();
                 }
             }
 
