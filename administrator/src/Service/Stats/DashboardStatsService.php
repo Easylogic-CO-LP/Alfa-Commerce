@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use DateInterval;
 use DateTime;
@@ -715,6 +716,7 @@ final class DashboardStatsService
             fn (): ?array => $this->outOfStock(),
             fn (): ?array => $this->promoBleed(),
             fn (): ?array => $this->refundsUp(),
+            fn (): ?array => $this->prices(),
         ] as $signal) {
             try {
                 $finding = $signal();
@@ -1564,5 +1566,33 @@ final class DashboardStatsService
         if ($ids !== []) {
             $query->whereNotIn($this->db()->quoteName($alias . '.id_order_status'), $ids);
         }
+    }
+
+    /**
+     * The price check's findings (PriceAudit): products without a price, sales above the price they replace or
+     * taking more than half of it, sales giving less than the rules, rules published outside their period, untaxed
+     * products, stacked rules above half, price rows with the period on the wrong row, and the price index while it is
+     * not complete. The count is the findings over every kind; the kinds with their counts travel in extra, for the
+     * sentence. No money is attached: a finding is a price that may be wrong, not money taken or lost.
+     *
+     * @return array{key: string, count: int, money: float, extra: array{counts: array<string, int>, building: bool}}|null Null when nothing is found.
+     *
+     * @since  2.3.0
+     */
+    private function prices(): ?array
+    {
+        $report = PriceAudit::read();
+        $counts = PriceAudit::counts(report: $report);
+
+        if ($counts === []) {
+            return null;
+        }
+
+        return [
+            'key' => 'prices',
+            'count' => (int) array_sum($counts),
+            'money' => 0.0,
+            'extra' => ['counts' => $counts, 'building' => (bool) ($report['index']['building'] ?? false)],
+        ];
     }
 }
