@@ -438,7 +438,7 @@ final class PriceAudit
             $reached = array_flip(array_map('intval', $db->setQuery(
                 'SELECT ' . $db->quoteName('a.id') . ' FROM ' . $db->quoteName('#__alfa_items', 'a')
                 . ' WHERE ' . $db->quoteName('a.id') . ' IN (' . implode(',', $itemIds) . ')'
-                . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_discounts', 'd') . ' WHERE ' . $this->activeDiscountSql() . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $groups) . ')',
+                . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_discounts', 'd') . ' WHERE ' . $this->activeDiscountSql() . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $groups, now: $this->now) . ')',
             )->loadColumn() ?: []));
         }
 
@@ -588,7 +588,7 @@ final class PriceAudit
 
         $db = $this->db;
         $reaching = ' FROM ' . $db->quoteName('#__alfa_discounts', 'd') . ' WHERE ' . $this->activeDiscountSql()
-            . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $context['groups']);
+            . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $context['groups'], now: $this->now);
         $rows = $db->setQuery(
             'SELECT ' . $db->quoteName('a.id') . ', ' . $db->quoteName('i.discount_percent')
             . ', (SELECT GROUP_CONCAT(' . $db->quoteName('d.id') . ' ORDER BY ' . $db->quoteName('d.ordering') . ', ' . $db->quoteName('d.id') . ')' . $reaching . ') AS rule_ids'
