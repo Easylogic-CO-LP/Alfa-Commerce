@@ -78,6 +78,34 @@
             <option value="">COM_ALFA_FILTER_SELECT_DISCOUNT_REACH</option>
         </field>
 
+        <!-- The products limited to shipping methods (ItemShipments::productSql): those whose own list, or a
+             variant's, names one of the chosen methods; with the second filter, those limited to the chosen methods
+             alone, or those whose list holds no published method. Every method is listed, whatever its state: the
+             ones being looked for are often unpublished or in the trash. A shipping method's delete and unpublish
+             link here. -->
+        <field name="shipment"
+               type="model"
+               model="shipments"
+               column_value="id"
+               column_text="name"
+               multiple="true"
+               label="COM_ALFA_FILTER_ITEM_SHIPMENTS"
+               hint="COM_ALFA_FILTER_ITEM_SHIPMENTS"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();"
+        />
+
+        <field name="shipment_list"
+               type="list"
+               label="COM_ALFA_FILTER_ITEM_SHIPMENT_LIST"
+               validate="options"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_ITEM_SHIPMENT_LIST_ANY</option>
+            <option value="only">COM_ALFA_FILTER_ITEM_SHIPMENT_LIST_ONLY</option>
+            <option value="none">COM_ALFA_FILTER_ITEM_SHIPMENT_LIST_NONE</option>
+        </field>
+
         <!-- Item-field facets (Size, Color, ...)
              The SAME field type and the SAME filter[fields][<id>][] contract the
              storefront uses, in admin scope: values come from the projection, so
