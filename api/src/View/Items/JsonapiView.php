@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\View\Items;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemLabels;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLink;
 use Alfa\Component\Alfa\Api\View\ListsRequestTasks;
@@ -71,6 +72,8 @@ class JsonApiView extends BaseApiView
         'prices_state',
         'categories',
         'manufacturers',
+        'labels',
+        'label_corners',
         'shipments',
         'related',
         'medias',
@@ -166,6 +169,14 @@ class JsonApiView extends BaseApiView
 
                 return $option;
             }, $item->options);
+        }
+
+        // The labels the product ticks, as ids, and the corners it chose for some of them (label_corners, by label id):
+        // the shape a write sends; a label left out of label_corners sits in its own corner.
+        if (isset($item->labels) && \is_array($item->labels)) {
+            $ticks = ItemLabels::posted(labels: $item->labels);
+            $item->labels = array_map('intval', array_keys($ticks));
+            $item->label_corners = (object) array_filter(array_combine(array_map('strval', array_keys($ticks)), array_values($ticks)), static fn (?string $corner): bool => $corner !== null);
         }
 
         // The shipping methods the product ships with, by id; [] for every method. Read only: the item screen sets

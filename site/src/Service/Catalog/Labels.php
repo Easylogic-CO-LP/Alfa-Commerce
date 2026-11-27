@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Service\Catalog;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListSurface;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemLabels;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedDiscount;
@@ -25,27 +26,20 @@ use Joomla\Database\DatabaseInterface;
  *
  * Three kinds come from here, in this order: the automatic New label while NewProducts says the product is new (its
  * look set once in Options > General > Products, next to the days; no days, no label; a product may hide it or move it
- * to a corner of its own), the shop's predefined labels (Options > Labels) the product ticks, each in the corner the
- * product chose for it or the label's own, and the product's own label, between its dates. The fourth kind, a
- * discount's sale tag, comes from the product's applied discounts, and {@see self::contribute()} puts all four on the
+ * to a corner of its own), the shop's labels (the Labels screen, `#__alfa_labels`) the product ticks, each in the
+ * corner the product chose for it or the label's own, and the product's own label, between its dates. The fourth kind,
+ * a discount's sale tag, comes from the product's applied discounts, and {@see self::contribute()} puts all four on the
  * product's surface slots: one item.labels descriptor per slot, per corner in the image slot, so the labels of one
  * corner stack one under the other and a template keeps rendering its slots as before.
  *
- * What the catalogue list pays: one query for the page's products' rows ({@see self::warm()}, ItemLabels::forItems())
- * and nothing more; the New check reads the created and publish_up columns the list already selects, and the shop's
- * labels are read from the component's params once a request.
+ * What the catalogue list pays: one query for the page's products' ticks ({@see self::warm()},
+ * ItemLabels::forItems()) and one for the shop's published labels, once a request ({@see self::predefined()}); the New
+ * check and the product's own label read the created, publish_up and label_settings columns the list already selects.
  *
  * @since  2.3.0
  */
 final class Labels
 {
-    /**
-     * The shop's predefined labels, in the component params.
-     *
-     * @since  2.3.0
-     */
-    public const PARAM_LABELS = 'labels';
-
     /**
      * The New label's look, in the component params.
      *
@@ -61,9 +55,23 @@ final class Labels
     public const NEW_NAME = 'New';
 
     /**
-     * The shop's predefined labels, by key, in their order; null until read.
+     * The key of the automatic New label.
      *
-     * @var array<string, Label>|null
+     * @since  2.3.0
+     */
+    public const KEY_NEW = 'new';
+
+    /**
+     * The key of a product's own label.
+     *
+     * @since  2.3.0
+     */
+    public const KEY_CUSTOM = 'custom';
+
+    /**
+     * The shop's published labels, by id, in their order; null until read.
+     *
+     * @var array<int, Label>|null
      * @since  2.3.0
      */
     private static ?array $predefined = null;
@@ -77,18 +85,18 @@ final class Labels
     private static ?Label $new = null;
 
     /**
-     * The products' rows read so far, by product id then by label key ([] for a product with none).
+     * The products' ticks read so far, by product id then by label id ([] for a product with none).
      *
-     * @var array<int, array<string, object>>
+     * @var array<int, array<int, string|null>>
      * @since  2.3.0
      */
     private static array $rows = [];
 
     /**
-     * The shop's predefined labels, by key, in the order of Options > Labels. A row without a key, with the key of the
-     * automatic or the product's own label, or with a key an earlier row holds is left out.
+     * The shop's labels a product may show now: published and within their publishing period, by id, in the order of
+     * the Labels screen. Their names are in the request's language.
      *
-     * @return array<string, Label>
+     * @return array<int, Label>
      *
      * @since  2.3.0
      */
@@ -100,17 +108,30 @@ final class Labels
 
         $labels = [];
 
-        foreach (self::rowsOf(ComponentHelper::getParams('com_alfa')->get(self::PARAM_LABELS)) as $settings) {
-            $key = strtolower(trim((string) ($settings['key'] ?? '')));
-
-            if ($key === '' || $key === ItemLabels::KEY_NEW || $key === ItemLabels::KEY_CUSTOM || isset($labels[$key])) {
-                continue;
-            }
-
-            $labels[$key] = Label::fromSettings(key: $key, kind: Label::KIND_PREDEFINED, settings: $settings);
+        foreach (self::records(publishedOnly: true) as $row) {
+            $labels[(int) $row->id] = self::fromRecord($row);
         }
 
         return self::$predefined = $labels;
+    }
+
+    /**
+     * Every label of the Labels screen that is not trashed or archived, by id, in their order, with its state: what a
+     * product's Labels tab offers to tick, an unpublished one among them.
+     *
+     * @return array<int, object{id: int, state: int, label: Label}>
+     *
+     * @since  2.3.0
+     */
+    public static function all(): array
+    {
+        $labels = [];
+
+        foreach (self::records(publishedOnly: false) as $row) {
+            $labels[(int) $row->id] = (object) ['id' => (int) $row->id, 'state' => (int) $row->state, 'label' => self::fromRecord($row)];
+        }
+
+        return $labels;
     }
 
     /**
@@ -127,14 +148,14 @@ final class Labels
         if (self::$new === null) {
             $stored = ComponentHelper::getParams('com_alfa')->get(self::PARAM_NEW_LABEL);
             $settings = $stored === null ? ['name' => self::NEW_NAME] : self::settingsOf($stored);
-            self::$new = Label::fromSettings(key: ItemLabels::KEY_NEW, kind: Label::KIND_NEW, settings: $settings);
+            self::$new = Label::fromSettings(key: self::KEY_NEW, kind: Label::KIND_NEW, settings: $settings);
         }
 
         return self::$new;
     }
 
     /**
-     * Read the rows of these products in one query, for the products not read yet; the list calls it once for its
+     * Read the ticks of these products in one query, for the products not read yet; the list calls it once for its
      * page, so {@see self::of()} then costs no query per card.
      *
      * @param int[] $itemIds The products.
@@ -165,11 +186,11 @@ final class Labels
     }
 
     /**
-     * The labels a product shows in a context, in order: the New label, the predefined labels it ticks, its own label.
+     * The labels a product shows in a context, in order: the New label, the shop's labels it ticks, its own label.
      * A label not flagged for the context, or without a text, is left out; the product's own label outside its dates
      * too. The sale tags are not among them: a discount's tag is the discount's ({@see self::contribute()}).
      *
-     * @param object $item The product (id, created, publish_up).
+     * @param object $item The product (id, created, publish_up, label_settings).
      * @param bool $isListing True for a catalogue card, false for the product page.
      * @param string|null $now The moment (UTC); the pricing engine's clock when omitted.
      *
@@ -186,37 +207,27 @@ final class Labels
         }
 
         self::warm([$itemId]);
-        $rows = self::$rows[$itemId];
+        $ticks = self::$rows[$itemId];
+        $settings = ItemLabels::settingsOf($item->label_settings ?? null);
         $now ??= ActiveDateCondition::now();
         $labels = [];
 
         $new = self::newLabel();
 
-        if ($new !== null && NewProducts::isNew(created: $item->created ?? null, publishUp: $item->publish_up ?? null, now: $now)) {
-            $row = $rows[ItemLabels::KEY_NEW] ?? null;
+        if ($new !== null && $settings['new']['shown'] === 1 && NewProducts::isNew(created: $item->created ?? null, publishUp: $item->publish_up ?? null, now: $now)) {
+            $labels[] = self::placed($new, $settings['new']['corner']);
+        }
 
-            if ($row === null || (int) $row->shown === 1) {
-                $labels[] = self::placed($new, $row);
+        foreach (self::predefined() as $labelId => $label) {
+            if (\array_key_exists($labelId, $ticks)) {
+                $labels[] = self::placed($label, $ticks[$labelId]);
             }
         }
 
-        foreach (self::predefined() as $key => $label) {
-            $row = $rows[$key] ?? null;
+        $own = $settings['own'];
 
-            if ($row !== null && (int) $row->shown === 1) {
-                $labels[] = self::placed($label, $row);
-            }
-        }
-
-        $own = $rows[ItemLabels::KEY_CUSTOM] ?? null;
-
-        if ($own !== null && (int) $own->shown === 1) {
-            $settings = json_decode((string) ($own->custom ?? ''), true);
-
-            if (\is_array($settings) && self::within(settings: $settings, now: $now)) {
-                $settings['corner'] = (string) ($own->corner ?? '');
-                $labels[] = Label::fromSettings(key: ItemLabels::KEY_CUSTOM, kind: Label::KIND_CUSTOM, settings: $settings);
-            }
+        if ($own !== null && self::within(settings: $own, now: $now)) {
+            $labels[] = Label::fromSettings(key: self::KEY_CUSTOM, kind: Label::KIND_CUSTOM, settings: $own);
         }
 
         return array_values(array_filter($labels, static fn (Label $label): bool => $label->shownOn($isListing)));
@@ -303,7 +314,7 @@ final class Labels
     }
 
     /**
-     * The labels as the REST API states them: key, name and corner each.
+     * The labels as the REST API states them: key, name and corner each (a shop label's key is its id).
      *
      * @param list<Label> $labels The labels.
      *
@@ -320,8 +331,8 @@ final class Labels
     }
 
     /**
-     * Forget what was read: the shop's labels and the products' rows. For a process that changes the Options or the
-     * rows and reads again.
+     * Forget what was read: the shop's labels and the products' ticks. For a process that changes the labels, the
+     * Options or the ticks and reads again.
      *
      * @since  2.3.0
      */
@@ -330,6 +341,68 @@ final class Labels
         self::$predefined = null;
         self::$new = null;
         self::$rows = [];
+    }
+
+    /**
+     * The rows of the Labels screen, in their order, each with its name in the request's language: the published ones
+     * within their period, or every one that is not archived or trashed.
+     *
+     * @param bool $publishedOnly Only the labels a product may show now.
+     *
+     * @return list<object>
+     *
+     * @since  2.3.0
+     */
+    private static function records(bool $publishedOnly): array
+    {
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['a.id', 'a.state', 'a.bg', 'a.color', 'a.class', 'a.list_show', 'a.list_slot', 'a.item_show', 'a.item_slot', 'a.corner', 'a.filterable']))
+            ->from($db->quoteName('#__alfa_labels', 'a'))
+            ->order($db->quoteName('a.ordering') . ' ASC')
+            ->order($db->quoteName('a.id') . ' ASC');
+
+        if ($publishedOnly) {
+            $now = $db->quote(ActiveDateCondition::now());
+            $query->where($db->quoteName('a.state') . ' = 1')
+                ->where('(' . $db->quoteName('a.publish_up') . ' IS NULL OR ' . $db->quoteName('a.publish_up') . ' <= ' . $now . ')')
+                ->where('(' . $db->quoteName('a.publish_down') . ' IS NULL OR ' . $db->quoteName('a.publish_down') . ' >= ' . $now . ')');
+        } else {
+            $query->where($db->quoteName('a.state') . ' IN (0, 1)');
+        }
+
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_labels',
+            langPrimaryColumn: 'id_label',
+            fields:            ['name'],
+        );
+
+        return $db->setQuery($query)->loadObjectList() ?: [];
+    }
+
+    /**
+     * A shop label from its row: its key is its id.
+     *
+     * @param object $row The row, its name resolved.
+     *
+     * @since  2.3.0
+     */
+    private static function fromRecord(object $row): Label
+    {
+        return Label::fromSettings(key: (string) (int) $row->id, kind: Label::KIND_PREDEFINED, settings: [
+            'name' => (string) ($row->name ?? ''),
+            'bg' => $row->bg,
+            'color' => $row->color,
+            'class' => $row->class,
+            'list_show' => $row->list_show,
+            'list_slot' => $row->list_slot,
+            'item_show' => $row->item_show,
+            'item_slot' => $row->item_slot,
+            'corner' => $row->corner,
+        ]);
     }
 
     /**
@@ -349,18 +422,18 @@ final class Labels
     }
 
     /**
-     * The label in the corner the product's row chose for it, or as it is.
+     * The label in the corner the product chose for it, or as it is.
      *
      * @param Label $label The label.
-     * @param object|null $row The product's row for it.
+     * @param string|null $corner The product's corner for it; NULL or '' for the label's own.
      *
      * @since  2.3.0
      */
-    private static function placed(Label $label, ?object $row): Label
+    private static function placed(Label $label, ?string $corner): Label
     {
-        $corner = $row === null ? null : LabelCorner::tryFrom(trim((string) ($row->corner ?? '')));
+        $chosen = LabelCorner::tryFrom(trim((string) $corner));
 
-        return $corner === null ? $label : $label->inCorner($corner);
+        return $chosen === null ? $label : $label->inCorner($chosen);
     }
 
     /**
@@ -380,29 +453,7 @@ final class Labels
     }
 
     /**
-     * The rows of a subform param as arrays, in their order: the Registry hands them as an object of row objects.
-     *
-     * @param mixed $stored The param's value.
-     *
-     * @return list<array<string, mixed>>
-     *
-     * @since  2.3.0
-     */
-    private static function rowsOf(mixed $stored): array
-    {
-        $rows = [];
-
-        foreach ((array) ($stored ?? []) as $row) {
-            if (\is_array($row) || \is_object($row)) {
-                $rows[] = self::settingsOf($row);
-            }
-        }
-
-        return $rows;
-    }
-
-    /**
-     * One label's settings as an array, its name map an array too.
+     * One label's settings as an array, its name map an array too: the Registry hands a subform's value as an object.
      *
      * @param mixed $stored The settings, an array or an object.
      *
