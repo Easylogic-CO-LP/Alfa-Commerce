@@ -123,15 +123,24 @@
         </div>
         <?php endif; ?>
 
-        <?php // Payment and shipping: one framed block, one method per row (the part its plugin draws, else its image
-              // and name), drawn while at least one method is set to show on the product; each method's own switch
-              // is the one switch. ?>
-        <?php if (Surface::has($this->item, ItemSurface::PaymentMethods) || Surface::has($this->item, ItemSurface::ShipmentMethods)): ?>
-        <div class="item-methods">
-            <span class="item-methods-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_AND_SHIPPING'); ?></span>
+        <?php // Payment methods, then shipping methods: two framed blocks, each drawn while at least one of its methods
+              // is set to show on the product, one method per row (the part its plugin draws, else its image and
+              // name). Each method's own switch is the one switch. ?>
+        <?php if (Surface::has($this->item, ItemSurface::PaymentMethods)): ?>
+        <div class="item-methods item-payment-methods">
+            <span class="item-methods-title item-payment-method-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_METHODS'); ?></span>
 
-            <div class="item-methods-inner">
+            <div class="item-methods-inner item-payment-method-inner">
                 <?php echo Surface::render($this->item, ItemSurface::PaymentMethods); ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (Surface::has($this->item, ItemSurface::ShipmentMethods)): ?>
+        <div class="item-methods item-shipment-methods">
+            <span class="item-methods-title item-shipment-method-title"><?php echo Text::_('COM_ALFA_ITEM_SHIPMENT_METHODS'); ?></span>
+
+            <div class="item-methods-inner item-shipment-method-inner">
                 <?php echo Surface::render($this->item, ItemSurface::ShipmentMethods); ?>
             </div>
         </div>

@@ -321,7 +321,7 @@
 }
 /* MANUFACTURERS CATEGORIES END */
 
-/* PAYMENT AND SHIPPING: one framed block in the buy column, one method per row (core's drawing of the method, or the
+/* PAYMENT METHODS, SHIPPING METHODS: two framed blocks in the buy column, one method per row (core's drawing of the method, or the
    part its plugin draws), the frame and the lines between the rows in one token's colour. */
 :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-methods) {
     margin: 1rem 0;
