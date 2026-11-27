@@ -119,12 +119,12 @@ class AlfaFiltersHelper
     }
 
     /**
-     * Build the available filter options: the category tree (depth/product-count from params) and the
-     * manufacturers available under the current item filters.
+     * Build the available filter options: the category tree (depth/product-count from params), the
+     * manufacturers and the labels available under the current item filters.
      *
      * @param Registry $params The module parameters.
      *
-     * @return array ['category' => category tree, 'manufacturer' => available manufacturers].
+     * @return array ['category' => category tree, 'manufacturer' => available manufacturers, 'label' => available labels].
      */
     public static function getAvailableFilters(Registry $params): array
     {
@@ -155,6 +155,10 @@ class AlfaFiltersHelper
 
         $allManufacturers = $model->getAvailableManufacturers();
 
+        // The labels the result reaches, of those the shop offers as filters; with how many products tick each when
+        // the merchant shows counts.
+        $allLabels = $model->getAvailableLabels(withCounts: $productCount);
+
         // Item-field value facets (Size, Color, ...), grouped per filterable field.
         $itemFields = $model->getAvailableItemFieldValues();
 
@@ -184,6 +188,7 @@ class AlfaFiltersHelper
         return [
             'category' => $allCategories,
             'manufacturer' => $allManufacturers,
+            'label' => $allLabels,
             'fields' => $itemFields,
             // Availability: how many sellable / not, under the other active filters.
             // Two counts, so only when the merchant shows counts at all.

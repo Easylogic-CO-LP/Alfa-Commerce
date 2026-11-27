@@ -91,6 +91,7 @@ use Throwable;
  *   filter.discount_percent_min float  Save at least X%  (e.g. >= 20)
  *   filter.category            int[]   Category ids
  *   filter.manufacturer        int[]   Manufacturer ids
+ *   filter.label               int[]   Label ids: products that tick any of them (#__alfa_item_labels)
  *   filter.search              string  Search string
  *
  * NOTE: has_discount column was removed. discount_amount > 0 is identical
@@ -1318,6 +1319,18 @@ class ItemsModel extends UrlListModel
         $filterManufacturers = $this->getState('filter.manufacturer', []);
         if (!empty($filterManufacturers)) {
             $query->whereIn('man.manufacturer_id', array_map('intval', (array) $filterManufacturers));
+        }
+
+        // Label filter: the products that tick any of the labels (OR within the facet), through the pivot alone, so a
+        // product with several labels stays one row.
+        $filterLabels = array_values(array_filter(array_map('intval', (array) $this->getState('filter.label', []))));
+
+        if ($filterLabels !== []) {
+            $query->where(
+                'EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_labels', 'fil')
+                . ' WHERE ' . $db->quoteName('fil.item_id') . ' = ' . $db->quoteName('a.id')
+                . ' AND ' . $db->quoteName('fil.label_id') . ' IN (' . implode(',', $filterLabels) . '))',
+            );
         }
 
         // Item-field value filter (Size, Color, ...)
@@ -2824,6 +2837,59 @@ class ItemsModel extends UrlListModel
     }
 
     /**
+     * The labels the filters offer that reach at least one product of the current result, under every other active
+     * filter (the label facet drops its own selection, as the manufacturers facet does), by id, in the order of the
+     * Labels screen: [id => ['id' => 3, 'name' => 'Black Friday', 'count' => 12]]; the count is read only when asked
+     * for, in the same query. Only labels set as filterable are offered (Labels::filterable()), whatever products tick.
+     *
+     * @param bool $withCounts Whether each label comes with how many products of the result tick it.
+     *
+     * @return array<int, array{id: int, name: string, count?: int}>
+     *
+     * @since  2.3.0
+     */
+    public function getAvailableLabels(bool $withCounts = false): array
+    {
+        $offered = Labels::filterable();
+
+        if ($offered === []) {
+            return [];
+        }
+
+        $model = $this->createFilterSubModel(['filter.label']);
+        $db = $this->getDatabase();
+
+        $query = $model->getListQuery();
+        $query->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->join('INNER', $db->quoteName('#__alfa_item_labels', 'lf') . ' ON ' . $db->quoteName('lf.item_id') . ' = ' . $db->quoteName('a.id'))
+            ->whereIn($db->quoteName('lf.label_id'), array_keys($offered))
+            ->select($db->quoteName('lf.label_id') . ', COUNT(DISTINCT ' . $db->quoteName('a.id') . ') AS ' . $db->quoteName('cnt'))
+            ->group($db->quoteName('lf.label_id'));
+
+        // Same facet, asked more than once per render: memo by the built statement and the values bound to it.
+        static $cache = [];
+        $key = self::statementKey(query: $query);
+
+        if (!isset($cache[$key])) {
+            $cache[$key] = $db->setQuery($query)->loadAssocList('label_id') ?: [];
+        }
+
+        $out = [];
+
+        foreach ($offered as $id => $label) {
+            if (!isset($cache[$key][$id])) {
+                continue;
+            }
+
+            $out[$id] = ['id' => $id, 'name' => $label->name] + ($withCounts ? ['count' => (int) $cache[$key][$id]['cnt']] : []);
+        }
+
+        return $out;
+    }
+
+    /**
      * Return available categories for the current non-category filters.
      *
      * @return array Keyed by id: [2 => ['id' => 2, 'name' => 'Shoes'], ...]
@@ -3918,6 +3984,7 @@ class ItemsModel extends UrlListModel
             'filter.category_id',
             'filter.category',
             'filter.manufacturer',
+            'filter.label',
             'filter.fields',
             'filter.groups',
             'filter.price_min',

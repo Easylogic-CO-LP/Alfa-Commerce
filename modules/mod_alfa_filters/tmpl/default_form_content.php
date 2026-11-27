@@ -32,12 +32,12 @@ ob_start();
 require ModuleHelper::getLayoutPath('mod_alfa_filters', 'default_arrow');
 $arrowSvg = ob_get_clean();
 
-// The catalogue sections (categories, manufacturers, one per item field) are all drawn by
+// The catalogue sections (categories, manufacturers, labels, one per item field) are all drawn by
 // default_filters, so the resolved order is first collapsed into BLOCKS: each is either a
 // consecutive run of catalogue sections, handed over in one pass, or a single built-in
 // section rendered here. Collapsing up front rather than flushing a buffer mid-loop is
 // what keeps the require in this template's own variable scope, where the layout data is.
-$isCatalogueSection = static fn (string $key): bool => \in_array($key, ['category', 'manufacturer'], true)
+$isCatalogueSection = static fn (string $key): bool => \in_array($key, ['category', 'manufacturer', 'label'], true)
     || str_starts_with($key, FilterSections::FIELD_PREFIX);
 
 $blocks = [];

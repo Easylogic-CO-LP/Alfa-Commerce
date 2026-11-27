@@ -82,6 +82,11 @@ class CatalogitemsController extends ApiController
             $this->modelState->set('filter.manufacturer', [RequestScalar::member($apiFilterInfo, 'manufacturer', 'INT', 'filter')]);
         }
 
+        // The products that tick any of the labels: filter[label][]=3&filter[label][]=5, or one id.
+        if (\array_key_exists('label', $apiFilterInfo)) {
+            $this->modelState->set('filter.label', array_values(array_filter(array_map('intval', (array) $apiFilterInfo['label']))));
+        }
+
         // The storefront never shows anything but published products.
         $this->modelState->set('filter.state', '1');
 

@@ -94,6 +94,7 @@ final class FilterKeyWhitelist
             'search',
             'category',
             'manufacturer',
+            'label',    // the shop's labels a product ticks (OR within)
             'price_min',
             'price_max',
             'on_sale',

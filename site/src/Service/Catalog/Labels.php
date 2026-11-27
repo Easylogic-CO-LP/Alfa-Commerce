@@ -77,6 +77,14 @@ final class Labels
     private static ?array $predefined = null;
 
     /**
+     * The shop's published labels the filters offer, by id, in their order; null until read.
+     *
+     * @var array<int, Label>|null
+     * @since  2.3.0
+     */
+    private static ?array $filterable = null;
+
+    /**
      * The New label's look; read once, whatever the days.
      *
      * @var Label|null
@@ -113,6 +121,32 @@ final class Labels
         }
 
         return self::$predefined = $labels;
+    }
+
+    /**
+     * The shop's labels the storefront filters offer: the published ones within their period that are set as
+     * filterable, by id, in the order of the Labels screen (the filters module, a menu item's preset filters, the REST
+     * API's filter[label]).
+     *
+     * @return array<int, Label>
+     *
+     * @since  2.3.0
+     */
+    public static function filterable(): array
+    {
+        if (self::$filterable !== null) {
+            return self::$filterable;
+        }
+
+        $labels = [];
+
+        foreach (self::records(publishedOnly: true) as $row) {
+            if ((int) $row->filterable === 1) {
+                $labels[(int) $row->id] = self::fromRecord($row);
+            }
+        }
+
+        return self::$filterable = $labels;
     }
 
     /**
@@ -339,6 +373,7 @@ final class Labels
     public static function forget(): void
     {
         self::$predefined = null;
+        self::$filterable = null;
         self::$new = null;
         self::$rows = [];
     }

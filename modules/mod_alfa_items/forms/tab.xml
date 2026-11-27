@@ -39,6 +39,21 @@
         />
 
         <field
+                name="labels"
+                type="model"
+                model="labels"
+                column_value="id"
+                column_text="name"
+                orderBy="a.ordering"
+                state="1"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_ITEMS_LABELS_LBL"
+                description="MOD_ALFA_ITEMS_LABELS_DESC"
+                hint="MOD_ALFA_ITEMS_LABELS_HINT"
+        />
+
+        <field
                 name="ordering"
                 type="list"
                 default="a.id DESC"
