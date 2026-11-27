@@ -25,6 +25,9 @@
  *   [SC6] the product list field reads ids, rows and JSON alike; the saved rule answers ids for every list.
  *   [SC7] ★ deleting the only product a rule names is refused, naming the rule.
  *   [SC8] (needs a prepared price index context) the product's index periods end where the rule's days end.
+ *   [MG1] ★ a per-language key of a field the form does not translate is not recovered from the post, every other
+ *         undeclared key still is; a discount saved with a stray alias_<lang> and foo_<lang> saves its name and
+ *         gives its language table no column; a product saves its name and its alias per language.
  *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
  *
  * Fixtures: products and rules of this run's own in two published categories of the shop (read, not written). The run
@@ -52,6 +55,7 @@ require_once JPATH_BASE . '/includes/defines.php';
 require_once JPATH_BASE . '/includes/framework.php';
 
 use Alfa\Component\Alfa\Administrator\Field\DiscountItemsField;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper as Multilingual;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
@@ -163,6 +167,19 @@ check('[SC5] the table refuses a rule with its own days and none given', [$table
 $table = $factory->createTable('Discount', 'Administrator');
 $table->bind(['value' => '10', 'is_amount' => 0, 'new_products' => 1, 'new_days' => 9]);
 check('[SC5] a rule on the shop\'s days keeps no days of its own', [$table->check(), (int) $table->new_days], [true, 0]);
+
+echo "\nthe language keys a save takes\n";
+$defaultKey = MultilingualHelper::normaliseTag(tag: MultilingualHelper::getDefaultLanguageTag());
+$guardForm = \Joomla\CMS\Form\Form::getInstance('com_alfa.discount.guard', JPATH_ADMINISTRATOR . '/components/com_alfa/forms/discount.xml', ['control' => 'jform']);
+$merged = Multilingual::mergeValidatedFormData(
+    ['value' => '10'],
+    ['value' => '10', 'name_' . $defaultKey => 'kept', 'name_customer_' . $defaultKey => 'kept too', 'alias_' . $defaultKey => 'stray', 'foo_' . $defaultKey => 'stray', 'grid_note' => 'kept'],
+    $guardForm,
+);
+check('[MG1] ★ the form\'s translated fields are recovered, a language key of any other field is dropped, another undeclared key is kept',
+    [isset($merged['name_' . $defaultKey]), isset($merged['name_customer_' . $defaultKey]), isset($merged['alias_' . $defaultKey]), isset($merged['foo_' . $defaultKey]), isset($merged['grid_note'])],
+    [true, true, false, false, true]);
+check('[MG1] the declared fields of the discount table carry no alias; the product table does', [\in_array('alias', Multilingual::declaredFields('#__alfa_discounts') ?? [], true), \in_array('alias', Multilingual::declaredFields('#__alfa_items') ?? [], true), Multilingual::declaredFields('#__alfa_nothing_here')], [false, true, null]);
 
 echo "\nthe product list field\n";
 check('[SC6] the field reads ids, rows, objects and JSON alike, each product once, nothing for a row left empty',
@@ -284,7 +301,17 @@ try {
     $d3 = $saveRule(['tag' => 'D3', 'value' => '5', 'categories' => [$catA], 'new_products' => 2, 'new_days' => 7]);
     $d4 = $saveRule(['tag' => 'D4', 'value' => '7', 'categories' => [$catA], 'new_products' => 1]);
 
-    echo "fixture ids: items={$pIn},{$pOut},{$pExcl},{$pCatExcl},{$pSwitch},{$pNew},{$pOld} variants={$vApply},{$vExcluded} discounts={$d1},{$d2},{$d3},{$d4} (inside the rolled-back transaction)\n";
+    // [MG1] a rule saved with stray language keys: saved, named, and no column made of them; a product keeps its alias.
+    $gStray = $saveRule(['tag' => 'G', 'value' => '1', 'categories' => [$catA], 'alias_' . $defaultKey => 'stray-alias', 'foo_' . $defaultKey => 'stray']);
+    $ruleColumns = $db->setQuery('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ' . $db->quote($p . 'alfa_discounts_' . $defaultKey))->loadColumn() ?: [];
+    $guard = [
+        'saved' => $gStray > 0,
+        'name' => $db->setQuery("SELECT name FROM `{$p}alfa_discounts_{$defaultKey}` WHERE id_discount = {$gStray}")->loadResult(),
+        'columns' => [\in_array('alias', $ruleColumns, true), \in_array('foo', $ruleColumns, true)],
+        'product' => $db->setQuery("SELECT name, alias FROM `{$p}alfa_items_{$defaultKey}` WHERE id_item = {$pIn}")->loadAssoc(),
+    ];
+
+    echo "fixture ids: items={$pIn},{$pOut},{$pExcl},{$pCatExcl},{$pSwitch},{$pNew},{$pOld} variants={$vApply},{$vExcluded} discounts={$d1},{$d2},{$d3},{$d4},{$gStray} (inside the rolled-back transaction)\n";
 
     $context = PriceContext::forIndex(currencyId: Currency::getDefault()->getId(), placeId: 0, usergroupId: 0)->withCustomer(customer: new User());
     $items = [$pIn, $pOut, $pExcl, $pCatExcl, $pSwitch, $pNew, $pOld];
@@ -345,7 +372,7 @@ try {
 
     $result = ['reach' => $reach, 'shopTen' => $shopTen, 'switches' => $switches, 'variants' => $variants, 'saved' => $savedShape, 'savedD3' => [(int) $savedD3->new_products, (int) $savedD3->new_days],
         'delete' => ['result' => $deleted, 'named' => str_contains($deleteError, 'DS disposable rule D1 ' . $run), 'kept' => $stillThere], 'edge' => $edge,
-        'ids' => ['d1' => $d1, 'd2' => $d2, 'd3' => $d3, 'd4' => $d4, 'excl' => $pExcl]];
+        'ids' => ['d1' => $d1, 'd2' => $d2, 'd3' => $d3, 'd4' => $d4, 'excl' => $pExcl], 'guard' => $guard];
 } catch (\Throwable $e) {
     $result = ['error' => \get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine()];
 } finally {
@@ -380,6 +407,11 @@ if (isset($result['error'])) {
     echo "\nthe saved rule\n";
     check('[SC6] the saved rule answers ids for its products, its excluded products and its excluded categories, and its new-products choice', $result['saved'], ['items' => [], 'excluded_items' => [$pExcl], 'excluded_categories' => [$catB], 'new' => [0, 0]]);
     check('[SC6] the rule with its own days keeps them', $result['savedD3'], [2, 7]);
+
+    echo "\nthe language keys a save takes\n";
+    $guard = $result['guard'];
+    check('[MG1] ★ a rule saved with a stray alias and a stray foo key saves its name and gets no column of them', [$guard['saved'], $guard['name'], $guard['columns']], [true, 'DS disposable rule G ' . $run, [false, false]]);
+    check('[MG1] a product still saves its name and its alias in the language', [$guard['product']['name'] ?? null, ($guard['product']['alias'] ?? '') !== ''], ['DS disposable in ' . $run, true]);
 
     echo "\nthe delete guard\n";
     check('[SC7] ★ deleting the only product a rule names is refused, naming the rule, and the product stays', $result['delete'], ['result' => false, 'named' => true, 'kept' => 1]);
