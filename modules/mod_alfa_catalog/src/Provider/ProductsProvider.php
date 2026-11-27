@@ -10,21 +10,18 @@
 namespace Alfa\Module\AlfaCatalog\Site\Provider;
 
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
-use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
-use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\RecentlyViewed;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Model\ItemsModel;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Module\AlfaCatalog\Site\Helper\Subjects;
 use Joomla\CMS\Cache\Controller\CallbackController;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
-use Joomla\Database\ParameterType;
 use Joomla\Registry\Registry;
 use Throwable;
 
@@ -35,10 +32,14 @@ use Throwable;
 /**
  * The products of a tab, read through the catalogue's listing model.
  *
- * The provider never queries products itself. It declares a state on the component's ItemsModel (a category context
- * or scope, manufacturers, labels, the sale or new filter, an ordering, or a ranked id list for best sellers and
+ * The provider never queries a table. It declares a state on the component's ItemsModel (a category context or
+ * scope, manufacturers, labels, the sale or new filter, an ordering, or a ranked id list for best sellers and
  * recently viewed) and the model answers with fully decorated items (visibility, publish window, stock policy, live
  * prices, variants, field plugins, labels), exactly as the catalogue page reads them.
+ *
+ * Best sellers are ranked by the model too, AFTER the tab's filters: the best sellers OF the tab's category,
+ * manufacturers and labels among the products this visitor is shown, so a tab holds its number of them whenever
+ * that many have sold.
  *
  * @since  2.3.0
  */
@@ -75,7 +76,8 @@ final class ProductsProvider implements ProviderInterface
     public const DEFAULT_LIMIT = 8;
 
     /**
-     * @var int The most products a tab shows.
+     * @var int The most products a tab shows. A display limit: the top of the range of the form's field, which
+     *          states it (1 to 60) and goes no higher.
      * @since  2.3.0
      */
     public const LIMIT_MAX = 60;
@@ -98,19 +100,6 @@ final class ProductsProvider implements ProviderInterface
         'pf.discount_amount DESC' => ['pf.discount_amount', 'DESC'],
         'pf.discount_percent DESC' => ['pf.discount_percent', 'DESC'],
     ];
-
-    /**
-     * @var int Ranked candidates asked for per displayed product; some fall to visibility, publishing, stock or the
-     *          tab's other filters when the catalogue reads them.
-     * @since  2.3.0
-     */
-    private const RANK_OVERFETCH = 3;
-
-    /**
-     * @var int Hard bound on a ranked candidate list.
-     * @since  2.3.0
-     */
-    private const RANK_CAP = 100;
 
     /**
      * A products tab's query. One visible category makes the tab a listing OF it (its layouts and links); several
@@ -148,8 +137,9 @@ final class ProductsProvider implements ProviderInterface
     /**
      * The decorated products of a tab, in display order, never more than its number.
      *
-     * A ranked source (best sellers, recently viewed) hands the model a bounded id list and restores the rank
-     * afterwards, since the model orders only by columns.
+     * A ranked source (best sellers, recently viewed) hands the model its ids and restores the rank afterwards,
+     * since the model orders only by columns. The best sellers are ranked within the tab's filters, so they all
+     * pass them; the visitor's recently viewed products are their own list, which the tab's filters narrow.
      *
      * @param array<string, mixed> $query The tab's query.
      * @param Registry $params The module's settings (the best sellers period and its refresh).
@@ -161,81 +151,42 @@ final class ProductsProvider implements ProviderInterface
     public function records(array $query, Registry $params): array
     {
         $limit = Providers::bounded($query['limit'] ?? null, 1, self::LIMIT_MAX, self::DEFAULT_LIMIT);
-        $context = (int) ($query['context'] ?? 0);
-        $scope = Providers::ids($query['scope'] ?? []);
-        $model = self::model();
+        $source = Providers::choice($query['source'] ?? '', self::SOURCES);
 
-        $model->setCategoryContext(categoryId: $context);
-
-        if ($context <= 0 && $scope !== []) {
-            $model->setState('filter.category', $scope);
+        if ($source === self::SOURCE_RECENTLY_VIEWED) {
+            return self::ranked(query: $query, ids: self::recentlyViewedIds(), limit: $limit);
         }
 
-        foreach (['manufacturers' => 'filter.manufacturer', 'labels' => 'filter.label'] as $key => $state) {
-            $ids = Providers::ids($query[$key] ?? []);
+        if ($source === self::SOURCE_BEST_SELLERS) {
+            $stored = max(0, (int) $params->get('bestsellers_cache', 60)) > 0;
+            $ids = self::bestSellerIds(query: $query, params: $params, limit: $limit, stored: $stored);
+            $items = self::ranked(query: $query, ids: $ids, limit: $limit);
 
-            if ($ids !== []) {
-                $model->setState($state, $ids);
+            // A stored ranking can name a product that has left the listing since (sold out, unpublished): the
+            // listing then answers with fewer than the ranking promised, and the tab is ranked again now.
+            if ($stored && \count($items) < \count($ids)) {
+                $items = self::ranked(query: $query, ids: self::bestSellerIds(query: $query, params: $params, limit: $limit, stored: false), limit: $limit);
             }
+
+            return $items;
         }
 
-        $ordering = (string) ($query['ordering'] ?? self::DEFAULT_ORDERING);
-        $ranked = null;
+        $model = self::filtered($query);
 
-        switch (Providers::choice($query['source'] ?? '', self::SOURCES)) {
-            case self::SOURCE_ON_SALE:
-                $model->setState('filter.on_sale', 1);
-                break;
-
-            case self::SOURCE_NEW:
-                $model->setState('filter.new', 1);
-                break;
-
-            case self::SOURCE_BEST_SELLERS:
-                $ranked = self::bestSellerIds(params: $params, categoryIds: self::rankScope($context, $scope), limit: $limit);
-                break;
-
-            case self::SOURCE_RECENTLY_VIEWED:
-                $ranked = \array_slice(self::recentlyViewedIds(), 0, self::RANK_CAP);
-                break;
+        if ($source === self::SOURCE_ON_SALE) {
+            $model->setState('filter.on_sale', 1);
         }
 
-        if ($ranked === []) {
-            return [];
+        if ($source === self::SOURCE_NEW) {
+            $model->setState('filter.new', 1);
         }
 
-        if ($ranked !== null) {
-            // A bounded id list: the model reads at most that many rows.
-            $model->setState('filter.id', $ranked);
-            $model->setState('list.limit', \count($ranked));
-            $ordering = self::DEFAULT_ORDERING;
-        } else {
-            $model->setState('list.limit', $limit);
-        }
-
-        [$column, $direction] = self::ORDERINGS[$ordering] ?? self::ORDERINGS[self::DEFAULT_ORDERING];
-        $model->setState('list.ordering', $column);
-        $model->setState('list.direction', $direction);
-        $model->setState('list.fullordering', $column . ' ' . $direction);
-        $model->setState('list.start', 0);
+        self::order($model, (string) ($query['ordering'] ?? self::DEFAULT_ORDERING));
+        $model->setState('list.limit', $limit);
 
         $items = $model->getItems();
 
-        if (!\is_array($items) || $items === []) {
-            return [];
-        }
-
-        if ($ranked !== null) {
-            $rank = array_flip($ranked);
-
-            usort(
-                $items,
-                static fn (object $a, object $b): int =>
-                    ($rank[(int) $a->id] ?? PHP_INT_MAX) <=> ($rank[(int) $b->id] ?? PHP_INT_MAX),
-            );
-        }
-
-        return \array_slice(array_values($items), 0, $limit);
+        return \is_array($items) ? array_values($items) : [];
     }
 
     /**
@@ -284,6 +235,22 @@ final class ProductsProvider implements ProviderInterface
     }
 
     /**
+     * Rank a tab's best sellers now. Public: the cache controller calls it back.
+     *
+     * @param int $days The period in days, 0 = all time.
+     * @param int $limit The tab's number.
+     * @param array<string, mixed> $filters The tab's category context or scope, manufacturers and labels.
+     *
+     * @return int[] Product ids, most sold first, never more than the number.
+     *
+     * @since  2.3.0
+     */
+    public static function rankBestSellers(int $days, int $limit, array $filters): array
+    {
+        return self::filtered($filters)->getBestSellingIds(days: $days, limit: $limit);
+    }
+
+    /**
      * A fresh catalogue listing model that reads nothing from the request.
      *
      * @since  2.3.0
@@ -302,125 +269,138 @@ final class ProductsProvider implements ProviderInterface
     }
 
     /**
-     * The categories a ranking is computed within: the context or the scope, with descendants when the catalogue
-     * includes subcategories.
+     * A listing model under a tab's filters: its category (one makes the listing a listing OF it, several narrow a
+     * mixed listing), its manufacturers and its labels.
      *
-     * @param int $context The listing's category, 0 for none.
-     * @param int[] $scope The mixed listing's scope.
-     *
-     * @return int[] Empty = the whole catalogue.
+     * @param array<string, mixed> $query The tab's query, or its filters alone.
      *
      * @since  2.3.0
      */
-    private static function rankScope(int $context, array $scope): array
+    private static function filtered(array $query): ItemsModel
     {
-        $ids = $context > 0 ? [$context] : $scope;
+        $model = self::model();
+        $context = (int) ($query['context'] ?? 0);
+        $scope = Providers::ids($query['scope'] ?? []);
 
+        $model->setCategoryContext(categoryId: $context);
+
+        if ($context <= 0 && $scope !== []) {
+            $model->setState('filter.category', $scope);
+        }
+
+        foreach (['manufacturers' => 'filter.manufacturer', 'labels' => 'filter.label'] as $key => $state) {
+            $ids = Providers::ids($query[$key] ?? []);
+
+            if ($ids !== []) {
+                $model->setState($state, $ids);
+            }
+        }
+
+        $model->setState('list.start', 0);
+
+        return $model;
+    }
+
+    /**
+     * Hand the model one of the allowed orderings; an unknown value is newest first.
+     *
+     * @param ItemsModel $model The listing model.
+     * @param string $ordering A key of ORDERINGS.
+     *
+     * @since  2.3.0
+     */
+    private static function order(ItemsModel $model, string $ordering): void
+    {
+        [$column, $direction] = self::ORDERINGS[$ordering] ?? self::ORDERINGS[self::DEFAULT_ORDERING];
+
+        $model->setState('list.ordering', $column);
+        $model->setState('list.direction', $direction);
+        $model->setState('list.fullordering', $column . ' ' . $direction);
+    }
+
+    /**
+     * The products of a ranked id list under a tab's filters, in the list's order, never more than the tab's
+     * number. The model is asked for exactly the ids: as many rows as the list is long.
+     *
+     * @param array<string, mixed> $query The tab's query.
+     * @param int[] $ids The ranked ids, first place first.
+     * @param int $limit The tab's number.
+     *
+     * @return list<object>
+     *
+     * @since  2.3.0
+     */
+    private static function ranked(array $query, array $ids, int $limit): array
+    {
         if ($ids === []) {
             return [];
         }
 
-        if ((int) ComponentHelper::getParams('com_alfa')->get('include_subcategories', 1) === 1) {
-            foreach ($ids as $id) {
-                $ids = array_merge($ids, CategoryHelper::getDescendantIds(parentId: (int) $id));
-            }
+        $model = self::filtered($query);
+        $model->setState('filter.id', $ids);
+        $model->setState('list.limit', \count($ids));
+        self::order($model, self::DEFAULT_ORDERING);
+
+        $items = $model->getItems();
+
+        if (!\is_array($items) || $items === []) {
+            return [];
         }
 
-        return array_values(array_unique(array_map('intval', $ids)));
+        $rank = array_flip($ids);
+
+        usort(
+            $items,
+            static fn (object $a, object $b): int =>
+                ($rank[(int) $a->id] ?? PHP_INT_MAX) <=> ($rank[(int) $b->id] ?? PHP_INT_MAX),
+        );
+
+        return \array_slice(array_values($items), 0, $limit);
     }
 
     /**
-     * Best-selling product ids, most sold first, recomputed at most every `bestsellers_cache` minutes. The ranking
-     * counts units on non-cancelled orders inside the configured period; it is the same for every visitor, so
-     * storing it is safe: visibility is applied when the ids are read as a listing.
+     * A tab's best-selling product ids, most sold first: exactly the tab's number of them when that many of the
+     * tab's products have sold, ranked by the listing model within the tab's filters and this visitor's listing.
      *
+     * The ranking is recomputed at most every `bestsellers_cache` minutes. A stored ranking is one tab's (its
+     * period, number and filters) for one audience (who may see which products, and the shop's stock settings), so
+     * it never crosses to a visitor who is shown other products.
+     *
+     * A ranking that cannot be made is logged and the tab is empty: it never takes the module down, and it is not
+     * stored.
+     *
+     * @param array<string, mixed> $query The tab's query.
      * @param Registry $params The module's settings.
-     * @param int[] $categoryIds Categories to rank within (empty = all).
-     * @param int $limit Products the tab will show.
+     * @param int $limit The tab's number.
+     * @param bool $stored Whether a stored ranking may answer.
      *
      * @return int[]
      *
      * @since  2.3.0
      */
-    private static function bestSellerIds(Registry $params, array $categoryIds, int $limit): array
+    private static function bestSellerIds(array $query, Registry $params, int $limit, bool $stored): array
     {
         $days = max(0, (int) $params->get('bestsellers_days', 90));
-        $wanted = min(self::RANK_CAP, $limit * self::RANK_OVERFETCH);
-        $minutes = max(0, (int) $params->get('bestsellers_cache', 60));
-
-        if ($minutes === 0) {
-            return self::queryBestSellerIds(days: $days, categoryIds: $categoryIds, limit: $wanted);
-        }
-
-        /** @var CallbackController $cache */
-        $cache = Factory::getCache('mod_alfa_catalog', 'callback');
-        $cache->setCaching(true);
-        // Joomla counts a cache lifetime in minutes, as the option is.
-        $cache->setLifeTime($minutes);
-
-        $ids = $cache->get(
-            [self::class, 'queryBestSellerIds'],
-            [$days, $categoryIds, $wanted],
-            md5(serialize([$days, $categoryIds, $wanted])),
-        );
-
-        return \is_array($ids) ? $ids : [];
-    }
-
-    /**
-     * Aggregate the order lines into a ranking. Public: the cache controller calls it back.
-     *
-     * A cancelled sale is not a sale, and trashed orders never count. The period is on the order's creation moment,
-     * in UTC like the stored value.
-     *
-     * @param int $days Period in days, 0 = all time.
-     * @param int[] $categoryIds Categories to rank within (empty = all).
-     * @param int $limit Candidates to return.
-     *
-     * @return int[] Product ids, most sold first.
-     *
-     * @since  2.3.0
-     */
-    public static function queryBestSellerIds(int $days, array $categoryIds, int $limit): array
-    {
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-
-        $query = $db->getQuery(true)
-            ->select($db->quoteName('oi.id_item'))
-            ->select('SUM(' . $db->quoteName('oi.quantity') . ') AS ' . $db->quoteName('sold'))
-            ->from($db->quoteName('#__alfa_order_items', 'oi'))
-            ->join('INNER', $db->quoteName('#__alfa_orders', 'o'), $db->quoteName('o.id') . ' = ' . $db->quoteName('oi.id_order'))
-            ->where($db->quoteName('o.state') . ' <> -2')
-            ->group($db->quoteName('oi.id_item'))
-            ->order($db->quoteName('sold') . ' DESC')
-            ->setLimit(max(1, min(self::RANK_CAP, $limit)));
-
-        $cancelled = OrderStatusHelper::getCancelledIds();
-
-        if ($cancelled !== []) {
-            $query->whereNotIn($db->quoteName('o.id_order_status'), $cancelled);
-        }
-
-        if ($days > 0) {
-            $since = Factory::getDate('-' . $days . ' days')->toSql();
-            $query->where($db->quoteName('o.created') . ' >= :since')
-                ->bind(':since', $since, ParameterType::STRING);
-        }
-
-        $categoryIds = array_values(array_filter(array_map('intval', $categoryIds)));
-
-        if ($categoryIds !== []) {
-            $query->where(
-                $db->quoteName('oi.id_item') . ' IN ('
-                . 'SELECT ' . $db->quoteName('item_id')
-                . ' FROM ' . $db->quoteName('#__alfa_items_categories')
-                . ' WHERE ' . $db->quoteName('category_id') . ' IN (' . implode(',', $categoryIds) . ')'
-                . ')',
-            );
-        }
+        $filters = array_intersect_key($query, ['context' => 1, 'scope' => 1, 'manufacturers' => 1, 'labels' => 1]);
 
         try {
-            return array_map('intval', (array) $db->setQuery($query)->loadColumn());
+            if (!$stored) {
+                return self::rankBestSellers(days: $days, limit: $limit, filters: $filters);
+            }
+
+            /** @var CallbackController $cache */
+            $cache = Factory::getCache('mod_alfa_catalog', 'callback');
+            $cache->setCaching(true);
+            // Joomla counts a cache lifetime in minutes, as the option is.
+            $cache->setLifeTime(max(1, (int) $params->get('bestsellers_cache', 60)));
+
+            $ids = $cache->get(
+                [self::class, 'rankBestSellers'],
+                [$days, $limit, $filters],
+                md5(serialize([$days, $limit, $filters, (new CatalogAccessPolicy())->cacheKey(), (new StockVisibilityPolicy())->cacheKey()])),
+            );
+
+            return \is_array($ids) ? array_map('intval', $ids) : [];
         } catch (Throwable $e) {
             Log::add('mod_alfa_catalog best sellers ranking failed: ' . ErrorText::of($e), Log::ERROR, 'com_alfa');
 

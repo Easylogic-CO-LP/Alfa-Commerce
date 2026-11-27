@@ -22,6 +22,7 @@ use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ListLimitsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -2898,6 +2899,63 @@ class ItemsModel extends UrlListModel
         }
 
         return $out;
+    }
+
+    /**
+     * The best sellers of the current result: the ids of the products the listing shows under the active filters
+     * (category, manufacturers, labels and the rest), most units sold first, never more than asked for. The filters
+     * and the listing's visibility apply BEFORE the ranking: the listing's own query is joined to the units sold per
+     * product, in one statement, so the answer holds the asked number of best sellers whenever that many of the
+     * result's products have sold. A product with no sale in the period is not a best seller and is absent.
+     *
+     * A cancelled sale is not a sale, and trashed orders never count. The period is on the order's creation moment,
+     * in UTC like the stored value.
+     *
+     * @param int $days The period in days; 0 = all time.
+     * @param int $limit The most ids to return, at least 1.
+     *
+     * @return int[] Product ids, most sold first.
+     *
+     * @since  2.3.0
+     */
+    public function getBestSellingIds(int $days, int $limit): array
+    {
+        $db = $this->getDatabase();
+
+        // The units sold per product. No bound value in it: it is written into the listing's query, whose own
+        // bound values keep their names.
+        $sales = $db->getQuery(true)
+            ->select($db->quoteName('oi.id_item') . ', SUM(' . $db->quoteName('oi.quantity') . ') AS ' . $db->quoteName('sold'))
+            ->from($db->quoteName('#__alfa_order_items', 'oi'))
+            ->join('INNER', $db->quoteName('#__alfa_orders', 'o') . ' ON ' . $db->quoteName('o.id') . ' = ' . $db->quoteName('oi.id_order'))
+            ->where($db->quoteName('o.state') . ' <> -2')
+            ->group($db->quoteName('oi.id_item'));
+
+        $cancelled = array_values(array_filter(array_map('intval', OrderStatusHelper::getCancelledIds())));
+
+        if ($cancelled !== []) {
+            $sales->where($db->quoteName('o.id_order_status') . ' NOT IN (' . implode(',', $cancelled) . ')');
+        }
+
+        if ($days > 0) {
+            $sales->where($db->quoteName('o.created') . ' >= ' . $db->quote(Factory::getDate('-' . $days . ' days')->toSql()));
+        }
+
+        $model = $this->createFilterSubModel([]);
+
+        // The listing joins a product once per category and manufacturer it has: its total is one value on every
+        // such row, so MAX reads it once.
+        $query = $model->getListQuery();
+        $query->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->join('INNER', '(' . $sales . ') AS ' . $db->quoteName('bs') . ' ON ' . $db->quoteName('bs.id_item') . ' = ' . $db->quoteName('a.id'))
+            ->select($db->quoteName('a.id') . ', MAX(' . $db->quoteName('bs.sold') . ') AS ' . $db->quoteName('sold'))
+            ->group($db->quoteName('a.id'))
+            ->order($db->quoteName('sold') . ' DESC, ' . $db->quoteName('a.id') . ' DESC')
+            ->setLimit(max(1, $limit));
+
+        return array_map('intval', $db->setQuery($query)->loadColumn() ?: []);
     }
 
     /**

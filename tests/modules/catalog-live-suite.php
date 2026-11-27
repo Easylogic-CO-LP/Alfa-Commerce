@@ -16,6 +16,9 @@
  *   [CL3] manufacturers: within the number; the product counts of all of them are ONE grouped read of the listing,
  *         and each count equals the listing's own total for that manufacturer.
  *   [CL4] automatic tabs: one tab per manufacturer and per label the shop has, the names in one read per type.
+ *   [CL6] best sellers: the listing model ranks its own result in ONE statement; under a manufacturer every ranked
+ *         product is that manufacturer's, and the tab shows as many products as were ranked (the filters come
+ *         before the ranking, so none is lost after it).
  *   [CL5] the three presentations draw for the three kinds on the shop's own records, with no empty image
  *         description and no link without an address.
  *
@@ -226,6 +229,50 @@ foreach (['products' => ['kind' => 'products', 'limit' => 4], 'categories' => ['
         is_true("[CL5] {$kind} as a {$display} draws", trim($html) !== '');
         is_same("[CL5] {$kind} as a {$display}: no image without a description", array_values(array_filter($images[0], static fn (string $image): bool => !preg_match('/\salt="[^"]+"/', $image))), []);
         is_same("[CL5] {$kind} as a {$display}: no link without an address", preg_match('/<a\b[^>]*href=""/', $html), 0);
+    }
+}
+
+// [CL6] Best sellers.
+$ranker = static function (array $state) use ($app): object {
+    $model = $app->bootComponent('com_alfa')->getMVCFactory()->createModel('Items', 'Site', ['ignore_request' => true]);
+    $model->getState('list.ordering');
+
+    foreach ($state as $key => $value) {
+        $model->setState($key, $value);
+    }
+
+    return $model;
+};
+[$overall, $rankReads] = $reads(static fn (): array => $ranker([])->getBestSellingIds(0, 5), '_alfa_order_items');
+
+if ($overall === []) {
+    $skipped[] = '[CL6] this shop has no sale of a product it shows';
+} else {
+    is_same('[CL6] the ranking is one statement', $rankReads, 1);
+    is_true('[CL6] no more than asked for, each product once', \count($overall) <= 5 && \count(array_unique($overall)) === \count($overall));
+
+    $sellers = array_keys($ranker([])->getManufacturerCounts(array_map(static fn (object $manufacturer): int => (int) $manufacturer->id, $manufacturers)));
+    $ranked = [];
+    $seller = 0;
+
+    // The first manufacturer with a best seller of its own.
+    foreach ($sellers as $candidate) {
+        $ranked = $ranker(['filter.manufacturer' => [$candidate]])->getBestSellingIds(0, 5);
+
+        if ($ranked !== []) {
+            $seller = $candidate;
+
+            break;
+        }
+    }
+
+    if ($seller === 0) {
+        $skipped[] = '[CL6] no manufacturer among the first 20 has a sale';
+    } else {
+        $params0 = new Registry(['bestsellers_days' => 0, 'bestsellers_cache' => 0, 'owncache' => 0]);
+        $tab = Providers::of('products')->records(Providers::of('products')->query(['source' => 'best_sellers', 'manufacturers' => [$seller], 'limit' => 5], 'grid'), $params0);
+        is_same('[CL6] the tab shows the ranked products, in their order, none lost', array_map(static fn (object $item): int => (int) $item->id, $tab), $ranked);
+        is_true('[CL6] every one of that manufacturer', array_filter($tab, static fn (object $item): bool => !\in_array($seller, array_map('intval', explode(',', (string) ($item->manufacturer_ids ?? ''))), true)) === []);
     }
 }
 

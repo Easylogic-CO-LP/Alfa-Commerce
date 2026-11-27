@@ -33,6 +33,10 @@
  *         viewed products are never stored and keep their page out of the page cache.
  *   [CT8] assets: a single grid or list needs no script, only a slider the slider library, only products the
  *         shop's styles, only product cards the buying scripts.
+ *   [CT10] best sellers are ranked after the tab's filters: a tab of one manufacturer's, one label's or one
+ *         category's best sellers holds its number of them though the shop's overall best sellers are others;
+ *         products that never sold are not best sellers; a stored ranking is one tab's and one audience's, and one
+ *         that names a product gone from the listing is ranked again at once.
  *   [CT9] the source: every rule of the stylesheet is scoped with :where(.mod-alfa-catalog), none is forced, no
  *         class, data attribute or id in a layout or a script carries the alfa- prefix, nothing names another
  *         module, every language key used is defined, and the registry names the files the build made.
@@ -124,6 +128,21 @@ namespace {
         /** @var array<string, mixed> The request. */
         public static array $request = [];
 
+        /** @var array<int, int> Units sold per product. */
+        public static array $sold = [];
+
+        /** @var int[] Products that have left the listing. */
+        public static array $hidden = [];
+
+        /** @var array<int, array{days: int, limit: int}> Every ranking asked of the listing model, in order. */
+        public static array $rankings = [];
+
+        /** @var string[] The ids asked of the ranking store, in order. */
+        public static array $rankingIds = [];
+
+        /** @var int[]|null What the ranking store holds; null = nothing, so it calls back. */
+        public static ?array $storedRanking = null;
+
         /** @var array<int, int[]> The parents of every read of children, in order. */
         public static array $childReads = [];
 
@@ -146,6 +165,8 @@ namespace {
             self::$listings = [];
             self::$cacheIds = [];
             self::$childReads = [];
+            self::$rankings = [];
+            self::$rankingIds = [];
             self::$pageCacheExcluded = 0;
             \Alfa\Module\AlfaCatalog\Site\Helper\Subjects::forget();
         }
@@ -230,25 +251,30 @@ namespace Alfa\Component\Alfa\Site\Model {
             return $this;
         }
 
+        /** The products of the fixtures that pass the state: [id => product]. */
+        private function result(): array
+        {
+            $in = fn (string $state, array $own): bool => empty($this->state[$state]) || array_intersect((array) $this->state[$state], $own) !== [];
+
+            return array_filter(
+                \Shop::$products,
+                fn (array $product, int $id): bool => !\in_array($id, \Shop::$hidden, true)
+                    && ($this->context <= 0 || \in_array($this->context, $product['categories'], true))
+                    && $in('filter.category', $product['categories'])
+                    && $in('filter.manufacturer', $product['manufacturers'])
+                    && $in('filter.label', $product['labels'])
+                    && $in('filter.id', [$id]),
+                ARRAY_FILTER_USE_BOTH,
+            );
+        }
+
         public function getItems(): array
         {
             \Shop::read('Items');
             \Shop::$listings[] = ['model' => 'Items', 'context' => $this->context] + $this->state;
             $items = [];
 
-            foreach (\Shop::$products as $id => $product) {
-                $in = fn (string $state, array $own): bool => empty($this->state[$state]) || array_intersect((array) $this->state[$state], $own) !== [];
-
-                if (
-                    ($this->context > 0 && !\in_array($this->context, $product['categories'], true))
-                    || !$in('filter.category', $product['categories'])
-                    || !$in('filter.manufacturer', $product['manufacturers'])
-                    || !$in('filter.label', $product['labels'])
-                    || !$in('filter.id', [$id])
-                ) {
-                    continue;
-                }
-
+            foreach ($this->result() as $id => $product) {
                 $items[] = (object) [
                     'id' => $id, 'name' => $product['name'], 'sku' => 'SKU' . $id, 'link' => '/product/' . $id, 'sellsOnline' => true,
                     'addToCartUrl' => '/cart/add', 'reloadUrl' => '',
@@ -260,6 +286,17 @@ namespace Alfa\Component\Alfa\Site\Model {
             $limit = (int) ($this->state['list.limit'] ?? 0);
 
             return $limit > 0 ? \array_slice($items, 0, $limit) : $items;
+        }
+
+        /** The best sellers of the result: its products that sold, most units first, within the number. */
+        public function getBestSellingIds(int $days, int $limit): array
+        {
+            \Shop::read('ranking');
+            \Shop::$rankings[] = ['days' => $days, 'limit' => $limit];
+            $sold = array_intersect_key(\Shop::$sold, $this->result());
+            arsort($sold);
+
+            return \array_slice(array_keys($sold), 0, $limit);
         }
 
         /** The products of the result per manufacturer, counted in one recorded read. */
@@ -431,6 +468,14 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing {
 }
 
 namespace Alfa\Component\Alfa\Administrator\Service\Catalog {
+    final class CatalogAccessPolicy
+    {
+        public function cacheKey(): string
+        {
+            return \Shop::$request['audience'] ?? 'guest';
+        }
+    }
+
     final class StockVisibilityPolicy
     {
         public function cacheKey(): string
@@ -474,6 +519,27 @@ namespace Joomla\CMS {
                             };
                         }
                     };
+                }
+            };
+        }
+
+        /** The ranking store: it records the id asked for, answers what it holds, else calls back. */
+        public static function getCache(string $group, string $handler): object
+        {
+            return new class () {
+                public function setCaching(bool $on): void
+                {
+                }
+
+                public function setLifeTime(int $minutes): void
+                {
+                }
+
+                public function get(callable $callback, array $arguments, string $id): mixed
+                {
+                    \Shop::$rankingIds[] = $id;
+
+                    return \Shop::$storedRanking ?? \call_user_func_array($callback, $arguments);
                 }
             };
         }
@@ -963,6 +1029,62 @@ namespace {
     is_true('[CT8] a list tab gets none', !str_contains($css, 'tab-1'));
     $css = AlfaCatalogHelper::lookCss(42, new Registry(), AlfaCatalogHelper::definitions(module_params(['kind' => 'manufacturers', 'card' => json_encode(['base' => ['display' => 'grid', 'radius' => 8]])])));
     is_true('[CT8] a card rule is scoped with :where and names its place', str_starts_with($css, ':where(.mod-alfa-catalog) .item-card[data-look="42-tab-0"]{'));
+
+    // [CT10] Best sellers: the tab's filters first, then the ranking.
+    // The shop's best sellers by far are the products of manufacturer 1 alone; the others sold a little, and
+    // every seventh product never sold.
+    foreach (Shop::$products as $id => $product) {
+        if ($id % 7 !== 0) {
+            Shop::$sold[$id] = $product['manufacturers'] === [1] ? 1000 + $id : $id;
+        }
+    }
+
+    $best = static fn (array $row, array $settings = []): Registry => new Registry(['tabs' => [$row + ['kind' => 'products', 'source' => 'best_sellers']]] + $settings);
+    $live = ['bestsellers_cache' => 0];
+    Shop::reset();
+    $items = AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 5], $live), 42)[0]['items'];
+    is_same('[CT10] a manufacturer\'s best sellers: the number asked for', \count($items), 5);
+    is_same('[CT10] every one of that manufacturer', array_filter($items, static fn (object $item): bool => !\in_array(2, $item->manufacturers, true)), []);
+    $units = array_map(static fn (object $item): int => Shop::$sold[$item->id], $items);
+    is_same('[CT10] most sold first', $units, [89, 88, 86, 85, 83]);
+    is_same('[CT10] one ranking and one listing read, each for exactly the number', [Shop::$reads, Shop::$rankings[0]['limit'], Shop::$listings[0]['list.limit']], [['ranking' => 1, 'Items' => 1], 5, 5]);
+    is_same('[CT10] with the refresh at 0 the ranking store is not asked', Shop::$rankingIds, []);
+
+    Shop::reset();
+    $items = AlfaCatalogHelper::getGroups($best(['labels' => [1], 'categories' => [2], 'limit' => 3], $live), 42)[0]['items'];
+    is_same('[CT10] a label\'s best sellers within a category: the number asked for', \count($items), 3);
+    is_same('[CT10] every one ticks the label and is in the category', array_filter($items, static fn (object $item): bool => !\in_array(1, $item->labels, true) || !\in_array(2, $item->categories, true)), []);
+
+    Shop::reset();
+    $items = AlfaCatalogHelper::getGroups($best(['labels' => [2], 'limit' => 60], $live), 42);
+    is_same('[CT10] a product that never sold is not a best seller: a label only unsold products tick gives no tab', $items, []);
+
+    Shop::reset();
+    $tabs = $best(['auto' => 'manufacturer', 'manufacturers' => [1, 2], 'limit' => 4], $live);
+    $second = AlfaCatalogHelper::getGroups($tabs, 42, 'tab-0-m2')[0]['items'];
+    is_same('[CT10] an automatic tab per manufacturer holds that manufacturer\'s best sellers, the number of them', [\count($second), array_filter($second, static fn (object $item): bool => !\in_array(2, $item->manufacturers, true))], [4, []]);
+
+    Shop::reset();
+    AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 5]), 42);
+    AlfaCatalogHelper::getGroups($best(['manufacturers' => [1], 'limit' => 5]), 42);
+    AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 6]), 42);
+    Shop::$request = ['audience' => 'wholesale'];
+    AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 5]), 42);
+    Shop::$request = [];
+    AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 5]), 42);
+    is_same('[CT10] a stored ranking is one tab\'s (its filters, its number) and one audience\'s', [\count(array_unique(Shop::$rankingIds)), Shop::$rankingIds[0] === Shop::$rankingIds[4]], [4, true]);
+
+    Shop::reset();
+    Shop::$storedRanking = [89, 88, 86, 85, 83];
+    Shop::$hidden = [88];
+    $items = AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 5]), 42)[0]['items'];
+    is_same('[CT10] a stored ranking that names a product gone from the listing is ranked again: the number is kept', array_column($items, 'id'), [89, 86, 85, 83, 82]);
+    is_same('[CT10] at the cost of one ranking and one more listing read', Shop::$reads, ['Items' => 2, 'ranking' => 1]);
+    Shop::$hidden = [];
+    Shop::reset();
+    $items = AlfaCatalogHelper::getGroups($best(['manufacturers' => [2], 'limit' => 5]), 42)[0]['items'];
+    is_same('[CT10] a stored ranking that still holds is used as it is', [array_column($items, 'id'), Shop::$reads], [[89, 88, 86, 85, 83], ['Items' => 1]]);
+    Shop::$storedRanking = null;
 
     // [CT9] The source.
     $read = static fn (string $file): string => (string) file_get_contents(CATALOG_MODULE . '/' . $file);
