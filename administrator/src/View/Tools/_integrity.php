@@ -38,7 +38,7 @@ $files = function (array $paths): void {
     ?>
     <details class="mt-2">
         <summary><?php echo Text::plural('COM_ALFA_TOOLS_INTEGRITY_FILES', \count($paths)); ?></summary>
-        <ul class="mb-0 mt-2">
+        <ul class="mb-0">
             <?php foreach ($paths as $path) : ?>
                 <li><code><?php echo $this->escape($path); ?></code></li>
             <?php endforeach; ?>
