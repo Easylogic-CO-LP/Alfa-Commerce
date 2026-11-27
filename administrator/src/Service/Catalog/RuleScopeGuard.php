@@ -18,7 +18,7 @@ use Joomla\Database\DatabaseDriver;
 use LogicException;
 
 /**
- * Deleting a category, place or manufacturer never silently widens a surviving
+ * Deleting a category, place, manufacturer or product never silently widens a surviving
  * discount, tax or cart rule.
  *
  * A discount or tax is scoped on each axis by the rows of its pivot, and the
@@ -58,6 +58,9 @@ final class RuleScopeGuard
 
     /** @var string Manufacturers: #__alfa_discount_manufacturers, #__alfa_tax_manufacturers, cart-rule manufacturer conditions. @since 2.0.0 */
     public const AXIS_MANUFACTURER = 'manufacturer';
+
+    /** @var string Products: #__alfa_discount_items. @since 2.3.0 */
+    public const AXIS_ITEM = 'item';
 
     /**
      * Per axis: the entity table and column, the refusal's language keys, the
@@ -100,6 +103,18 @@ final class RuleScopeGuard
                 'tax' => ['#__alfa_tax_manufacturers', 'tax_id'],
             ],
             'conditionType' => 'manufacturers',
+        ],
+        // A discount naming products reaches those alone; with none left it would reach every product its other
+        // parts take in. Taxes name no products, and no cart-rule condition names them.
+        self::AXIS_ITEM => [
+            'table' => '#__alfa_items',
+            'column' => 'item_id',
+            'refusal' => 'COM_ALFA_ITEM_DELETE_LAST_RULE_SCOPE',
+            'excludes' => null,
+            'pivots' => [
+                'discount' => ['#__alfa_discount_items', 'discount_id'],
+            ],
+            'conditionType' => null,
         ],
     ];
 

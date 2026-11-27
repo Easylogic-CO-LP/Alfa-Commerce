@@ -217,6 +217,18 @@
     </field>
 
     <!--
+        products: the rule reaches these products alone, within its other parts.
+        No row = every product the other parts take in (no 0 sentinel: the list is
+        empty instead).
+    -->
+    <field
+            name="items"
+            type="DiscountItems"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_ITEMS"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_ITEMS"
+    />
+
+    <!--
         places: 0 = applies to ALL places/countries.
         <option value="0"> instead of header="...".
     -->

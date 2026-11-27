@@ -53,6 +53,7 @@ $wa->useScript('keepalive')
                 <?php echo $this->form->renderField('publish_down'); ?>
                 <?php echo $this->form->renderField('categories'); ?>
                 <?php echo $this->form->renderField('manufacturers'); ?>
+                <?php echo $this->form->renderField('items'); ?>
                 <?php echo $this->form->renderField('places'); ?>
                 <?php echo $this->form->renderField('usergroups'); ?>
                 <?php echo $this->form->renderField('users'); ?>

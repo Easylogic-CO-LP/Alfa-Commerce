@@ -512,6 +512,21 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `#__alfa_discount_items`
+--
+-- The products a discount rule names: the rule reaches these alone, within its other scope parts. No row = every
+-- product the other parts take in. Written by the discount's save; a product's delete removes its rows, refused while
+-- a rule names no other product (RuleScopeGuard).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_items` (
+  `discount_id` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `item_id`),
+  KEY `idx_item_id` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `#__alfa_form_field_groups`
 --
 

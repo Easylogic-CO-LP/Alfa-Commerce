@@ -513,7 +513,7 @@ class PriceDataLoader
     /**
      * Fetch active discounts for the given products, matched to the visitor's context.
      *
-     * A discount applies to a product when ALL five scope dimensions match:
+     * A discount applies to a product when ALL six scope dimensions match:
      *
      *   1. Category scope    - discount targets all categories (category_id=0/NULL)
      *                          or a category this product belongs to
@@ -521,6 +521,8 @@ class PriceDataLoader
      *                          or one of this product's manufacturers; a
      *                          product with no manufacturer gets only the rules
      *                          that target all manufacturers
+     *   6. Product scope      - discount names no product (no row) or names
+     *                          this product
      *   3. Place scope        - discount targets all places (place_id=0/NULL)
      *                          or the visitor's place or a place above it
      *                          (RulePrecedence orders what matched)
@@ -587,6 +589,12 @@ class PriceDataLoader
             ->join('LEFT', '#__alfa_discount_manufacturers AS dm ON dm.discount_id = d.id')
             ->join('LEFT', $this->manufacturerLinks() . ' AS im ON im.item_id = ic.item_id')
             ->where('(dm.discount_id IS NULL OR dm.manufacturer_id = 0 OR dm.manufacturer_id = im.manufacturer_id)')
+
+            // Scope 6: Product
+            // The rule's own products: no row reaches every product the other parts take in; a row names the one
+            // product it reaches (the 0 row, should one be written, reads as every product like the other parts).
+            ->join('LEFT', '#__alfa_discount_items AS di ON di.discount_id = d.id')
+            ->where('(di.discount_id IS NULL OR di.item_id = 0 OR di.item_id = ic.item_id)')
 
             // Scope 3: Place
             // Matches when: no place restriction exists, applies-to-all-places (0),

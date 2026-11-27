@@ -1465,6 +1465,15 @@ class PriceIndexSyncService
             return [];
         }
 
+        // A rule naming products reaches those alone, within its categories when it names any.
+        $named = $this->getDiscountItemIds($discountId);
+
+        if ($named !== []) {
+            return $this->discountAppliesGlobally($discountId)
+                ? $named
+                : array_values(array_intersect($named, $this->getItemIdsInCategories($this->getDiscountCategoryIds($discountId))));
+        }
+
         if ($this->discountAppliesGlobally($discountId)) {
             return $this->getAllPublishedItemIds();
         }
@@ -4541,6 +4550,24 @@ class PriceIndexSyncService
     private function getDiscountCategoryIds(int $discountId): array
     {
         return $this->scopeCategories(table: '#__alfa_discount_categories', key: 'discount_id', id: $discountId);
+    }
+
+    /**
+     * The products a discount names, without the 0 sentinel; none when it names no product.
+     *
+     * @return int[]
+     *
+     * @since  2.3.0
+     */
+    private function getDiscountItemIds(int $discountId): array
+    {
+        return array_map('intval', $this->db->setQuery(
+            $this->db->getQuery(true)
+                ->select($this->db->quoteName('item_id'))
+                ->from($this->db->quoteName('#__alfa_discount_items'))
+                ->where($this->db->quoteName('discount_id') . ' = ' . $discountId)
+                ->where($this->db->quoteName('item_id') . ' > 0'),
+        )->loadColumn());
     }
 
     /**
