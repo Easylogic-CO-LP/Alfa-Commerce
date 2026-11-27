@@ -153,11 +153,14 @@ final class CategoriesProvider implements ProviderInterface
         $model->setState('list.start', 0);
         $model->setState('list.limit', $limit);
 
-        $productCounts = $counts ? self::productCounts() : [];
+        $rows = $model->getItems() ?: [];
+        $productCounts = $counts && $rows !== []
+            ? CategoryHelper::getProductCounts(array_map(static fn (object $row): int => (int) $row->id, $rows))
+            : [];
         $branch = self::branch($current);
         $records = [];
 
-        foreach ($model->getItems() ?: [] as $row) {
+        foreach ($rows as $row) {
             $id = (int) $row->id;
             $name = (string) ($row->name ?? '');
             $media = $row->medias[0] ?? null;
@@ -307,31 +310,5 @@ final class CategoriesProvider implements ProviderInterface
         }
 
         return $nodes;
-    }
-
-    /**
-     * How many products each category holds, its subcategories included, for this visitor: the shop's own count
-     * tree, flattened. One stored tree answers every category.
-     *
-     * @return array<int, int> Category id => products.
-     *
-     * @since  2.3.0
-     */
-    private static function productCounts(): array
-    {
-        $counts = [];
-        $walk = static function (array $categories) use (&$walk, &$counts): void {
-            foreach ($categories as $category) {
-                $counts[(int) $category->id] = (int) ($category->product_count ?? 0);
-
-                if (!empty($category->children)) {
-                    $walk((array) $category->children);
-                }
-            }
-        };
-
-        $walk(CategoryHelper::getCategoryTree(parentId: 0, maxDepth: self::LEVELS_MAX, includeCount: true));
-
-        return $counts;
     }
 }

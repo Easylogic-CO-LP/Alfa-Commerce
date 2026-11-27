@@ -10,7 +10,6 @@
 namespace Alfa\Module\AlfaCatalog\Site\Provider;
 
 use Joomla\CMS\Factory;
-use Joomla\Database\DatabaseInterface;
 use Joomla\Registry\Registry;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -23,8 +22,8 @@ use Joomla\Registry\Registry;
  * Read through the component's Manufacturers model, so what a visitor sees here is what the shop's Manufacturers page
  * shows them: published manufacturers, names in the page's language, the logos and the links the shop builds. One
  * read for the manufacturers and one for their logos, whatever their number. The optional product counts are one
- * more read for all of them together: the catalogue's own listing query (the products this visitor may see and the
- * stock policy shows), counted per manufacturer.
+ * more read for all of them together, made by the listing model itself (ItemsModel::getManufacturerCounts()): the
+ * products this visitor may see and the stock policy shows, counted per manufacturer.
  *
  * @since  2.3.0
  */
@@ -106,8 +105,11 @@ final class ManufacturersProvider implements ProviderInterface
 
         $rows = $model->getItems() ?: [];
         $toPage = ($query['link'] ?? '') === 'page';
+        // Every count in one read: the listing model counts its own result per manufacturer.
         $productCounts = !empty($query['counts']) && $rows !== []
-            ? self::productCounts(array_map(static fn (object $row): int => (int) $row->id, $rows))
+            ? Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()
+                ->createModel('Items', 'Site', ['ignore_request' => true])
+                ->getManufacturerCounts(array_map(static fn (object $row): int => (int) $row->id, $rows))
             : null;
         $records = [];
 
@@ -143,42 +145,5 @@ final class ManufacturersProvider implements ProviderInterface
     public function varies(array $query, Registry $params): ?array
     {
         return [Factory::getApplication()->getInput()->getInt('Itemid', 0)];
-    }
-
-    /**
-     * How many products of the catalogue each of these manufacturers has, for this visitor, in one read: the
-     * listing model's own query, with its visibility and stock rules, grouped by manufacturer.
-     *
-     * @param int[] $ids The manufacturers.
-     *
-     * @return array<int, int> Manufacturer id => products; a manufacturer with none is absent.
-     *
-     * @since  2.3.0
-     */
-    private static function productCounts(array $ids): array
-    {
-        /** @var \Alfa\Component\Alfa\Site\Model\ItemsModel $model */
-        $model = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()
-            ->createModel('Items', 'Site', ['ignore_request' => true]);
-
-        $model->getState('list.ordering');
-        $model->setState('filter.manufacturer', Providers::ids($ids));
-        $model->setState('list.limit', 0);
-
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-        $query = $model->getListQuery();
-        $query->clear('select')
-            ->clear('order')
-            ->clear('group')
-            ->select($db->quoteName('man.manufacturer_id') . ', COUNT(DISTINCT ' . $db->quoteName('a.id') . ') AS ' . $db->quoteName('cnt'))
-            ->group($db->quoteName('man.manufacturer_id'));
-
-        $counts = [];
-
-        foreach ($db->setQuery($query)->loadAssocList() ?: [] as $row) {
-            $counts[(int) $row['manufacturer_id']] = (int) $row['cnt'];
-        }
-
-        return $counts;
     }
 }

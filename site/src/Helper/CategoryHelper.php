@@ -545,6 +545,45 @@ class CategoryHelper
     }
 
     /**
+     * How many products each of these categories holds, its subcategories included, for this visitor:
+     * [category id => products]. The numbers are the count tree's (getCategoryTree() with counts: one stored tree
+     * per visitor group, a product in several subcategories counted once), so a count here is the count the
+     * navigation shows. A grouped statement over the listing cannot give them: it would count a product once per
+     * subcategory. A category the visitor may not see is absent.
+     *
+     * @param int[] $categoryIds The categories to count for.
+     *
+     * @return array<int, int>
+     *
+     * @since  2.3.0
+     */
+    public static function getProductCounts(array $categoryIds): array
+    {
+        $wanted = array_flip(array_filter(array_map('intval', $categoryIds), static fn (int $id): bool => $id > 0));
+
+        if ($wanted === []) {
+            return [];
+        }
+
+        $counts = [];
+        $walk = static function (array $categories) use (&$walk, &$counts, $wanted): void {
+            foreach ($categories as $category) {
+                if (isset($wanted[(int) $category->id])) {
+                    $counts[(int) $category->id] = (int) ($category->product_count ?? 0);
+                }
+
+                if (!empty($category->children) && \count($counts) < \count($wanted)) {
+                    $walk((array) $category->children);
+                }
+            }
+        };
+
+        $walk(self::getCategoryTree(parentId: 0, maxDepth: self::TREE_MAX_DEPTH, includeCount: true));
+
+        return $counts;
+    }
+
+    /**
      * A tree with product counts from the persistent cache, or built and stored.
      *
      * The stored entry is ['version' => int, 'built_at' => int, 'tree' => array].

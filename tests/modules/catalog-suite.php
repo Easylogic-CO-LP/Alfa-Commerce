@@ -278,31 +278,21 @@ namespace Alfa\Component\Alfa\Site\Model {
             return $limit > 0 ? \array_slice($items, 0, $limit) : $items;
         }
 
-        /** The listing query, as far as the manufacturers provider shapes it: a grouped count. */
-        public function getListQuery(): object
+        /** The products of the result per manufacturer, counted in one recorded read. */
+        public function getManufacturerCounts(array $manufacturerIds): array
         {
-            $chosen = (array) ($this->state['filter.manufacturer'] ?? []);
+            \Shop::read('manufacturer counts');
+            $counts = [];
 
-            return new class ($chosen) {
-                public function __construct(public array $manufacturers)
-                {
-                }
+            foreach ($manufacturerIds as $id) {
+                $count = \count(array_filter(\Shop::$products, static fn (array $product): bool => \in_array($id, $product['manufacturers'], true)));
 
-                public function clear(string $part): static
-                {
-                    return $this;
+                if ($count > 0) {
+                    $counts[$id] = $count;
                 }
+            }
 
-                public function select(string $columns): static
-                {
-                    return $this;
-                }
-
-                public function group(string $columns): static
-                {
-                    return $this;
-                }
-            };
+            return $counts;
         }
     }
 }
@@ -332,6 +322,20 @@ namespace Alfa\Component\Alfa\Site\Helper {
         public static function getDescendantIds(int $parentId, int $maxDepth = 10): array
         {
             return [];
+        }
+
+        public static function getProductCounts(array $categoryIds): array
+        {
+            \Shop::read('category counts');
+            $counts = [];
+
+            foreach ($categoryIds as $id) {
+                if (!empty(\Shop::$categories[$id]['visible'])) {
+                    $counts[$id] = \count(array_filter(\Shop::$products, static fn (array $product): bool => \in_array($id, $product['categories'], true))) + 100;
+                }
+            }
+
+            return $counts;
         }
     }
 
@@ -479,38 +483,7 @@ namespace Joomla\CMS {
             return new class () {
                 public function get(string $name): object
                 {
-                    // The database, as far as the manufacturers provider uses it: one grouped count of the listing.
-                    return new class () {
-                        private object $query;
-
-                        public function quoteName(string $name): string
-                        {
-                            return $name;
-                        }
-
-                        public function setQuery(object $query): static
-                        {
-                            $this->query = $query;
-
-                            return $this;
-                        }
-
-                        public function loadAssocList(): array
-                        {
-                            \Shop::read('manufacturer counts');
-                            $rows = [];
-
-                            foreach ($this->query->manufacturers as $id) {
-                                $count = \count(array_filter(\Shop::$products, static fn (array $product): bool => \in_array($id, $product['manufacturers'], true)));
-
-                                if ($count > 0) {
-                                    $rows[] = ['manufacturer_id' => $id, 'cnt' => $count];
-                                }
-                            }
-
-                            return $rows;
-                        }
-                    };
+                    return new \stdClass();
                 }
             };
         }
@@ -729,6 +702,10 @@ namespace {
     $records = Providers::of('categories')->records(Providers::of('categories')->query(['cat_parent' => 9], 'grid'), $params);
     is_same('[CT3] 50 categories', \count($records), 50);
     is_same('[CT3] are one read', Shop::$reads, ['Categories' => 1]);
+    Shop::reset();
+    $records = Providers::of('categories')->records(Providers::of('categories')->query(['cat_parent' => 9, 'cat_show_count' => 1], 'grid'), $params);
+    is_same('[CT3] with their counts two: the categories, then every count together', Shop::$reads, ['Categories' => 1, 'category counts' => 1]);
+    is_same('[CT3] a category\'s count is the shop\'s', $records[0]->count, 100);
     Shop::$categories = $kept;
 
     Shop::$manufacturers += array_combine(range(100, 139), array_map(static fn (int $n): array => ['name' => 'Maker ' . $n, 'visible' => true, 'logo' => true], range(100, 139)));

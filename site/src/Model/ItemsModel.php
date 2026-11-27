@@ -2901,6 +2901,52 @@ class ItemsModel extends UrlListModel
     }
 
     /**
+     * How many products of the current result each of these manufacturers has, under every other active filter (the
+     * manufacturers' own selection dropped, as their facet does): [manufacturer id => products], all in one grouped
+     * statement of the listing's own query, so a count follows exactly what the listing would show this visitor
+     * (visibility, publishing, the stock policy). A manufacturer with no product in the result is absent.
+     *
+     * @param int[] $manufacturerIds The manufacturers to count for.
+     *
+     * @return array<int, int>
+     *
+     * @since  2.3.0
+     */
+    public function getManufacturerCounts(array $manufacturerIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $manufacturerIds), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $model = $this->createFilterSubModel(['filter.manufacturer']);
+        $db = $this->getDatabase();
+
+        $query = $model->getListQuery();
+        $query->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->whereIn($db->quoteName('man.manufacturer_id'), $ids)
+            ->select($db->quoteName('man.manufacturer_id') . ', COUNT(DISTINCT ' . $db->quoteName('a.id') . ') AS ' . $db->quoteName('cnt'))
+            ->group($db->quoteName('man.manufacturer_id'));
+
+        // Same counts, asked more than once per render: memo by the built statement and the values bound to it.
+        static $cache = [];
+        $key = self::statementKey(query: $query);
+
+        if (!isset($cache[$key])) {
+            $cache[$key] = [];
+
+            foreach ($db->setQuery($query)->loadAssocList() ?: [] as $row) {
+                $cache[$key][(int) $row['manufacturer_id']] = (int) $row['cnt'];
+            }
+        }
+
+        return $cache[$key];
+    }
+
+    /**
      * Return available categories for the current non-category filters.
      *
      * @return array Keyed by id: [2 => ['id' => 2, 'name' => 'Shoes'], ...]
