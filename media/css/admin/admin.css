@@ -672,7 +672,8 @@ tr.alfa-row-refund > * {
  *
  * Each block keeps the colour of its severity (info, secondary, warning, danger)
  * and takes the same frame, drawn in that colour, so the three read as one set.
+ * Atum's own alert rule names two classes, so this one names three to win.
  */
-.alfa-integrity-block {
+.card-body .alert.alfa-integrity-block {
     border: 1px solid currentColor;
 }
