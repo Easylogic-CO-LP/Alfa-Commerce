@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException;
 use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
 use Exception;
@@ -520,11 +521,16 @@ class HtmlView extends BaseHtmlView
                 );
             }
 
-            // Load activity log for History tab (unified; includes status changes)
+            // Load activity log for History tab (unified; includes status changes): the newest entries up to the
+            // display limit, and how many the order has, so the tab says when it shows fewer.
             if ($this->order && $this->order->id) {
                 $this->activityLog = $model->getOrderActivityLog((int) $this->order->id);
+                $this->activityTotal = \count($this->activityLog) < OrderModel::HISTORY_SHOWN
+                    ? \count($this->activityLog)
+                    : $model->countOrderActivity((int) $this->order->id);
             } else {
                 $this->activityLog = [];
+                $this->activityTotal = 0;
             }
 
             // Plugin contributions now arrive through the admin contract: the template's
