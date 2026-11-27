@@ -7169,6 +7169,37 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * The history entries of the given events for an order, newest first, all of them: no display limit, for a reader
+     * that wants every entry of those events and not the screen's newest few.
+     *
+     * @param int      $orderId The order.
+     * @param string[] $events  Exact event names, for example order.status_changed.
+     *
+     * @since  2.3.0
+     */
+    public function getOrderActivityByEvents(int $orderId, array $events): array
+    {
+        if ($events === []) {
+            return [];
+        }
+
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true)
+            ->select('*')
+            ->from($db->quoteName('#__alfa_order_activity_log'))
+            ->where($db->quoteName('id_order') . ' = :order')
+            ->whereIn($db->quoteName('event'), $events, ParameterType::STRING)
+            ->order(['created DESC', 'id DESC'])
+            ->bind(':order', $orderId, ParameterType::INTEGER);
+
+        try {
+            return $db->setQuery($query)->loadObjectList() ?: [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
      * How many history entries an order has: the total the order screen's newest {@see self::HISTORY_SHOWN} are of, so
      * the screen says when it shows fewer than the order has.
      *
