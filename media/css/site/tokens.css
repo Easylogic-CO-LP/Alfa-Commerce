@@ -34,6 +34,9 @@
     --alfa-info-color: #1d4ed8;
     /* A payment or shipping method's image beside its title: the height it is held to. */
     --alfa-method-image-height: 2rem;
+    /* The frame around the product page's payment and shipping block and the lines between its rows: the
+       hairline, unless a template says otherwise. Follows the dark cut through the hairline. */
+    --alfa-methods-frame: var(--alfa-hairline);
     /* A panel lifted off the page (a product card, a summary box) and the text
        on it. Both are needed: a card that keeps a white background on a dark page
        is the one thing a colour scheme cannot paper over. */

@@ -76,7 +76,12 @@ $hasProduct = (!$isNew && !empty($this->orderItem->id_item) && (int) $this->orde
 
 // The line's item-field surfaces (configuration half of the popup), prepared
 // by getOrderItemConfig, pre-seeded from the frozen snapshot. Empty on new items.
-$configSurfaces = $this->configItem->surfaces[ItemSurface::BuyForm->value] ?? [];
+// The back office draws every selector: a field the storefront leaves to a
+// template override (its manual slot) is drawn here after the buy form's.
+$configSurfaces = [
+    ...($this->configItem->surfaces[ItemSurface::BuyForm->value] ?? []),
+    ...($this->configItem->surfaces[ItemSurface::Manual->value] ?? []),
+];
 
 // CSRF token for AJAX calls
 $token   = Session::getFormToken();

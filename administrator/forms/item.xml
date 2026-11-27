@@ -447,6 +447,57 @@
                label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL_TO" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL_TO"/>
     </fieldset>
 
+    <!-- The product's own page sections (ItemSections): each replaces the general section of Options whose key it
+         names, or is a section of its own, with a title and a body per language and its ordering number among the
+         page sections. Rows of #__alfa_item_sections; texts in its language tables. -->
+    <fieldset name="sections" label="COM_ALFA_TAB_ITEM_SECTIONS">
+        <field
+                name="sections"
+                type="subform"
+                multiple="true"
+                layout="joomla.form.field.subform.repeatable"
+                buttons="add,remove,move"
+                label="COM_ALFA_FORM_LBL_ITEM_SECTIONS"
+                description="COM_ALFA_FORM_DESC_ITEM_SECTIONS"
+        >
+            <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+                <field name="id" type="hidden" filter="integer" default="0"/>
+                <field
+                        name="section_key"
+                        type="sectionkeys"
+                        label="COM_ALFA_FORM_LBL_ITEM_SECTION_REPLACES"
+                        description="COM_ALFA_FORM_DESC_ITEM_SECTION_REPLACES"
+                >
+                    <option value="">COM_ALFA_ITEM_SECTION_REPLACES_NONE</option>
+                </field>
+                <field
+                        name="title"
+                        type="MultilingualText"
+                        label="COM_ALFA_SECTION_TITLE_LABEL"
+                        description="COM_ALFA_FORM_DESC_ITEM_SECTION_TITLE"
+                />
+                <field
+                        name="body"
+                        type="MultilingualEditor"
+                        editor="|"
+                        buttons="true"
+                        filter="Joomla\CMS\Component\ComponentHelper::filterText"
+                        label="COM_ALFA_SECTION_BODY_LABEL"
+                        description="COM_ALFA_FORM_DESC_ITEM_SECTION_BODY"
+                />
+                <field
+                        name="position"
+                        type="number"
+                        default="0"
+                        step="1"
+                        filter="integer"
+                        label="COM_ALFA_SECTION_ORDERING_LABEL"
+                        description="COM_ALFA_SECTION_ORDERING_DESC"
+                />
+            </form>
+        </field>
+    </fieldset>
+
     <!-- Layout overrides for THIS product; every key inherits category -> menu -> global when empty. -->
     <fields name="layouts">
         <fieldset name="layouts" label="COM_ALFA_MENU_LAYOUTS_OPTIONS">

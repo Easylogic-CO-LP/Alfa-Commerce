@@ -321,12 +321,34 @@
 }
 /* MANUFACTURERS CATEGORIES END */
 
-/* PAYMENT METHOD */
-.item-payment-method-inner {
-    display: flex;
-    flex-direction: column;
+/* PAYMENT AND SHIPPING: one framed block in the buy column, one method per row (core's drawing of the method, or the
+   part its plugin draws), the frame and the lines between the rows in one token's colour. */
+:where(.item-methods) {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--alfa-methods-frame);
+    border-radius: var(--alfa-radius);
 }
-/* PAYMENT METHOD END */
+
+:where(.item-methods-title) {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+:where(.item-methods-inner) {
+    display: grid;
+}
+
+:where(.item-methods-inner > .item-field-surface) {
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--alfa-methods-frame);
+}
+
+:where(.item-methods-inner > .item-field-surface:first-child) {
+    padding-top: 0;
+    border-top: 0;
+}
 
 /* A payment or shipping method's image, before its title: held to the token's height, never wider than a
    few words, its own proportions kept. */
@@ -584,4 +606,65 @@
 :where(.item-related-heading) {
     margin: 0 0 1rem;
     font-size: 1.25rem;
+}
+
+/* THE PAGE SECTIONS (layouts/item/sections.php through layouts/common/sections.php), under the gallery and the buy
+   box: the description, the specifications table, the shop's and the product's own sections, the fields placed in a
+   section of their own and the plugins' sections, one under the other, as tabs (the bar is tabs.css) or as an
+   accordion of native details. Only their look here, at the lowest specificity. */
+:where(.alfa-sections) {
+    margin-top: 2rem;
+}
+
+:where(.alfa-section) {
+    margin-bottom: 2rem;
+}
+
+:where(.alfa-section-title) {
+    margin: 0 0 0.75rem;
+    font-size: 1.25rem;
+}
+
+/* The accordion: each section a row with a hairline under it, its heading on the summary line beside the marker. */
+:where(.alfa-sections-accordion .alfa-section) {
+    margin: 0;
+    border-bottom: 1px solid var(--alfa-hairline);
+}
+
+:where(.alfa-section-summary) {
+    padding: 0.75rem 0;
+    cursor: pointer;
+}
+
+:where(.alfa-section-summary > .alfa-section-title) {
+    display: inline;
+    margin: 0;
+}
+
+:where(.alfa-sections-accordion .alfa-section-body) {
+    padding: 0 0 1rem;
+}
+
+/* The specifications table: the fields placed in the Specifications section, one row each, the label as the row's
+   header. */
+:where(.alfa-spec-table) {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+:where(.alfa-spec-table th, .alfa-spec-table td) {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--alfa-hairline);
+    text-align: start;
+    vertical-align: top;
+}
+
+:where(.alfa-spec-table th) {
+    width: 30%;
+    font-weight: 600;
+    color: var(--alfa-muted-color);
+}
+
+:where(.spec-field-values) {
+    margin: 0;
 }

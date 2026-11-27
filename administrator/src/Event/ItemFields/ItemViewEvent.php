@@ -120,6 +120,62 @@ class ItemViewEvent extends LayoutEvent
     }
 
     /**
+     * A surface after the price block: a note, a unit, a badge. Passive.
+     *
+     * @since  2.3.0
+     */
+    public function price(): SurfaceBuilder
+    {
+        return $this->surfaceFor(ItemSurface::Price->value);
+    }
+
+    /**
+     * One row of the Specifications section's table, under the two columns: the layout draws the cells of a
+     * table row (a header cell with the label, a data cell with the value). Passive.
+     *
+     * @since  2.3.0
+     */
+    public function specificationsSection(): SurfaceBuilder
+    {
+        return $this->surfaceFor(ItemSurface::SpecificationsSection->value);
+    }
+
+    /**
+     * A page section of its own, under the two columns: the layout data carries the section's title under
+     * 'title' (the field's name, as a rule), the layout draws the body. Passive.
+     *
+     * @since  2.3.0
+     */
+    public function sections(): SurfaceBuilder
+    {
+        return $this->surfaceFor(ItemSurface::Sections->value);
+    }
+
+    /**
+     * A slot no template prints: the surface exists for a template override that prints the field where it
+     * wants, through the item's fields or Surface::render on this slot.
+     *
+     * @since  2.3.0
+     */
+    public function manual(): SurfaceBuilder
+    {
+        return $this->surfaceFor(ItemSurface::Manual->value);
+    }
+
+    /**
+     * The builder of the slot the field's placement names: the shop's choice on the field definition
+     * ({@see FieldPlacement}), so a plugin that draws a shown-only field calls this and never maps the stored
+     * placement itself. The layout may still differ by placement (a table row for the Specifications section,
+     * a body for a section of its own): read {@see FieldPlacement::of()} for that.
+     *
+     * @since  2.3.0
+     */
+    public function placement(): SurfaceBuilder
+    {
+        return $this->surfaceFor(FieldPlacement::of($this->getField())->surface()->value);
+    }
+
+    /**
      * The item being viewed.
      *
      * @return mixed

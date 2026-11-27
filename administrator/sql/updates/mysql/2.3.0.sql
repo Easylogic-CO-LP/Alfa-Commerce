@@ -492,3 +492,28 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product shows: the ones it ticks with their corners, and its own label';
 
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right' AFTER `tag_class` /** CAN FAIL **/;
+
+-- Where the product page shows an item field
+
+-- A field definition names the place of the product page that shows it: the buy box as a specification (as before,
+-- the default), the Specifications section, a section of its own, under the title, under the price, beside add to
+-- cart, or nowhere by itself (a template override prints it). A site that ran an earlier copy of this file gets the
+-- column from script.php; the install SQL creates the same column.
+
+ALTER TABLE `#__alfa_item_fields` ADD COLUMN `placement` varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)' AFTER `show_on_listing` /** CAN FAIL **/;
+
+-- A product's own page sections
+
+-- The Sections tab of a product: each row replaces the general section of Options whose key it names on the product's
+-- page, or is a section of its own; title and body per language in #__alfa_item_sections_<langtag>, made on the first
+-- save as every language table is. A site that ran an earlier copy of this file gets the table from script.php; the
+-- install SQL creates the same table.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_item_sections` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK #__alfa_items.id',
+  `section_key` varchar(64) NOT NULL DEFAULT '' COMMENT 'The key of the general section (Options) this one replaces on the product page; empty for a section of its own',
+  `position` int(11) NOT NULL DEFAULT 0 COMMENT 'Its place among the page sections, with the general sections and the fields shown as sections, ascending',
+  PRIMARY KEY (`id`),
+  KEY `idx_item_position` (`item_id`, `position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='A product page''s own sections; title and body in #__alfa_item_sections_<langtag>';

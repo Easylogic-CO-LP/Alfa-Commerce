@@ -178,6 +178,14 @@
       "uri": "com_alfa/site/list.min.css"
     },
     {
+      "name": "com_alfa.site.tabs",
+      "type": "script",
+      "uri": "com_alfa/site/tabs.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.site.header-offset",
       "type": "script",
       "uri": "com_alfa/site/header-offset.min.js",
@@ -208,6 +216,14 @@
       "name": "com_alfa.item",
       "type": "style",
       "uri": "com_alfa/site/item.min.css",
+      "dependencies": [
+        "com_alfa.tokens"
+      ]
+    },
+    {
+      "name": "com_alfa.site.tabs",
+      "type": "style",
+      "uri": "com_alfa/site/tabs.min.css",
       "dependencies": [
         "com_alfa.tokens"
       ]

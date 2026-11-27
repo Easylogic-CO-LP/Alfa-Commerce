@@ -63,7 +63,9 @@ $itemId  = $item !== null ? (int) $item->id : 0;
 // one was picked in the search and this popup reloaded on it (configure-first).
 $hasItem   = $item !== null;
 $quantity  = $line !== null ? max(1, (int) $line->quantity) : 1;
-$surfaces  = $hasItem ? ($item->surfaces[ItemSurface::BuyForm->value] ?? []) : [];
+// The back office draws every selector: a field the storefront leaves to a template override (its manual slot) is
+// drawn here after the buy form's.
+$surfaces  = $hasItem ? [...($item->surfaces[ItemSurface::BuyForm->value] ?? []), ...($item->surfaces[ItemSurface::Manual->value] ?? [])] : [];
 $token     = Session::getFormToken();
 
 $searchUrl = Route::_(
