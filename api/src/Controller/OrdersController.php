@@ -512,6 +512,19 @@ class OrdersController extends ApiController
     }
 
     /**
+     * The internal note (note) is staff's own, written on the order screen alone and never read through the API; a
+     * create or an update that carries it is refused.
+     *
+     * @return string[]
+     *
+     * @since  2.3.0
+     */
+    protected function unwrittenKeys(): array
+    {
+        return ['note'];
+    }
+
+    /**
      * The published attributes an order's update does not write ({@see self::NOT_UPDATED}); a create (POST) takes its
      * own keys and is not changed here.
      *
@@ -531,7 +544,8 @@ class OrdersController extends ApiController
      */
     protected function unwrittenReason(): string
     {
-        return 'an order\'s update writes its customer_note and its delivery and invoice details (alfa_form_fields, and'
+        return 'the internal note (note) is staff\'s own, written on the order screen only; an order\'s update writes its'
+            . ' customer_note and its delivery and invoice details (alfa_form_fields, and'
             . ' alfa_form_fields_billing with invoice_differs); its status changes through POST v1/alfa/orders/:id/status, its'
             . ' lines, payments and shipments through the order operations, and the other fields are worked out from them or'
             . ' fixed when the order is placed. Nothing was saved.';

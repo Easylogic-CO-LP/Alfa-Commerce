@@ -4904,6 +4904,8 @@ class OrderModel extends AlfaAdminModel
                         'actor_name' => (string) ($identity?->name ?? 'System'),
                         // The customer's note to the shop, as a marketplace order brings it.
                         'customer_note' => (string) ($data['customer_note'] ?? ''),
+                        // Staff's internal note, typed on the creation screen.
+                        'note' => (string) ($data['note'] ?? ''),
                         'allow_empty' => true,
                         'lines' => [],
                     ];

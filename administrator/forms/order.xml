@@ -110,6 +110,17 @@
                 filter="user_utc"
         />
 
+        <!-- The internal note: staff's own, saved with the order; never in an e-mail, on the customer's pages or
+             through the API. Each save of it is a history entry. -->
+        <field
+                name="note"
+                type="textarea"
+                label="COM_ALFA_INTERNAL_NOTE"
+                description="COM_ALFA_ORDER_INTERNAL_NOTE_DESC"
+                rows="4"
+                filter="string"
+        />
+
         <field name="checked_out" type="hidden" filter="unset"/>
         <field name="checked_out_time" type="hidden" filter="unset"/>
 
