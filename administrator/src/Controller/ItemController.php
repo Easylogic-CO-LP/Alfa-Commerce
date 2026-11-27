@@ -28,6 +28,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CombinationService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowDates;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
@@ -116,13 +117,17 @@ class ItemController extends FormController
     protected $view_list = 'items';
 
     /**
-     * Carry the stock editor's raw figures into the validated data.
+     * Carry the stock editor's raw figures into the validated data, and store the price rows' periods as UTC.
      *
      * The per-location figures and their baselines are not declared form fields,
      * so validation drops them, and the declared plain figure comes back filtered.
      * A failed save keeps the validated data as the form's post; copied raw here,
      * the redisplayed form shows exactly what the operator typed, with the
      * baselines of its first rendering, so the next save still sees the change.
+     *
+     * The price rows are posted inside one field, so Joomla's filtering never reaches a row's calendar dates: they
+     * arrive as typed, in the operator's time zone, and are turned into the stored UTC values here, the one place the
+     * item screen's post passes and the REST API's does not.
      *
      * @param BaseDatabaseModel $model The item model.
      * @param array $validData The validated form data.
@@ -141,7 +146,25 @@ class ItemController extends FormController
             }
         }
 
+        if (\is_array($validData['prices'] ?? null)) {
+            $validData['prices'] = self::storedPriceRows(rows: $validData['prices']);
+        }
+
         return parent::preSaveHook(model: $model, validData: $validData);
+    }
+
+    /**
+     * Posted price rows with their periods as the table stores them: typed in the operator's time zone, stored as UTC.
+     *
+     * @param array $rows The posted rows.
+     *
+     * @return array The rows.
+     *
+     * @since  2.3.0
+     */
+    private static function storedPriceRows(array $rows): array
+    {
+        return array_map(static fn ($row) => \is_array($row) ? PriceRowDates::stored(row: $row) : $row, $rows);
     }
 
     /**
@@ -1575,7 +1598,8 @@ class ItemController extends FormController
         // 'raw' keeps editor HTML and the per-language flat keys intact.
         $jform = $this->input->post->get('jform', [], 'array');
         $row = (array) (($jform['combinations'] ?? [])[$combinationId] ?? []);
-        $priceRows = (array) (($jform['combination_prices'] ?? [])[$combinationId] ?? []);
+        // The window's price rows, their periods typed in the operator's time zone and stored as UTC.
+        $priceRows = self::storedPriceRows(rows: (array) (($jform['combination_prices'] ?? [])[$combinationId] ?? []));
 
         // The Studio's stock section: tracked per-location figures with the figures
         // they were rendered with, or opening figures while tracking is switched on.

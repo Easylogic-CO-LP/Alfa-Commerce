@@ -10,7 +10,7 @@
 // No direct access
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Form\Form;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowDates;
 use Joomla\CMS\Language\Text;
 
 /**
@@ -186,18 +186,9 @@ $selectHtml = static function (string $name, string $id, array $list, $current, 
 };
 
 // REAL Joomla calendar fields: clone-safe because prices.js dispatches
-// `joomla:updated` on inserted rows (core's re-init contract).
-$clean = static fn ($value) => (str_starts_with((string) $value, '0000') ? '' : (string) ($value ?? ''));
-
-$calendarForm = new Form('com_alfa.pricerow.' . md5($base), ['control' => $base]);
-$calendarForm->load('<form>
-    <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC" hiddenLabel="true" label="COM_ALFA_PRICES_FROM"/>
-    <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC" hiddenLabel="true" label="COM_ALFA_PRICES_TO"/>
-</form>');
-$calendarForm->bind([
-    'publish_up' => $clean($row['publish_up'] ?? ''),
-    'publish_down' => $clean($row['publish_down'] ?? ''),
-]);
+// `joomla:updated` on inserted rows (core's re-init contract). The row's period as PriceRowDates declares it: the
+// stored UTC moment shown in the user's time zone, and the same fields read what is posted back.
+$calendarForm = PriceRowDates::form(control: $base, row: $row);
 ?>
 <div class="price-row" data-mode="<?php echo $esc($mode); ?>"
      data-override="<?php echo $override !== '' ? $esc($overrideType) : ''; ?>"
