@@ -149,8 +149,8 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Build the toolbar: the check is reached from the discounts list and the dashboard, and the way back leads to the
-     * lists its findings are put right on.
+     * Build the toolbar: the check is reached from the discounts and taxes lists, from Tools > Maintenance, and from
+     * the dashboard when it has something to act on; the way back leads to the lists its findings are put right on.
      *
      * @since  2.3.0
      */

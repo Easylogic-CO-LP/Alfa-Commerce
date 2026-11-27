@@ -36,6 +36,13 @@
  *         rules reach whose index price is more than half off is a finding naming both rules.
  *   [PA6] counts() names each section with findings and sentence() words them; the option switches take a section out.
  *   [PA7] the notice follows the stored result: its facts are the kinds found, and a result with nothing withdraws them.
+ *   [TL1] ★ the dashboard's Prices tile, as the card provider builds the attention card, is there only when there is
+ *         something to act on, as every other tile of the card: a stored result with findings (the total its figure,
+ *         a line a kind and the state's line) and a failed last run (no figure, the reason's first line); none for a
+ *         clean result, none when the check never ran, none while a first run is on.
+ *   [TL2] ★ the bell follows the same rule: the kinds of a result with findings, withdrawn for a clean one, raised
+ *         with the failure when the job's handler is told a run failed for good (as the runner tells it), withdrawn
+ *         when the check has never run.
  *   [ST1] ★ the store's state: never run before a result is stored, complete once the job's last chunk stored it, out
  *         of date once a price or rule change is marked after the check's moment, running while a job waits.
  *   [ST2] ★ "Check again" twice queues one job: the second ask joins the first.
@@ -77,12 +84,15 @@ require_once JPATH_BASE . '/includes/framework.php';
 use Alfa\Component\Alfa\Administrator\Field\AlfapricesField;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Card\CoreCardProvider;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditNotice;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\PriceAuditJob;
 use Alfa\Component\Alfa\Administrator\Service\Task\JobRun;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskSettlement;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\RuleReach;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
@@ -468,8 +478,71 @@ try {
     // [PA7] the notice followed the stored result in the job's last chunk; a result with nothing withdraws it.
     $toldWith = ConditionNotice::told(key: PriceAuditNotice::KEY);
     $followed = array_keys(PriceAudit::counts(summary: $summary));
-    PriceAuditNotice::follow(counts: [], sentence: '');
+    PriceAuditNotice::follow(status: ['state' => PriceAuditStore::STATE_COMPLETE, 'summary' => ['sections' => [], 'index' => ['complete' => true]], 'failure' => '']);
     $toldQuiet = ConditionNotice::told(key: PriceAuditNotice::KEY);
+
+    // [TL1] [TL2] The Prices tile as the card provider builds the attention card for this Super User, and the bell, at
+    // each state the store can be in. A provider each time: it keeps its stats for the request it serves.
+    $pricesKind = Text::_('COM_ALFA_DASHCARD_ATTENTION_KIND_PRICES');
+    $pricesTile = static function () use ($pricesKind): ?array {
+        $provider = new CoreCardProvider();
+        $card = (new \ReflectionMethod($provider, 'attentionCard'))->invoke($provider);
+
+        foreach ((array) ($card['rows'] ?? []) as $row) {
+            if (($row['kind'] ?? '') === $pricesKind) {
+                return $row;
+            }
+        }
+
+        return null;
+    };
+    $told = static fn (): ?array => ConditionNotice::told(key: PriceAuditNotice::KEY);
+
+    // A result with findings, current: the overlapped run's result with its change mark taken away.
+    $db->setQuery("DELETE FROM `{$p}alfa_meta` WHERE name = " . $db->quote(PriceAuditStore::META_STALE))->execute();
+    $findingsStatus = $store->status();
+    $tileFindings = $pricesTile();
+    PriceAuditNotice::follow(status: $findingsStatus);
+    $toldFindings = $told();
+
+    // A clean result: the same moment, every section at 0 and the index complete.
+    $cleanSummary = $findingsStatus['summary'];
+    $cleanSummary['sections'] = array_map(static fn (array $section): array => ['count' => 0] + $section, (array) $cleanSummary['sections']);
+    $cleanSummary['index'] = ['complete' => true, 'building' => false] + (array) $cleanSummary['index'];
+    $store->store(summary: $cleanSummary, rowsBySection: []);
+    $cleanStatus = $store->status();
+    $tileClean = $pricesTile();
+    PriceAuditNotice::follow(status: $cleanStatus);
+    $toldClean = $told();
+
+    // A run after it that failed for good, its reason on two lines; the job's handler told as the runner tells it.
+    $failedReason = "The suite's own failure, its first line\nand its second line";
+    $failedAsk = PriceAuditJob::enqueue();
+    $db->setQuery(
+        "UPDATE `{$p}alfa_tasks` SET state = 'failed', last_error = " . $db->quote($failedReason)
+        . ', finished_at = UTC_TIMESTAMP(3), lease_owner = NULL, lease_until = NULL WHERE id = ' . (int) $failedAsk->id,
+    )->execute();
+    $failedRow = $db->setQuery("SELECT id, type, handler, owner, state, subject_type, subject_id, payload, history FROM `{$p}alfa_tasks` WHERE id = " . (int) $failedAsk->id)->loadAssoc();
+    $failedStatus = $store->status();
+    $tileFailed = $pricesTile();
+    Tasks::notifySettled(row: $failedRow, event: TaskSettlement::RUN, state: Tasks::STATE_FAILED, history: [], error: $failedReason);
+    $toldFailed = $told();
+
+    // Never run: no result, and none of the check's finished jobs (the shop's own taken away inside the transaction).
+    $db->setQuery("DELETE FROM `{$p}alfa_meta` WHERE name LIKE 'price\\_audit.%'")->execute();
+    $db->setQuery(
+        "DELETE FROM `{$p}alfa_tasks` WHERE type = 'job' AND owner = 'com_alfa' AND handler = " . $db->quote(PriceAuditJob::NAME)
+        . " AND state NOT IN ('pending', 'running')",
+    )->execute();
+    $neverStatus = $store->status();
+    $tileNever = $pricesTile();
+    PriceAuditNotice::follow(status: $neverStatus);
+    $toldNever = $told();
+
+    // A first run waiting, nothing stored before it.
+    PriceAuditJob::enqueue();
+    $firstRunStatus = $store->status();
+    $tileFirstRun = $pricesTile();
 
     $result = [
         'periodFilter' => $periodFilter,
@@ -508,6 +581,13 @@ try {
         'belowSentence' => $belowSentence,
         'stackedSentence' => $stackedSentence,
         'told' => ['followed' => $followed, 'with' => $toldWith, 'quiet' => $toldQuiet],
+        'tile' => [
+            'findings' => ['state' => $findingsStatus['state'], 'counts' => PriceAuditStore::attention(status: $findingsStatus)['counts'], 'row' => $tileFindings, 'told' => $toldFindings],
+            'clean' => ['state' => $cleanStatus['state'], 'attention' => PriceAuditStore::attention(status: $cleanStatus), 'row' => $tileClean, 'told' => $toldClean],
+            'failed' => ['state' => $failedStatus['state'], 'row' => $tileFailed, 'told' => $toldFailed],
+            'never' => ['state' => $neverStatus['state'], 'row' => $tileNever, 'told' => $toldNever],
+            'firstRun' => ['state' => $firstRunStatus['state'], 'summary' => $firstRunStatus['summary'], 'row' => $tileFirstRun],
+        ],
         'd' => [$d1, $d2, $d3, $d4],
     ];
 } catch (\Throwable $e) {
@@ -574,6 +654,31 @@ if (isset($result['error'])) {
     sort($kinds, SORT_STRING);
     check('[PA7] the notice\'s facts are the kinds found', [$result['told']['followed'], $result['told']['with']], [array_keys($counts), $kinds]);
     check('[PA7] a result with nothing withdraws them', $result['told']['quiet'], null);
+
+    echo "\nthe dashboard's Prices tile and the bell, by one rule\n";
+    $tile = $result['tile'];
+    $withFindings = $tile['findings'];
+    $foundKinds = array_map('strval', array_keys($withFindings['counts']));
+    sort($foundKinds, SORT_STRING);
+    check('[TL1] ★ a stored result with findings is a tile: the total its figure, a line a kind and the state\'s line',
+        [$withFindings['state'], $withFindings['row'] !== null, $withFindings['row']['value'] ?? null, \count((array) ($withFindings['row']['lines'] ?? [])), $withFindings['row']['severity'] ?? null],
+        [PriceAuditStore::STATE_COMPLETE, true, number_format(array_sum($withFindings['counts'])), \count($withFindings['counts']) + 1, 'warning']);
+    check('[TL1] ★ a clean result is no tile, nothing to act on', [$tile['clean']['state'], $tile['clean']['attention'], $tile['clean']['row']], [PriceAuditStore::STATE_COMPLETE, ['counts' => [], 'failure' => ''], null]);
+    $failedLines = (array) ($tile['failed']['row']['lines'] ?? []);
+    check('[TL1] ★ a failed last run is a tile with no figure, its last line the reason\'s first line',
+        [$tile['failed']['state'], $tile['failed']['row'] !== null, $tile['failed']['row']['value'] ?? null, $tile['failed']['row']['severity'] ?? null, end($failedLines)['text'] ?? null],
+        [PriceAuditStore::STATE_FAILED, true, '', 'danger', Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_FAILED', "The suite's own failure, its first line")]);
+
+    if ($tile['never']['state'] !== PriceAuditStore::STATE_NEVER) {
+        echo "  skip [TL1] a price check job of the shop is waiting or running, so the check cannot be read as never run here\n";
+    } else {
+        check('[TL1] ★ a check never run is no tile', $tile['never']['row'], null);
+        check('[TL1] ★ a first run waiting with nothing stored before it is no tile', [$tile['firstRun']['state'], $tile['firstRun']['summary'], $tile['firstRun']['row']], [PriceAuditStore::STATE_RUNNING, null, null]);
+    }
+
+    check('[TL2] ★ the bell names the kinds of a result with findings and is withdrawn for a clean one', [$tile['findings']['told'], $tile['clean']['told']], [$foundKinds, null]);
+    check('[TL2] ★ the bell is raised with the failure when the job\'s handler is told a run failed for good', $tile['failed']['told'], [PriceAuditNotice::FACT_FAILED]);
+    check('[TL2] the bell is withdrawn when the check has never run', $tile['never']['told'], null);
 
     echo "\nthe stored result\n";
     check('[ST1] ★ never run before a result is stored, complete once stored, out of date once a change is marked, running while a job waits',

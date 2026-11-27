@@ -13,7 +13,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Task;
 
 /**
  * A handler that hears how its tasks end: a run settled, recovery held a run that stopped, or staff resent, ran again
- * or resolved one. What it does with that (an order's timeline record) never changes the task.
+ * or resolved one. A job's handler hears when its job failed for good and when staff resolved a failed one. What it
+ * does with that (an order's timeline record, a check's bell) never changes the task.
  *
  * @since  2.1.4
  */

@@ -486,13 +486,14 @@ final class CoreCardProvider
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_DOCUMENTS'),
                     'url' => $list('orders', ['payment' => 'refunded', 'date_range' => $window]),
                 ],
-                // The price check as its job last stored it: the total as the figure, each kind on its own line
-                // leading to its section of the price check, where the check stands as the last line, the page itself
-                // as the verb, and the same job queued again as the action.
+                // The price check as its job last stored it, here only when it has something to act on: the total
+                // of the findings as the figure (none when a failed run is all there is to tell), each kind on its own
+                // line leading to its section of the price check, where the check stands as the last line, the page
+                // itself as the verb, and the same job queued again as the action.
                 'prices' => [
-                    'severity' => \in_array((string) ($extra['state'] ?? ''), [PriceAuditStore::STATE_FAILED, PriceAuditStore::STATE_NEVER], true) ? 'danger' : 'warning',
+                    'severity' => (string) ($extra['state'] ?? '') === PriceAuditStore::STATE_FAILED ? 'danger' : 'warning',
                     'kind' => Text::_('COM_ALFA_DASHCARD_ATTENTION_KIND_PRICES'),
-                    'value' => number_format($finding['count']),
+                    'value' => $finding['count'] > 0 ? number_format($finding['count']) : '',
                     'text' => '',
                     'lines' => $this->priceLines(extra: $extra),
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_PRICES'),
@@ -513,10 +514,11 @@ final class CoreCardProvider
 
     /**
      * The Prices tile's lines: one short phrase a kind of finding, with its count, each leading to that section of the
-     * price check (its anchor on the page); last, where the check stands (when it ran, out of date since, running,
-     * failed, never run), leading to the page.
+     * price check (its anchor on the page); last, where the check stands (when it ran, out of date since, running, or
+     * failed with its reason in short), leading to the page. A check never run has no tile, so no line for it.
      *
-     * @param array $extra The signal's extra: counts, building, share, state, finished_at, stale_since, failure, percent.
+     * @param array $extra The signal's extra: counts, building, share, state, finished_at, stale_since, failure (its
+     *                     short form), percent.
      *
      * @return list<array{text: string, url: string}>
      *
@@ -539,7 +541,6 @@ final class CoreCardProvider
         $date = static fn (string $utc): string => $utc === '' ? '-' : HTMLHelper::_('date', $utc, Text::_('DATE_FORMAT_LC5'));
         $lines[] = [
             'text' => match ((string) ($extra['state'] ?? '')) {
-                PriceAuditStore::STATE_NEVER => Text::_('COM_ALFA_PRICE_AUDIT_STATE_NEVER'),
                 PriceAuditStore::STATE_RUNNING => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_RUNNING_PERCENT', (int) ($extra['percent'] ?? 0)),
                 PriceAuditStore::STATE_FAILED => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_FAILED', (string) ($extra['failure'] ?? '')),
                 PriceAuditStore::STATE_STALE => Text::sprintf('COM_ALFA_PRICE_AUDIT_STATE_STALE', $date((string) ($extra['stale_since'] ?? ''))),

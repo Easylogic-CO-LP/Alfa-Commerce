@@ -32,6 +32,10 @@ use Joomla\CMS\Event\AbstractEvent;
  * outcomes, and no new vocabulary: {@see \Alfa\Component\Alfa\Administrator\Plugin\PluginAction}
  * already carries metadata, ordering, icon, styling, confirmation and modals.
  *
+ * A TOOL THAT IS A PAGE OF ITS OWN (a report its job keeps) names the page with `meta('link', ...)`: its card links
+ * there and runs nothing. `meta('status', ...)` gives a card one line of where its tool stands, a finished text read
+ * from what is stored, never worked out for the card.
+ *
  * EVERY ACTION NAMES ITS PLUGIN. The event reaches every listener on the
  * shared dispatcher, and each action is added with its contributor, group.element,
  * first (core's own tools as core.com_alfa): attribution, never an authorisation.

@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Media\ThumbnailRecreation;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Alfa\Component\Alfa\Administrator\Service\Search\ItemSearchProjection;
 use Alfa\Component\Alfa\Administrator\Service\Search\RebuildableEngine;
@@ -153,7 +154,7 @@ final class CoreToolProvider
      * EVERY TOOL THAT WRITES SAYS SO. A tool changes state unless it declares itself
      * read-only, and the endpoint then demands a POST with a one-time key instead of a
      * replayable URL. Every tool here writes, except the price index check, which reads
-     * only.
+     * only, and the price check, which is a page of its own the card links to.
      *
      * THE SURFACE IS THE TOOLS TAB the card lands on: maintenance (the media tools first,
      * then the database sync tools in run order, the guided tours last), background (the
@@ -236,6 +237,22 @@ final class CoreToolProvider
             ->priority(96)
             ->meta('surface', 'maintenance')
             ->meta('description', 'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_DESC');
+
+        // THE PRICE CHECK: a page of its own, which its job keeps; the dashboard shows it only when it has something to
+        // act on, so it stays reachable here, with when it last ran and where it stands in one line. For a Super User,
+        // the one the page answers to.
+        if ((bool) Factory::getApplication()->getIdentity()?->authorise('core.admin', 'com_alfa')) {
+            $event->add(self::ID, 'pricing.audit', 'COM_ALFA_TOOLS_PRICE_AUDIT_TITLE')
+                ->icon('search')
+                ->readOnly()
+                ->css('btn-secondary')
+                ->priority(95)
+                ->meta('surface', 'maintenance')
+                ->meta('link', Route::_('index.php?option=com_alfa&view=priceaudit', false))
+                ->meta('button_label', 'COM_ALFA_TOOLS_PRICE_AUDIT_BTN')
+                ->meta('status', self::priceAuditStatus())
+                ->meta('description', 'COM_ALFA_TOOLS_PRICE_AUDIT_DESC');
+        }
 
         // THE GALLERY'S THUMBNAILS RECREATED: one job, two modes, first on the Maintenance tab, under the media
         // card. "Missing" first, the everyday and safer one, for the images that have none, whose thumbnail is the full
@@ -832,6 +849,41 @@ final class CoreToolProvider
         } catch (Throwable) {
             return '';
         }
+    }
+
+    /**
+     * The price check card's one line: when the check last completed and where it stands, from its stored state alone
+     * (PriceAuditStore::status()), nothing worked out here. Empty when it cannot be read (the log says why); the card
+     * still links to the page.
+     *
+     * @since  2.3.0
+     */
+    private static function priceAuditStatus(): string
+    {
+        try {
+            $status = (new PriceAuditStore())->status();
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Tools: the price check state could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::WARNING);
+
+            return '';
+        }
+
+        $finished = (string) ($status['summary']['finished_at'] ?? '');
+        $last = $finished === '' ? '' : HTMLHelper::_('date', $finished, Text::_('DATE_FORMAT_LC5'));
+        $percent = (int) ($status['job']['percent'] ?? 0);
+        $failure = PriceAuditStore::attention(status: $status)['failure'];
+
+        return match ($status['state']) {
+            PriceAuditStore::STATE_NEVER => Text::_('COM_ALFA_TOOLS_PRICE_AUDIT_NEVER'),
+            PriceAuditStore::STATE_RUNNING => $last === ''
+                ? Text::sprintf('COM_ALFA_TOOLS_PRICE_AUDIT_RUNNING_FIRST', $percent)
+                : Text::sprintf('COM_ALFA_TOOLS_PRICE_AUDIT_RUNNING', $last, $percent),
+            PriceAuditStore::STATE_FAILED => $last === ''
+                ? Text::sprintf('COM_ALFA_TOOLS_PRICE_AUDIT_FAILED_FIRST', $failure)
+                : Text::sprintf('COM_ALFA_TOOLS_PRICE_AUDIT_FAILED', $last, $failure),
+            PriceAuditStore::STATE_STALE => Text::sprintf('COM_ALFA_TOOLS_PRICE_AUDIT_STALE', $last),
+            default => Text::sprintf('COM_ALFA_TOOLS_PRICE_AUDIT_COMPLETE', $last),
+        };
     }
 
     /**

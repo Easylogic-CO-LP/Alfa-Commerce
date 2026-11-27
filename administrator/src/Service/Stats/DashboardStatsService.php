@@ -1577,9 +1577,13 @@ final class DashboardStatsService
      * and where the check stands travel in extra. No money is attached: a finding is a price that may be wrong, not
      * money taken or lost. Nothing is computed here, and nothing is read for a viewer who may not open the check.
      *
-     * @return array{key: string, count: int, money: float, extra: array}|null Null when the check is complete, current
-     *                                                                        and found nothing, or for a viewer who
-     *                                                                        may not open it.
+     * Like every other finding of this card it is there only when there is something to act on
+     * (PriceAuditStore::attention()): a stored result with at least one finding, or a last run that failed, its reason
+     * in short. A check never run, a run on with no earlier finding, or a result that found nothing has no tile.
+     *
+     * @return array{key: string, count: int, money: float, extra: array}|null Null when there is nothing to act on,
+     *                                                                        or for a viewer who may not open the
+     *                                                                        check.
      *
      * @since  2.3.0
      */
@@ -1591,9 +1595,10 @@ final class DashboardStatsService
 
         $status = (new PriceAuditStore())->status();
         $summary = $status['summary'];
-        $counts = $summary === null ? [] : PriceAudit::counts(summary: $summary);
+        $attention = PriceAuditStore::attention(status: $status);
+        $counts = $attention['counts'];
 
-        if ($counts === [] && $status['state'] === PriceAuditStore::STATE_COMPLETE) {
+        if ($counts === [] && $attention['failure'] === '') {
             return null;
         }
 
@@ -1608,7 +1613,7 @@ final class DashboardStatsService
                 'state' => $status['state'],
                 'finished_at' => (string) ($summary['finished_at'] ?? ''),
                 'stale_since' => (string) ($status['stale_since'] ?? ''),
-                'failure' => (string) $status['failure'],
+                'failure' => $attention['failure'],
                 'percent' => $status['job'] === null ? null : (int) ($status['job']['percent'] ?? 0),
             ],
         ];
