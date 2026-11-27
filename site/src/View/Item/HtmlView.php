@@ -89,12 +89,6 @@ class HtmlView extends BaseHtmlView
     protected string $sectionsMode = 'stacked';
 
     /**
-     * @var string Whether the buy column lists the payment and shipping methods: frame (one framed block, one method
-     *             per row) or hidden (the menu item's choice, else the Options')
-     */
-    protected string $methodsMode = 'frame';
-
-    /**
      * Display the view
      *
      * @param string $tpl Template name
@@ -187,7 +181,6 @@ class HtmlView extends BaseHtmlView
         // one of three presentations of the same collection. Not on the buy-form reload: like the related products,
         // they sit after the product's container, which is all a variant change replaces.
         $sectionsMode = (string) $this->params->get('item_sections', 'stacked');
-        $this->methodsMode = (string) $this->params->get('item_methods', 'frame') === 'hidden' ? 'hidden' : 'frame';
 
         if (RequestScalar::cmd($input, 'tmpl', '') !== '') {
             $this->sectionsMode = '';
