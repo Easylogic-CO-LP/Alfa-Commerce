@@ -224,9 +224,39 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The sale's discount share: a line of its own under the sale input. */
-.alfa-prices .sale-percent {
+/* The sale, typed as an amount or as a percent: the cycle button on its own line
+   under the three choices, the two inputs side by side under it, each with its
+   small label. The input that follows the typed one is read-only and drawn quiet. */
+.alfa-prices .sale-by {
+  margin-top: 0.3rem;
+}
+
+.alfa-prices .sale-by-cycle button {
+  min-width: 4.4rem;
+  border-radius: var(--price-radius);
+}
+
+.alfa-prices .sale-pair {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.alfa-prices .sale-pair > div {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.alfa-prices .sale-pair label {
   display: block;
+  font-size: 0.72rem;
+  color: var(--price-soft);
+  margin-bottom: 0.15rem;
+}
+
+.alfa-prices .sale-pair input[readonly] {
+  background: var(--price-line-soft);
+  color: var(--price-soft);
 }
 
 /* Chip lines: taxes under Final price, discounts in the today-cell. */

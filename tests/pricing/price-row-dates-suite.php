@@ -26,8 +26,9 @@
  *   [PR4] ★ the item screen's save of such a row is refused with the sentence and writes no product.
  *   [SA1] ★ a custom discount on the price that is above the price is refused, named by its row; one equal to the
  *         price, a pinned final price and an adjust row are not.
- *   [SA2] the editor shows the share a sale takes off the price under the sale input, as a warning above half.
- *   [SA3] prices.js keeps that line live from the row's own figures.
+ *   [SA2] the editor fills the percent input beside the sale amount with the share the sale takes off the price,
+ *         names that price in the input's label, and draws the label as a warning above half.
+ *   [SA3] prices.js keeps that percent live from the row's own figures.
  *   [API] ★ the item form loaded for the REST API keeps Joomla's Date parsing on its publish dates: an ISO UTC
  *         value with seconds, T and Z is stored unchanged, an offset is that moment, text without an offset is read
  *         in the API user's zone, as before; the item screen's own form keeps the operator's language order.
@@ -356,36 +357,51 @@ check('[SA1] ★ a sale above the price is refused for a custom discount on the 
     $saleRefused,
     [Text::sprintf('COM_ALFA_PRICES_SALE_ABOVE_BASE', 1, '70', '65')]);
 
-/** The rendered sale share line of the first row: its text and whether it warns. */
-$saleLine = static function (array $row): array {
+/** The rendered sale of the first row: the percent input's value, its label's text and whether the label warns, and
+ *  whether the sale's block (the cycle button, the two inputs) is hidden. */
+$saleShare = static function (array $row): array {
     $html = AlfapricesField::renderPrices(controlBase: 'jform[prices]', rows: [$row], showModify: false, itemId: 0);
     $rowsHtml = (string) strstr($html, '<template data-price-template>', true);
 
-    if (!preg_match('~<span([^>]*)data-price-sale-percent([^>]*)>([^<]*)</span>~', $rowsHtml, $m)) {
-        return ['text' => null, 'warns' => null, 'hidden' => null];
+    if (
+        !preg_match('~<label([^>]*)\sdata-price-sale-percent-label>([^<]*)</label>~', $rowsHtml, $label)
+        || !preg_match('~<input([^>]*)\sdata-price-sale-percent\s([^>]*)>~', $rowsHtml, $input)
+        || !preg_match('~<div class="sale-by" data-price-sale(\s+hidden)?>~', $rowsHtml, $block)
+    ) {
+        return ['percent' => null, 'label' => null, 'warns' => null, 'hidden' => null];
     }
 
+    preg_match('~\svalue="([^"]*)"~', $input[1] . ' ' . $input[2], $value);
+
     return [
-        'text' => html_entity_decode($m[3], ENT_QUOTES, 'UTF-8'),
-        'warns' => str_contains($m[1], 'text-warning'),
-        'hidden' => str_contains($m[1] . $m[2], 'hidden'),
+        'percent' => $value[1] ?? null,
+        'label' => html_entity_decode($label[2], ENT_QUOTES, 'UTF-8'),
+        'warns' => str_contains($label[1], 'text-warning'),
+        'hidden' => isset($block[1]),
     ];
 };
 
-check('[SA2] the editor shows the share a sale takes off the price, as a warning above half',
-    $saleLine(['id' => 0, 'value' => '65.00000000', 'override_value' => '26.97500000', 'override_type' => 'start', 'state' => 1]),
-    ['text' => Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', '58.5', '65.00'), 'warns' => true, 'hidden' => false]);
+check('[SA2] the editor fills the percent input with the share a sale takes off the price, named in its label, as a warning above half',
+    $saleShare(['id' => 0, 'value' => '65.00000000', 'override_value' => '26.97500000', 'override_type' => 'start', 'state' => 1]),
+    ['percent' => '58.5', 'label' => Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT_OF', '65.00'), 'warns' => true, 'hidden' => false]);
 check('[SA2] a share under half is shown without the warning',
-    $saleLine(['id' => 0, 'value' => '100.00000000', 'override_value' => '80.00000000', 'override_type' => 'start', 'state' => 1]),
-    ['text' => Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', '20', '100.00'), 'warns' => false, 'hidden' => false]);
-check('[SA2] a pinned final price shows no share',
-    $saleLine(['id' => 0, 'value' => '100.00000000', 'override_value' => '80.00000000', 'override_type' => 'final', 'state' => 1]),
-    ['text' => '', 'warns' => false, 'hidden' => true]);
+    $saleShare(['id' => 0, 'value' => '100.00000000', 'override_value' => '80.00000000', 'override_type' => 'start', 'state' => 1]),
+    ['percent' => '20', 'label' => Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT_OF', '100.00'), 'warns' => false, 'hidden' => false]);
+check('[SA2] a pinned final price of a product whose tax is not known yet shows no share, and a plain label',
+    $saleShare(['id' => 0, 'value' => '100.00000000', 'override_value' => '80.00000000', 'override_type' => 'final', 'state' => 1]),
+    ['percent' => '', 'label' => Text::_('COM_ALFA_PRICES_SALE_BY_PERCENT'), 'warns' => false, 'hidden' => false]);
+check('[SA2] a row without a sale shows none of it',
+    $saleShare(['id' => 0, 'value' => '100.00000000', 'override_value' => '', 'override_type' => '', 'state' => 1]),
+    ['percent' => '', 'label' => Text::_('COM_ALFA_PRICES_SALE_BY_PERCENT'), 'warns' => false, 'hidden' => true]);
 
 $pricesJs = SourceFile::read(JPATH_ROOT . '/media/com_alfa/js/admin/prices.js');
-check('[SA3] prices.js keeps the sale share line live from the row\'s own figures',
-    [str_contains($pricesJs, "row.querySelector('[data-price-sale-percent]')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT')")],
-    [true, true]);
+check('[SA3] prices.js keeps the sale percent live from the row\'s own figures, and the amount from a typed percent',
+    [
+        str_contains($pricesJs, "row.querySelector('[data-price-sale-percent]')"),
+        str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT_OF')"),
+        str_contains($pricesJs, "field.matches('[data-price-sale-percent]')"),
+    ],
+    [true, true, true]);
 
 // The REST API's form: no screen, so its publish dates keep Joomla's Date parsing, as the api pages state them.
 echo "\nthe item form loaded for the REST API\n";
