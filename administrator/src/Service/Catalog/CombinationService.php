@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Model\ItemModel;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
@@ -347,7 +348,9 @@ final class CombinationService
     /**
      * What the save would refuse before anything is written: the stock section's plan (a tracking switch without
      * its opening figures or over open reservations, figures that disagree with the stock records, a stock target the
-     * inventory service would refuse); for a new combination, its values. Nothing is written.
+     * inventory service would refuse); for a new combination, its values; the price rows sent, judged as the item
+     * screen judges the product's own (a figure the columns cannot store, a period whose end is not after its start).
+     * Nothing is written.
      *
      * @return list<Refusal>
      *
@@ -356,21 +359,25 @@ final class CombinationService
     public function refusals(): array
     {
         if ($this->combinationId === 0) {
-            return $this->valueRefusals();
-        }
-
-        if (!isset(self::currentRows(itemId: $this->itemId)[$this->combinationId])) {
+            $refusals = $this->valueRefusals();
+        } elseif (!isset(self::currentRows(itemId: $this->itemId)[$this->combinationId])) {
             return [new Refusal(
                 code: 'not_found',
                 sentence: Text::sprintf('COM_ALFA_COMBINATION_NOT_CURRENT', (string) $this->combinationId),
                 status: Refusal::NOT_FOUND,
             )];
+        } else {
+            $refusals = array_map(
+                static fn (string $sentence): Refusal => new Refusal(code: 'refused', sentence: $sentence, status: Refusal::CONFLICT),
+                $this->plan(combinationId: $this->combinationId)['refusals'],
+            );
         }
 
-        return array_map(
-            static fn (string $sentence): Refusal => new Refusal(code: 'refused', sentence: $sentence, status: Refusal::CONFLICT),
-            $this->plan(combinationId: $this->combinationId)['refusals'],
-        );
+        foreach ($this->prices === null ? [] : ItemModel::priceRefusals(rows: $this->prices) as $sentence) {
+            $refusals[] = new Refusal(code: 'price_row', sentence: $sentence, pointer: '/prices');
+        }
+
+        return $refusals;
     }
 
     /**

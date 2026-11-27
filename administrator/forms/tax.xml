@@ -199,18 +199,18 @@
         <field
                 name="publish_up"
                 type="calendar"
+                translateformat="true"
                 showtime="true"
-                format="%Y-%m-%d %H:%M"
-                filter="USER_UTC"
+                filter="user_utc"
                 label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP"
         />
 
         <field
                 name="publish_down"
                 type="calendar"
+                translateformat="true"
                 showtime="true"
-                format="%Y-%m-%d %H:%M"
-                filter="USER_UTC"
+                filter="user_utc"
                 label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN"
         />
 

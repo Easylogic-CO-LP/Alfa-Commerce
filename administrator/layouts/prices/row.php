@@ -10,7 +10,7 @@
 // No direct access
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Form\Form;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowDates;
 use Joomla\CMS\Language\Text;
 
 /**
@@ -158,6 +158,17 @@ if ($overrideOn === 'final') {
     $overrideHint = Text::_('COM_ALFA_PRICES_FINAL') . ': ' . $money((float) $override * $taxFactor, $decimals);
 }
 
+// The discount a sale on the price gives, as a share of the price, shown under the sale input. Drawn as a warning
+// when it takes more than half the price, or when the sale is above the price, which the save refuses.
+$salePercent = '';
+$salePercentWarns = false;
+
+if ($overrideOn === 'start' && $value !== '' && (float) $value > 0) {
+    $share = (((float) $value - (float) $override) / (float) $value) * 100;
+    $salePercent = Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', rtrim(rtrim(number_format($share, 1, '.', ''), '0'), '.'), $money((float) $value, $decimals));
+    $salePercentWarns = $share > 50 || $share < 0;
+}
+
 // "After discounts" is the engine's result for the row: a row carrying its own
 // sale is charged the sale, with no regular discount, and a sale below zero is
 // charged as zero, as the engine floors it. Any other row is a*net + b, never
@@ -186,18 +197,9 @@ $selectHtml = static function (string $name, string $id, array $list, $current, 
 };
 
 // REAL Joomla calendar fields: clone-safe because prices.js dispatches
-// `joomla:updated` on inserted rows (core's re-init contract).
-$clean = static fn ($value) => (str_starts_with((string) $value, '0000') ? '' : (string) ($value ?? ''));
-
-$calendarForm = new Form('com_alfa.pricerow.' . md5($base), ['control' => $base]);
-$calendarForm->load('<form>
-    <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC" hiddenLabel="true" label="COM_ALFA_PRICES_FROM"/>
-    <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC" hiddenLabel="true" label="COM_ALFA_PRICES_TO"/>
-</form>');
-$calendarForm->bind([
-    'publish_up' => $clean($row['publish_up'] ?? ''),
-    'publish_down' => $clean($row['publish_down'] ?? ''),
-]);
+// `joomla:updated` on inserted rows (core's re-init contract). The row's period as PriceRowDates declares it: the
+// stored UTC moment shown in the user's time zone, and the same fields read what is posted back.
+$calendarForm = PriceRowDates::form(control: $base, row: $row);
 ?>
 <div class="price-row" data-mode="<?php echo $esc($mode); ?>"
      data-override="<?php echo $override !== '' ? $esc($overrideType) : ''; ?>"
@@ -318,6 +320,7 @@ $calendarForm->bind([
                        value="<?php echo $esc($override); ?>" class="form-control form-control-sm mt-1"
                        data-price-override placeholder="-" <?php echo $overrideOn === '' ? 'disabled' : ''; ?>>
                 <div class="override-hint" data-price-override-hint <?php echo $overrideHint === '' ? 'hidden' : ''; ?>><?php echo $esc($overrideHint); ?></div>
+                <span class="override-hint sale-percent<?php echo $salePercentWarns ? ' text-warning' : ''; ?>" data-price-sale-percent <?php echo $salePercent === '' ? 'hidden' : ''; ?>><?php echo $esc($salePercent); ?></span>
             </div>
 
         </div>

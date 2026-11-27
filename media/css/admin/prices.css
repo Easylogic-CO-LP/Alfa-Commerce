@@ -224,6 +224,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The sale's discount share: a line of its own under the sale input. */
+.alfa-prices .sale-percent {
+  display: block;
+}
+
 /* Chip lines: taxes under Final price, discounts in the today-cell. */
 .alfa-prices .chip-line {
   display: flex;

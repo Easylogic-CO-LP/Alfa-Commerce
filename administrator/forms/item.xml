@@ -286,10 +286,10 @@
     </fieldset>
 
     <fieldset name="publish">
-        <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+        <field name="publish_up" type="calendar" translateformat="true" showtime="true" filter="user_utc"
                label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"/>
 
-        <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+        <field name="publish_down" type="calendar" translateformat="true" showtime="true" filter="user_utc"
                label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
 
         <field

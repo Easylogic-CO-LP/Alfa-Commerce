@@ -12,6 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Table;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseDriver;
 
@@ -41,6 +43,29 @@ class TaxTable extends Table
         $this->typeAlias = 'com_alfa.tax';
         parent::__construct('#__alfa_taxes', 'id', $db);
         $this->setColumnAlias('published', 'state');
+    }
+
+    /**
+     * A tax whose period ends at or before its start would never apply: refused for every writer that reaches the
+     * table, the admin screen and the REST route alike, as the price rows and the discounts refuse it.
+     *
+     * @return bool True when the row may be stored.
+     *
+     * @since  2.3.0
+     */
+    public function check()
+    {
+        if (!parent::check()) {
+            return false;
+        }
+
+        if (!PublishPeriod::endsAfterStart(start: $this->publish_up ?? null, end: $this->publish_down ?? null)) {
+            $this->setError(Text::_('COM_ALFA_TAX_PERIOD_END_BEFORE_START'));
+
+            return false;
+        }
+
+        return true;
     }
 
     /**
