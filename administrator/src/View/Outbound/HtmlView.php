@@ -168,6 +168,10 @@ class HtmlView extends BaseHtmlView
             ->url($back ? $return : Route::_('index.php?option=com_alfa&view=webhooks'))
             ->icon('icon-arrow-left');
 
+        // Webhooks, whatever page this one opened from.
+        $toolbar->link(Text::_('COM_ALFA_TITLE_WEBHOOKS'), 'index.php?option=com_alfa&view=webhooks')
+            ->icon('icon-share-alt');
+
         $toolbar->delete('outbound.delete')
             ->message('COM_ALFA_TASKS_DELETE_CONFIRM')
             ->listCheck(true);

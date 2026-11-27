@@ -63,7 +63,7 @@ $tools = '<a href="' . Route::_('index.php?option=com_alfa&view=outbound&filter[
                         <th scope="col" class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_WEBHOOK_DELIVERIES_COL_TRIES'); ?></th>
                         <th scope="col" class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_WEBHOOK_DELIVERIES_COL_QUEUED'); ?></th>
                         <th scope="col" class="w-3 d-none d-lg-table-cell">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
+                            <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'd.id', $listDirn, $listOrder); ?>
                         </th>
                     </tr>
                     </thead>

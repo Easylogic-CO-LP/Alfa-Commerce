@@ -27,6 +27,7 @@ use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Throwable;
@@ -165,6 +166,13 @@ class HtmlView extends BaseHtmlView
 
         if (!$app->getIdentity()->authorise('alfa.tools', 'com_alfa')) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        // The outgoing notifications once were this screen's second tab: their old address leads to their own screen,
+        // with the filters the address carried.
+        if (RequestScalar::cmd($app->getInput(), 'tab') === 'outbound') {
+            $filters = array_filter((array) $app->getInput()->get('filter', [], 'array'), 'is_scalar');
+            $app->redirect(Route::_('index.php?option=com_alfa&view=outbound' . ($filters === [] ? '' : '&' . http_build_query(['filter' => $filters])), false));
         }
 
         $this->jobId = RequestScalar::int($app->getInput(), 'job');
