@@ -89,6 +89,8 @@ class ItemfieldsController extends ApiController
      */
     public function displayList()
     {
+        $this->boundListPage();
+
         $apiFilterInfo = $this->input->get('filter', [], 'array');
 
         if (\array_key_exists('search', $apiFilterInfo)) {
