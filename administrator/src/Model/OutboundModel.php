@@ -159,12 +159,13 @@ class OutboundModel extends AlfaListModel
                 $query->whereIn($db->quoteName('d.topic'), $topics, ParameterType::STRING)
                     ->where($db->quoteName('d.subject_id') . ' = ' . (int) $matches[2]);
             } else {
-                $like = '%' . $db->escape($search, true) . '%';
-                $query->extendWhere('AND', [
-                    $db->quoteName('c.name') . ' LIKE ' . $db->quote($like),
-                    $db->quoteName('d.topic') . ' LIKE ' . $db->quote($like),
-                    $db->quoteName('d.last_error') . ' LIKE ' . $db->quote($like),
-                ], 'OR');
+                // One clause of its own: the search may be the only condition of the query.
+                $like = $db->quote('%' . $db->escape($search, true) . '%');
+                $query->where('(' . implode(' OR ', [
+                    $db->quoteName('c.name') . ' LIKE ' . $like,
+                    $db->quoteName('d.topic') . ' LIKE ' . $like,
+                    $db->quoteName('d.last_error') . ' LIKE ' . $like,
+                ]) . ')');
             }
         }
 
