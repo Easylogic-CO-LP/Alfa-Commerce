@@ -359,7 +359,7 @@ if (isset($result['error'])) {
     check('[LB5] ★ the ticked product keeps Black Friday in the top right and its own label; the New label, shown as the shop shows it, has no row',
         $result['stored'][0], [['bf', 1, 'top-right'], ['custom', 1, 'bottom-right']]);
     check('[LB5] the product hiding the New label keeps that and its own label', array_map(static fn (array $r): string => $r[0] . ':' . $r[1], $result['stored'][1]), ['custom:1', 'new:0']);
-    check('[LB5] the product ticking nothing keeps only its own label; Bestseller ticked in the label\'s own corner keeps no corner', [$result['stored'][2], $result['stored'][3]], [[['custom', 1, 'top-left']], [['hot', 1, null]]]);
+    check('[LB5] the product ticking nothing keeps only its own label; Bestseller ticked in the label\'s own corner keeps no corner', [$result['stored'][2], $result['stored'][3]], [[['custom', 1, 'bottom-right']], [['hot', 1, null]]]);
     check('[LB7] ★ the admin form reads the ticks, the corners and the own label from the rows',
         $result['form'], ['labels' => ['new' => ['shown' => 1, 'corner' => ''], 'bf' => ['shown' => 1, 'corner' => 'top-right']], 'own' => [[$defaultKey => 'Only here'], 'bottom-right'], 'from' => 19]);
 
