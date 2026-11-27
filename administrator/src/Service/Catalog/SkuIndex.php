@@ -338,10 +338,12 @@ final class SkuIndex
     }
 
     /**
-     * The SKUs held by more than one unit, each with the units' labels: the units with a SKU the registry does not
-     * hold for them.
+     * The SKUs held by more than one unit, each with the units' labels, in the order of the SKUs: a SKU that a unit the
+     * registry holds nothing for carries, and that another unit carries or the registry holds for another unit
+     * ({@see self::duplicateSkus()}).
      *
-     * @param int $limit The most SKUs named; 0 for every one.
+     * @param int $limit The most SKUs named, a display limit whose total {@see self::duplicateCount()} gives; 0 for
+     *                   every one.
      *
      * @return array<string, list<string>>
      *
@@ -350,20 +352,10 @@ final class SkuIndex
     public static function duplicates(int $limit = 20): array
     {
         $db = self::db();
-        $items = $db->getQuery(true)
-            ->select('TRIM(' . $db->quoteName('i.sku') . ') AS ' . $db->quoteName('sku'))
-            ->from($db->quoteName('#__alfa_items', 'i'))
-            ->join('LEFT', $db->quoteName(self::TABLE, 's'), $db->quoteName('s.item_id') . ' = ' . $db->quoteName('i.id')
-                . ' AND ' . $db->quoteName('s.combination_id') . ' = 0')
-            ->where('TRIM(' . $db->quoteName('i.sku') . ") <> ''")
-            ->where($db->quoteName('s.item_id') . ' IS NULL');
-        $combinations = $db->getQuery(true)
-            ->select('TRIM(' . $db->quoteName('c.sku') . ')')
-            ->from($db->quoteName('#__alfa_item_combinations', 'c'))
-            ->join('LEFT', $db->quoteName(self::TABLE, 's'), $db->quoteName('s.combination_id') . ' = ' . $db->quoteName('c.id'))
-            ->where('TRIM(' . $db->quoteName('c.sku') . ") <> ''")
-            ->where($db->quoteName('s.item_id') . ' IS NULL');
-        $skus = array_values(array_unique(array_map('strval', $db->setQuery($items->union($combinations))->loadColumn() ?: [])));
+        $skus = array_map('strval', $db->setQuery(
+            'SELECT ' . $db->quoteName('d.sku') . ' FROM (' . self::duplicateSkus(db: $db) . ') AS ' . $db->quoteName('d')
+            . ' ORDER BY ' . $db->quoteName('d.sku') . ($limit > 0 ? ' LIMIT ' . $limit : ''),
+        )->loadColumn() ?: []);
         $duplicates = [];
 
         foreach ($skus as $sku) {
@@ -374,21 +366,59 @@ final class SkuIndex
                 $units[] = $holder;
             }
 
-            $labels = array_values(array_unique(array_map(
+            $duplicates[$sku] = array_values(array_unique(array_map(
                 static fn (SkuUnit $unit): string => InventoryUnitException::labelFor(itemId: $unit->itemId, combinationId: $unit->combinationId),
                 $units,
             )));
-
-            if (\count($units) > 1) {
-                $duplicates[$sku] = $labels;
-            }
-
-            if ($limit > 0 && \count($duplicates) >= $limit) {
-                break;
-            }
         }
 
         return $duplicates;
+    }
+
+    /**
+     * How many SKUs are held by more than one unit, counted in one statement: the total of which
+     * {@see self::duplicates()} names the first.
+     *
+     * @since  2.3.0
+     */
+    public static function duplicateCount(): int
+    {
+        $db = self::db();
+
+        return (int) $db->setQuery('SELECT COUNT(*) FROM (' . self::duplicateSkus(db: $db) . ') AS ' . $db->quoteName('d'))->loadResult();
+    }
+
+    /**
+     * The statement of the SKUs held by more than one unit, one row a SKU (column sku), compared as the registry
+     * compares: every unit's trimmed SKU from its row and every unit the registry holds a SKU for, grouped by the SKU,
+     * the groups with more than one unit of which one has no registry row (a SKU two units held before the registry,
+     * kept out of it until one of them changes).
+     *
+     * @param DatabaseInterface $db The connection.
+     *
+     * @since  2.3.0
+     */
+    private static function duplicateSkus(DatabaseInterface $db): string
+    {
+        $unregistered = 'CASE WHEN ' . $db->quoteName('s.item_id') . ' IS NULL THEN 1 ELSE 0 END';
+
+        return 'SELECT ' . $db->quoteName('u.sku') . ' FROM ('
+            . 'SELECT TRIM(' . $db->quoteName('i.sku') . ') AS ' . $db->quoteName('sku') . ', ' . $db->quoteName('i.id') . ' AS ' . $db->quoteName('item_id')
+            . ', 0 AS ' . $db->quoteName('combination_id') . ', ' . $unregistered . ' AS ' . $db->quoteName('unregistered')
+            . ' FROM ' . $db->quoteName('#__alfa_items', 'i')
+            . ' LEFT JOIN ' . $db->quoteName(self::TABLE, 's') . ' ON ' . $db->quoteName('s.item_id') . ' = ' . $db->quoteName('i.id')
+            . ' AND ' . $db->quoteName('s.combination_id') . ' = 0'
+            . ' WHERE TRIM(' . $db->quoteName('i.sku') . ") <> ''"
+            . ' UNION SELECT TRIM(' . $db->quoteName('c.sku') . '), ' . $db->quoteName('c.item_id') . ', ' . $db->quoteName('c.id') . ', ' . $unregistered
+            . ' FROM ' . $db->quoteName('#__alfa_item_combinations', 'c')
+            . ' LEFT JOIN ' . $db->quoteName(self::TABLE, 's') . ' ON ' . $db->quoteName('s.combination_id') . ' = ' . $db->quoteName('c.id')
+            . ' WHERE TRIM(' . $db->quoteName('c.sku') . ") <> ''"
+            . ' UNION SELECT ' . $db->quoteName('r.sku') . ', ' . $db->quoteName('r.item_id') . ', ' . $db->quoteName('r.combination_id') . ', 0'
+            . ' FROM ' . $db->quoteName(self::TABLE, 'r')
+            . ') AS ' . $db->quoteName('u')
+            . ' GROUP BY ' . $db->quoteName('u.sku')
+            . ' HAVING COUNT(DISTINCT ' . $db->quoteName('u.item_id') . ', ' . $db->quoteName('u.combination_id') . ') > 1'
+            . ' AND MAX(' . $db->quoteName('u.unregistered') . ') = 1';
     }
 
     /**
