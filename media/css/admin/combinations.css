@@ -809,6 +809,25 @@ body:has(.alfa-studio) {
   pointer-events: none;
 }
 
+/* A phone (the table scrolls inside its frame): the Image column keeps its thumbnail and its drop zone at their
+   size, so the first image stays readable while the other cells shrink. */
+@media (max-width: 575.98px) {
+  .alfa-combinations .variant-image-cell {
+    min-width: 3.75rem;
+  }
+
+  .alfa-combinations .variant-image,
+  .alfa-combinations .variant-image-open img,
+  .alfa-combinations .variant-image-drop {
+    width: 44px;
+  }
+
+  .alfa-combinations .variant-image-open img,
+  .alfa-combinations .variant-image-drop {
+    height: 44px;
+  }
+}
+
 /* Tighter SKU + stock so the price/final controls fit on one line. */
 .alfa-combinations td input[name$="[sku]"] {
   width: 8rem;
