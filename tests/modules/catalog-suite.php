@@ -41,6 +41,10 @@
  *         class, data attribute or id in a layout or a script carries the alfa- prefix, nothing names another
  *         module, every language key used is defined, and the registry names the files the build made.
  *
+ * It runs in the repository and on a site alike. In the repository the module's language files and media are in its
+ * own folder; on a site the installer has put them in the site's language and media folders, and the suite reads
+ * them there. A part it cannot find stops the run with one line naming it.
+ *
  *   cd <docroot> && php administrator/components/com_alfa/tests/modules/catalog-suite.php
  *   php tests/modules/catalog-suite.php joomla=<docroot>     (from the repository)
  *
@@ -89,6 +93,39 @@ namespace {
 
     define('JPATH_SITE', $docroot);
     define('JPATH_ROOT', $docroot);
+
+    /**
+     * A file or folder of the module wherever it lives. In the repository everything is beside the module. On a
+     * site the installer puts the module's language files in the site's language folder and its media in the
+     * site's media folder, and the rest stays in the module's own folder.
+     */
+    function catalog_path(string $relative): string
+    {
+        $own = CATALOG_MODULE . '/' . $relative;
+
+        if (file_exists($own)) {
+            return $own;
+        }
+
+        if (str_starts_with($relative, 'language/')) {
+            return JPATH_SITE . '/' . $relative;
+        }
+
+        if ($relative === 'media' || str_starts_with($relative, 'media/')) {
+            return JPATH_SITE . '/media/mod_alfa_catalog' . substr($relative, 5);
+        }
+
+        return $own;
+    }
+
+    // Everything the suite reads is found before anything is judged: a missing part is one clear line, never a
+    // row of failed arms.
+    foreach (['tmpl/default.php', 'src/Helper/AlfaCatalogHelper.php', 'language/en-GB/mod_alfa_catalog.ini', 'media/joomla.asset.json', 'media/css/catalog.css'] as $needed) {
+        if (!is_file(catalog_path($needed))) {
+            fwrite(STDERR, "The module's {$needed} was not found at " . catalog_path($needed) . ": the suite reads the repository or an installed site.\n");
+            exit(2);
+        }
+    }
 
     spl_autoload_register(static function (string $class): void {
         $prefix = 'Alfa\\Module\\AlfaCatalog\\Site\\';
@@ -581,7 +618,7 @@ namespace Joomla\CMS\Language {
 
         public static function _(string $key): string
         {
-            self::$strings ??= parse_ini_file(CATALOG_MODULE . '/language/en-GB/mod_alfa_catalog.ini', false, INI_SCANNER_RAW) ?: [];
+            self::$strings ??= parse_ini_file(catalog_path('language/en-GB/mod_alfa_catalog.ini'), false, INI_SCANNER_RAW) ?: [];
 
             return (string) (self::$strings[$key] ?? $key);
         }
@@ -1087,7 +1124,7 @@ namespace {
     Shop::$storedRanking = null;
 
     // [CT9] The source.
-    $read = static fn (string $file): string => (string) file_get_contents(CATALOG_MODULE . '/' . $file);
+    $read = static fn (string $file): string => (string) file_get_contents(catalog_path($file));
     $css = preg_replace('#/\*.*?\*/#s', '', $read('media/css/catalog.css'));
     $unscoped = [];
 
@@ -1125,9 +1162,25 @@ namespace {
 
     $sources = [];
 
-    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(CATALOG_MODULE, FilesystemIterator::SKIP_DOTS)) as $file) {
-        if (preg_match('/\.(php|xml|ini|json|css|js|md)$/', $file->getFilename()) && !preg_match('/\.min\.|keen-slider/', $file->getFilename())) {
-            $sources[substr($file->getPathname(), \strlen(CATALOG_MODULE) + 1)] = (string) file_get_contents($file->getPathname());
+    // The module's own folder, then what the installer keeps elsewhere on a site: each file under the name it has
+    // in the repository.
+    $places = [CATALOG_MODULE => ''];
+
+    if (catalog_path('media') !== CATALOG_MODULE . '/media') {
+        $places[catalog_path('media')] = 'media/';
+    }
+
+    foreach ($places as $place => $as) {
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($place, FilesystemIterator::SKIP_DOTS)) as $file) {
+            if (preg_match('/\.(php|xml|ini|json|css|js|md)$/', $file->getFilename()) && !preg_match('/\.min\.|keen-slider/', $file->getFilename())) {
+                $sources[$as . substr($file->getPathname(), \strlen($place) + 1)] = (string) file_get_contents($file->getPathname());
+            }
+        }
+    }
+
+    foreach (['language/en-GB/mod_alfa_catalog.ini', 'language/en-GB/mod_alfa_catalog.sys.ini'] as $language) {
+        if (!isset($sources[$language]) && is_file(catalog_path($language))) {
+            $sources[$language] = (string) file_get_contents(catalog_path($language));
         }
     }
 
@@ -1154,7 +1207,7 @@ namespace {
     );
     is_same('[CT9] no long dash anywhere', array_keys(array_filter($sources, static fn (string $source): bool => str_contains($source, "\u{2014}") || str_contains($source, "\u{2013}"))), []);
 
-    $defined = array_keys(parse_ini_file(CATALOG_MODULE . '/language/en-GB/mod_alfa_catalog.ini', false, INI_SCANNER_RAW) ?: []);
+    $defined = array_keys(parse_ini_file(catalog_path('language/en-GB/mod_alfa_catalog.ini'), false, INI_SCANNER_RAW) ?: []);
     preg_match_all('/MOD_ALFA_CATALOG_[A-Z0-9_]*[A-Z0-9]/', implode("\n", array_filter($sources, static fn (string $name): bool => !str_starts_with($name, 'language/') && !str_ends_with($name, '.md'), ARRAY_FILTER_USE_KEY)), $used);
     $prefixes = ['MOD_ALFA_CATALOG_CARD', 'MOD_ALFA_CATALOG_SOURCE', 'MOD_ALFA_CATALOG_KIND', 'MOD_ALFA_CATALOG_LOOK_INHERIT', 'MOD_ALFA_CATALOG_LOOK_DEVICE', 'MOD_ALFA_CATALOG_LOOK_GROUP'];
     is_same('[CT9] every language key used is defined', array_values(array_diff(array_unique($used[0]), $defined, $prefixes)), []);
@@ -1169,7 +1222,7 @@ namespace {
         $file = 'media/' . ($asset['type'] === 'style' ? 'css' : 'js') . '/' . basename($asset['uri']);
 
         foreach ([$file, $file . '.gz'] as $built) {
-            if (!is_file(CATALOG_MODULE . '/' . $built)) {
+            if (!is_file(catalog_path($built))) {
                 $missing[] = $built;
             }
         }
