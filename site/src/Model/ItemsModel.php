@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Catalog\Labels;
+use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Alfa\Component\Alfa\Site\Service\Facet\FacetGroupResolver;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBag;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
@@ -86,11 +87,14 @@ use Throwable;
  *   filter.price_min           float   Minimum final_price (range slider left)
  *   filter.price_max           float   Maximum final_price (range slider right)
  *   filter.on_sale             bool    Only items with discount_amount > 0
+ *   filter.new                 bool    Only the products the shop counts as new (NewProducts: the days and
+ *                                      counted-from setting of the Options; no days = nothing)
  *   filter.discount_amount_min float   Save at least €X  (e.g. >= 10), the saving on the basis the
  *                                      visitor's card shows it ({@see self::savingExpression()})
  *   filter.discount_percent_min float  Save at least X%  (e.g. >= 20)
  *   filter.category            int[]   Category ids
  *   filter.manufacturer        int[]   Manufacturer ids
+ *   filter.label               int[]   Label ids: products that tick any of them (#__alfa_item_labels)
  *   filter.search              string  Search string
  *
  * NOTE: has_discount column was removed. discount_amount > 0 is identical
@@ -1320,6 +1324,18 @@ class ItemsModel extends UrlListModel
             $query->whereIn('man.manufacturer_id', array_map('intval', (array) $filterManufacturers));
         }
 
+        // Label filter: the products that tick any of the labels (OR within the facet), through the pivot alone, so a
+        // product with several labels stays one row.
+        $filterLabels = array_values(array_filter(array_map('intval', (array) $this->getState('filter.label', []))));
+
+        if ($filterLabels !== []) {
+            $query->where(
+                'EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_item_labels', 'fil')
+                . ' WHERE ' . $db->quoteName('fil.item_id') . ' = ' . $db->quoteName('a.id')
+                . ' AND ' . $db->quoteName('fil.label_id') . ' IN (' . implode(',', $filterLabels) . '))',
+            );
+        }
+
         // Item-field value filter (Size, Color, ...)
         // AND across fields, OR within a field. Index-driven EXISTS: field
         // filtering is enforced ONLY here; the projection collector never
@@ -1386,6 +1402,13 @@ class ItemsModel extends UrlListModel
 
         if ($onSale) {
             $query->where($sellsOnline ? 'pf.discount_amount > 0' : '0 = 1');
+        }
+
+        // New arrivals filter: the products new at this moment by the shop's days and counted-from setting, the one
+        // answer NewProducts gives everywhere; a shop that counts no product as new (0 days) matches nothing.
+        if ((bool) $this->getState('filter.new')) {
+            $newDays = NewProducts::days();
+            $query->where($newDays > 0 ? NewProducts::withinSql(itemAlias: 'a', daysSql: (string) $newDays, momentSql: $db->quote(ActiveDateCondition::now())) : '0 = 1');
         }
 
         // Availability
@@ -2711,6 +2734,7 @@ class ItemsModel extends UrlListModel
             'filter.price_min',
             'filter.price_max',
             'filter.on_sale',
+            'filter.new',
             'filter.discount_amount_min',
             'filter.discount_percent_min',
         ]);
@@ -2821,6 +2845,59 @@ class ItemsModel extends UrlListModel
         return $cache[$key] = empty($ids)
             ? []
             : $this->getRecordsByIds(array_map('intval', $ids), '#__alfa_manufacturers', ['id', 'name']);
+    }
+
+    /**
+     * The labels the filters offer that reach at least one product of the current result, under every other active
+     * filter (the label facet drops its own selection, as the manufacturers facet does), by id, in the order of the
+     * Labels screen: [id => ['id' => 3, 'name' => 'Black Friday', 'count' => 12]]; the count is read only when asked
+     * for, in the same query. Only labels set as filterable are offered (Labels::filterable()), whatever products tick.
+     *
+     * @param bool $withCounts Whether each label comes with how many products of the result tick it.
+     *
+     * @return array<int, array{id: int, name: string, count?: int}>
+     *
+     * @since  2.3.0
+     */
+    public function getAvailableLabels(bool $withCounts = false): array
+    {
+        $offered = Labels::filterable();
+
+        if ($offered === []) {
+            return [];
+        }
+
+        $model = $this->createFilterSubModel(['filter.label']);
+        $db = $this->getDatabase();
+
+        $query = $model->getListQuery();
+        $query->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->join('INNER', $db->quoteName('#__alfa_item_labels', 'lf') . ' ON ' . $db->quoteName('lf.item_id') . ' = ' . $db->quoteName('a.id'))
+            ->whereIn($db->quoteName('lf.label_id'), array_keys($offered))
+            ->select($db->quoteName('lf.label_id') . ', COUNT(DISTINCT ' . $db->quoteName('a.id') . ') AS ' . $db->quoteName('cnt'))
+            ->group($db->quoteName('lf.label_id'));
+
+        // Same facet, asked more than once per render: memo by the built statement and the values bound to it.
+        static $cache = [];
+        $key = self::statementKey(query: $query);
+
+        if (!isset($cache[$key])) {
+            $cache[$key] = $db->setQuery($query)->loadAssocList('label_id') ?: [];
+        }
+
+        $out = [];
+
+        foreach ($offered as $id => $label) {
+            if (!isset($cache[$key][$id])) {
+                continue;
+            }
+
+            $out[$id] = ['id' => $id, 'name' => $label->name] + ($withCounts ? ['count' => (int) $cache[$key][$id]['cnt']] : []);
+        }
+
+        return $out;
     }
 
     /**
@@ -3918,11 +3995,13 @@ class ItemsModel extends UrlListModel
             'filter.category_id',
             'filter.category',
             'filter.manufacturer',
+            'filter.label',
             'filter.fields',
             'filter.groups',
             'filter.price_min',
             'filter.price_max',
             'filter.on_sale',
+            'filter.new',
             'filter.discount_amount_min',
             'filter.discount_percent_min',
             'filter.stock',

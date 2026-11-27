@@ -41,7 +41,7 @@ if (!$alfa_filters) {
 // $alfa_filters, so a merchant's arrangement survives here rather than being re-sorted.
 // Absent (a template override calling this directly) -> everything, in natural order.
 $afSectionKeys ??= array_merge(
-    ['category', 'manufacturer'],
+    ['category', 'manufacturer', 'label'],
     array_map(
         static fn ($id): string => FilterSections::fieldKey((int) $id),
         array_keys((array) ($alfa_filters['fields'] ?? [])),
@@ -156,7 +156,7 @@ $moreFrom = static function (string $sectionKey, int $options) use ($groupSettin
 
 <?php foreach ($afSectionKeys as $afSectionKey): ?>
     <?php
-    // ONE GROUP: the category tree, the manufacturers, or one item field's facet. Each kind
+    // ONE GROUP: the category tree, the manufacturers, the labels, or one item field's facet. Each kind
     // builds its options here; the group around them (heading, search box, options, the
     // "nothing found" line) is drawn once, below, for all three.
     //
@@ -244,25 +244,28 @@ $moreFrom = static function (string $sectionKey, int $options) use ($groupSettin
             $mMoreFrom = $moreFrom($afSectionKey, $optionCount);
             ob_start(); ?>
             <ul class="af-list">
-            <?php $mIndex = 0;
+            <?php // A flat list of records (the manufacturers, the labels): id, name and, when the facet counted, how
+                  // many products of the result each reaches.
+            $mIndex = 0;
             foreach ($options as $option): ?>
                 <?php
                     $mIndex++;
-                $manufacturerId = is_array($option) ? $option['id'] : $option->id;
-                $manufacturerName = is_array($option) ? $option['name'] : $option->name;
-                $isChecked = in_array($manufacturerId, $alfa_active_filters['manufacturer'] ?? []);
-                $inputId = 'af-' . $moduleId . '-mfr-' . (int) $manufacturerId;
+                $optionId = is_array($option) ? $option['id'] : $option->id;
+                $optionName = is_array($option) ? $option['name'] : $option->name;
+                $optionCountShown = is_array($option) ? ($option['count'] ?? null) : ($option->count ?? null);
+                $isChecked = in_array($optionId, $alfa_active_filters[$afSectionKey] ?? []);
+                $inputId = 'af-' . $moduleId . '-' . $afSectionKey . '-' . (int) $optionId;
                 ?>
-                <li class="af-item af-item-<?= $mIndex ?> depth-0" data-id="<?= (int) $manufacturerId ?>"<?= $mIndex > $mMoreFrom && !$isChecked ? ' data-af-more' : '' ?>>
+                <li class="af-item af-item-<?= $mIndex ?> depth-0" data-id="<?= (int) $optionId ?>"<?= $mIndex > $mMoreFrom && !$isChecked ? ' data-af-more' : '' ?>>
                     <div class="af-option">
                         <input
                             type="checkbox"
                             id="<?= $inputId ?>"
                             name="filter[<?= $afSectionKey ?>][]"
-                            value="<?= (int) $manufacturerId ?>"
+                            value="<?= (int) $optionId ?>"
                             <?= $isChecked ? 'checked' : '' ?>
                         >
-                        <label class="af-label" for="<?= $inputId ?>"><?= htmlspecialchars($manufacturerName) ?></label>
+                        <label class="af-label" for="<?= $inputId ?>"><?= htmlspecialchars($optionName) ?><?php if ($optionCountShown !== null): ?> <span class="af-count">(<?= (int) $optionCountShown ?>)</span><?php endif; ?></label>
                     </div>
                 </li>
             <?php endforeach; ?>

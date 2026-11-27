@@ -21,8 +21,8 @@ defined('_JEXEC') or die;
  * WHAT THE PANEL SHOWS, AND IN WHAT ORDER.
  *
  * The panel is a sequence of SECTIONS. Some are built into the module: the category tree,
- * the manufacturer list, the price slider, the ordering and limit selects, the on-sale and
- * discount controls. The rest are the catalogue's own filterable item fields, one section
+ * the manufacturer list, the labels, the price slider, the ordering and limit selects, the
+ * on-sale and discount controls. The rest are the catalogue's own filterable item fields, one section
  * each, and those are neither known nor knowable here: a merchant adds a field and the
  * panel must simply grow one.
  *
@@ -54,7 +54,7 @@ final class FilterSections
      * @var string[]
      * @since  2.0.0
      */
-    public const FIXED_BEFORE = ['category', 'manufacturer'];
+    public const FIXED_BEFORE = ['category', 'manufacturer', 'label'];
 
     /**
      * Built-in sections that follow the item fields, in their natural order.
@@ -68,6 +68,7 @@ final class FilterSections
         'ordering',
         'limit',
         'on_sale',
+        'new',
         'discount_amount',
         'discount_percent',
     ];
@@ -90,11 +91,13 @@ final class FilterSections
     private const FIXED_LABELS = [
         'category' => 'MOD_ALFAFILTERS_FILTER_CATEGORY',
         'manufacturer' => 'MOD_ALFAFILTERS_FILTER_MANUFACTURER',
+        'label' => 'MOD_ALFAFILTERS_FILTER_LABEL',
         'stock' => 'MOD_ALFAFILTERS_FILTER_STOCK_LABEL',
         'price' => 'MOD_ALFAFILTERS_FILTER_PRICE',
         'ordering' => 'MOD_ALFAFILTERS_FILTER_ORDERING_LABEL',
         'limit' => 'MOD_ALFAFILTERS_FILTER_LIST_LIMIT_LABEL',
         'on_sale' => 'MOD_ALFAFILTERS_FILTER_ON_SALE_LABEL',
+        'new' => 'MOD_ALFAFILTERS_FILTER_NEW_LABEL',
         'discount_amount' => 'MOD_ALFAFILTERS_FILTER_DISCOUNT_AMOUNT_MIN_LABEL',
         'discount_percent' => 'MOD_ALFAFILTERS_FILTER_DISCOUNT_PERCENT_MIN_LABEL',
     ];

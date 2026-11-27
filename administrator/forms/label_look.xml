@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One of the shop's predefined labels (Options > Labels, Labels::predefined()): its key, which a product ticks it by
-     and the REST API names it by, then the look and places every label has (label.xml). The rows' order in the Options
-     is the order the labels stand in on a product. -->
+<!-- A label's look and places (Label), kept inline as a subform's value: its text per language, its colours, an extra
+     class, whether and where it shows on a catalogue card and on the product page, and its corner of the image. The
+     subform of the New label (Options, Products) and of a product's own label (the product's Labels tab). The shop's
+     labels are records of their own (label.xml). -->
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
-    <field name="key" type="text" maxlength="64" filter="cmd" required="true"
-           label="COM_ALFA_FORM_LBL_LABEL_KEY" description="COM_ALFA_FORM_DESC_LABEL_KEY"/>
-
-    <field name="name" type="MultilingualText" maxlength="100" filter="string" required="true"
+    <field name="name" type="MultilingualText" maxlength="100" filter="string"
            label="COM_ALFA_FORM_LBL_LABEL_NAME" description="COM_ALFA_FORM_DESC_LABEL_NAME"/>
 
     <field name="bg" type="color" format="hex" default=""

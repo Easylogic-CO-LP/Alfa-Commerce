@@ -55,6 +55,22 @@
                 hint="COM_ALFA_FILTER_ALL_MANUFACTURERS"
         />
 
+        <!-- Label filter -->
+        <!--
+            type="labelsfilter" (Alfa) offers the published labels set as filterable (Labels::filterable()), in the
+            Labels screen's order, named in the active language. NO <option> children, as the manufacturers above.
+            Several labels read as OR: a product that ticks any of them.
+        -->
+        <field
+                name="label"
+                type="labelsfilter"
+                multiple="true"
+                label="COM_ALFA_FILTER_LABEL_LBL"
+                layout="joomla.form.field.list-fancy-select"
+                onchange="this.form.submit();"
+                hint="COM_ALFA_FILTER_ALL_LABELS"
+        />
+
         <!-- Price range -->
         <!--
             price_min and price_max feed the range slider on the front end.
@@ -111,6 +127,22 @@
         >
             <option value="">COM_ALFA_FILTER_ON_SALE_ALL</option>
             <option value="1">COM_ALFA_FILTER_ON_SALE_YES</option>
+        </field>
+
+        <!-- New arrivals -->
+        <!--
+            When set to 1: only the products NewProducts counts as new (the shop's days and counted-from setting,
+            Options > General > Products). With no days the filter matches nothing. Empty value = show all items.
+        -->
+        <field
+                name="new"
+                type="radio"
+                label="COM_ALFA_FILTER_NEW_LBL"
+                class="btn-group"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_NEW_ALL</option>
+            <option value="1">COM_ALFA_FILTER_NEW_YES</option>
         </field>
 
         <!-- Minimum discount amount -->

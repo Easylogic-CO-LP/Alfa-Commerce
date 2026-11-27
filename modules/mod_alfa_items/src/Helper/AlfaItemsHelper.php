@@ -57,6 +57,7 @@ final class AlfaItemsHelper
 {
     public const SOURCE_ITEMS = 'items';
     public const SOURCE_ON_SALE = 'on_sale';
+    public const SOURCE_NEW = 'new';
     public const SOURCE_BEST_SELLERS = 'best_sellers';
     public const SOURCE_RECENTLY_VIEWED = 'recently_viewed';
 
@@ -192,6 +193,7 @@ final class AlfaItemsHelper
                 source:            $definition['source'],
                 limit:             $definition['limit'],
                 ordering:          $definition['ordering'],
+                labelIds:          $definition['labels'],
             );
 
             if ($items === [] && $onlyKey === null) {
@@ -249,9 +251,10 @@ final class AlfaItemsHelper
                 'context' => \count($visible) === 1 ? (int) $visible[0] : 0,
                 'scope' => \count($visible) > 1 ? $visible : [],
                 'source' => $row['source'],
+                'labels' => $row['labels'],
                 'limit' => $row['limit'],
                 'ordering' => $row['ordering'],
-                'link' => $row['link'] ? self::viewAllUrl(source: $row['source'], categoryIds: $visible, ordering: $row['ordering']) : '',
+                'link' => $row['link'] ? self::viewAllUrl(source: $row['source'], categoryIds: $visible, ordering: $row['ordering'], labelIds: $row['labels']) : '',
                 'look' => $row['look'],
             ];
         }
@@ -274,7 +277,7 @@ final class AlfaItemsHelper
      *
      * @since  1.0.0
      */
-    private static function viewAllUrl(string $source, array $categoryIds, string $ordering): string
+    private static function viewAllUrl(string $source, array $categoryIds, string $ordering, array $labelIds = []): string
     {
         $single = \count($categoryIds) === 1 ? (int) $categoryIds[0] : 0;
 
@@ -294,6 +297,15 @@ final class AlfaItemsHelper
 
         if ($source === self::SOURCE_ON_SALE) {
             $url .= '&filter[on_sale]=1';
+        }
+
+        if ($source === self::SOURCE_NEW) {
+            $url .= '&filter[new]=1';
+        }
+
+        // A tab of labelled products carries its labels: the page lists what the tab lists.
+        foreach ($labelIds as $labelId) {
+            $url .= '&filter[label][]=' . (int) $labelId;
         }
 
         if ($ordering !== self::DEFAULT_ORDERING) {
@@ -319,6 +331,7 @@ final class AlfaItemsHelper
      * @param string $source The tab's source (a SOURCE_* constant).
      * @param int $limit The tab's size.
      * @param string $ordering The tab's ordering (a key of ORDERINGS).
+     * @param int[] $labelIds The labels the tab's products tick (any of them); [] for every product.
      *
      * @return object[] Decorated items, in display order.
      *
@@ -331,6 +344,7 @@ final class AlfaItemsHelper
         string $source,
         int $limit,
         string $ordering,
+        array $labelIds = [],
     ): array {
         $source = self::source($source);
         $limit = self::bounded($limit, 1, self::LIMIT_MAX);
@@ -342,11 +356,23 @@ final class AlfaItemsHelper
             $model->setState('filter.category', $scopeCategoryIds);
         }
 
+        // The tab's labels: only products that tick one of them, whatever the source.
+        $labelIds = array_values(array_filter(array_map('intval', $labelIds)));
+
+        if ($labelIds !== []) {
+            $model->setState('filter.label', $labelIds);
+        }
+
         $ranked = null;
 
         switch ($source) {
             case self::SOURCE_ON_SALE:
                 $model->setState('filter.on_sale', 1);
+                self::order($model, $ordering);
+                break;
+
+            case self::SOURCE_NEW:
+                $model->setState('filter.new', 1);
                 self::order($model, $ordering);
                 break;
 
@@ -428,17 +454,18 @@ final class AlfaItemsHelper
      * @param string $source The source (a SOURCE_* constant).
      * @param int $limit The size.
      * @param string $ordering The ordering (a key of ORDERINGS).
+     * @param int[] $labelIds The labels the tab's products tick; [] for every product.
      *
      * @return object[] Decorated items, in display order.
      *
      * @since  1.0.0
      */
-    public static function cachedItems(int $moduleId, Registry $params, int $contextCategoryId, array $scopeCategoryIds, string $source, int $limit, string $ordering): array
+    public static function cachedItems(int $moduleId, Registry $params, int $contextCategoryId, array $scopeCategoryIds, string $source, int $limit, string $ordering, array $labelIds = []): array
     {
         $recentlyViewed = self::source($source) === self::SOURCE_RECENTLY_VIEWED;
 
         if ($recentlyViewed || $ordering === 'random') {
-            $items = self::getItems(params: $params, contextCategoryId: $contextCategoryId, scopeCategoryIds: $scopeCategoryIds, source: $source, limit: $limit, ordering: $ordering);
+            $items = self::getItems(params: $params, contextCategoryId: $contextCategoryId, scopeCategoryIds: $scopeCategoryIds, source: $source, limit: $limit, ordering: $ordering, labelIds: $labelIds);
 
             if ($items !== [] && $recentlyViewed) {
                 PageCache::excludeResponse();
@@ -451,7 +478,7 @@ final class AlfaItemsHelper
         $cache->cachemode = 'id';
         $cache->class = self::class;
         $cache->method = 'getItems';
-        $cache->methodparams = [$params, $contextCategoryId, $scopeCategoryIds, $source, $limit, $ordering];
+        $cache->methodparams = [$params, $contextCategoryId, $scopeCategoryIds, $source, $limit, $ordering, $labelIds];
         // One entry per module, query, pricing context, page (an item's link follows
         // the page's menu item), stock settings, inventory version and online sales (a
         // card drawn to sell is not one drawn for the catalogue only); the cache
@@ -464,6 +491,7 @@ final class AlfaItemsHelper
             $source,
             $limit,
             $ordering,
+            $labelIds,
             (int) $params->get('bestsellers_days', 90),
             PriceContext::fromSession()->toCacheKey(),
             Factory::getApplication()->getInput()->getInt('Itemid', 0),
@@ -1131,6 +1159,7 @@ final class AlfaItemsHelper
         return \in_array($source, [
             self::SOURCE_ITEMS,
             self::SOURCE_ON_SALE,
+            self::SOURCE_NEW,
             self::SOURCE_BEST_SELLERS,
             self::SOURCE_RECENTLY_VIEWED,
         ], true) ? $source : self::SOURCE_ITEMS;
@@ -1159,6 +1188,7 @@ final class AlfaItemsHelper
                 'label' => trim((string) ($row['label'] ?? '')),
                 'source' => self::source((string) ($row['source'] ?? '')),
                 'categories' => array_values(array_unique(array_filter(array_map('intval', (array) ($row['categories'] ?? []))))),
+                'labels' => array_values(array_unique(array_filter(array_map('intval', (array) ($row['labels'] ?? []))))),
                 'limit' => self::bounded($row['limit'] ?? self::DEFAULT_LIMIT, 1, self::LIMIT_MAX),
                 'ordering' => isset(self::ORDERINGS[$ordering]) ? $ordering : self::DEFAULT_ORDERING,
                 'link' => (bool) ($row['show_link'] ?? false),

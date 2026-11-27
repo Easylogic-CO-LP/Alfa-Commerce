@@ -476,6 +476,18 @@ class ItemsModel extends AlfaListModel
             );
         }
 
+        // Filter by label (multi-select, many-to-many): the products that tick any of them (the Labels list's count links
+        // here).
+        $labels = array_filter(array_map('intval', (array) $this->getState('filter.label')));
+
+        if (!empty($labels)) {
+            $query->where(
+                'a.id IN (SELECT ' . $db->quoteName('item_id')
+                . ' FROM ' . $db->quoteName('#__alfa_item_labels')
+                . ' WHERE ' . $db->quoteName('label_id') . ' IN (' . implode(',', $labels) . '))',
+            );
+        }
+
         // Item-field value filter (Size, Color, ...)
         // The SAME contract the storefront and mod_alfa_filters use:
         // filter[fields][<id>][] -> AND across fields, OR within a field, over the

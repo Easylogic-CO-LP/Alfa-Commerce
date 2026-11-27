@@ -234,13 +234,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.filterForm.dispatchEvent(new Event('change', { bubbles: true }));
             });
 
-            // Manufacturer reset
-            const manufacturerResetBtn = qs('.af-reset-manufacturer', this.wrapper);
-            manufacturerResetBtn?.addEventListener('click', () => {
-                this.filterForm.querySelectorAll('input[name="filter[manufacturer][]"]').forEach(cb => {
-                    cb.checked = false;
+            // Manufacturer and label reset: each a flat list of checkboxes.
+            ['manufacturer', 'label'].forEach((section) => {
+                const resetBtn = qs('.af-reset-' + section, this.wrapper);
+                resetBtn?.addEventListener('click', () => {
+                    this.filterForm.querySelectorAll('input[name="filter[' + section + '][]"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    this.filterForm.dispatchEvent(new Event('change', { bubbles: true }));
                 });
-                this.filterForm.dispatchEvent(new Event('change', { bubbles: true }));
             });
         }
 
@@ -270,9 +272,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasCategory = this.filterForm.querySelector('input[name="filter[category][]"]:checked') !== null;
             toggle('.af-reset-category', hasCategory);
 
-            // Manufacturer: any checked
-            const hasManufacturer = this.filterForm.querySelector('input[name="filter[manufacturer][]"]:checked') !== null;
-            toggle('.af-reset-manufacturer', hasManufacturer);
+            // Manufacturer, label: any checked
+            ['manufacturer', 'label'].forEach((section) => {
+                const hasChecked = this.filterForm.querySelector('input[name="filter[' + section + '][]"]:checked') !== null;
+                toggle('.af-reset-' + section, hasChecked);
+            });
 
             // Price: slider moved from its absolute range.
             const hasPrice = this.isPriceActive();

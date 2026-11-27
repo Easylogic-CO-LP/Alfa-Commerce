@@ -478,42 +478,49 @@ ALTER TABLE `#__alfa_items` ADD COLUMN `created` datetime DEFAULT NULL COMMENT '
 
 -- Labels
 
--- The labels a product shows: the automatic New label, the shop's predefined labels (Options > Labels) it ticks, each in
--- the corner the product chose or the label's own, and the product's own label between its dates; a discount's sale tag
--- gets the same corner. The install SQL has the same table and column; each statement runs again harmlessly.
+-- The shop's labels are records (the Labels screen): a product ticks them, each in the corner the product chose or the
+-- label's own; the product's own label and its choice for the automatic New label are kept on the product
+-- (label_settings); a discount's sale tag gets the same corner. The install SQL has the same tables and columns; each
+-- statement runs again harmlessly. A shop that ran a build of this version before the labels became records holds
+-- #__alfa_item_labels in that build's shape (a label_key column): script.php drops it and this file's CREATE, run by
+-- the installation (createMissingTables()), makes it again.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_labels` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  -- Translatable field (name) lives ONLY in the per-language tables #__alfa_labels_<langtag>. No main-table copy.
+  `bg` varchar(30) NOT NULL DEFAULT '' COMMENT 'Background colour (CSS colour); empty = the storefront''s label token',
+  `color` varchar(30) NOT NULL DEFAULT '' COMMENT 'Text colour (CSS colour); empty = the storefront''s label token',
+  `class` varchar(190) NOT NULL DEFAULT '' COMMENT 'Extra CSS class(es) on the badge',
+  `list_show` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on catalogue cards',
+  `list_slot` varchar(50) NOT NULL DEFAULT 'image' COMMENT 'ItemListSurface slot on the card',
+  `item_show` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on the product page',
+  `item_slot` varchar(50) NOT NULL DEFAULT 'image' COMMENT 'ItemSurface slot on the product page',
+  `corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the label sits in when its slot is the image: top-left, top-right, bottom-left or bottom-right',
+  `filterable` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the storefront filters offer it (the filters module, a menu item''s preset filters, the REST API''s filter[label])',
+  `state` tinyint(1) DEFAULT 1,
+  `publish_up` datetime DEFAULT NULL,
+  `publish_down` datetime DEFAULT NULL,
+  `checked_out` int(11) UNSIGNED DEFAULT NULL,
+  `checked_out_time` datetime DEFAULT NULL,
+  `created_by` int(11) DEFAULT 0,
+  `modified` datetime NOT NULL,
+  `modified_by` int(11) DEFAULT 0,
+  `ordering` int(11) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_state` (`state`),
+  KEY `idx_checked_out` (`checked_out`),
+  KEY `idx_created_by` (`created_by`),
+  KEY `idx_modified_by` (`modified_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The shop''s labels: a badge a product ticks, its look, where it shows and whether the filters offer it';
 
 CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
-  `label_key` varchar(64) NOT NULL COMMENT 'new for the automatic New label, a predefined label''s key (Options > Labels), or custom for the product''s own label',
-  `shown` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on this product; 0 = not shown although the shop would show it (the New label of a new product)',
+  `label_id` int(11) UNSIGNED NOT NULL COMMENT 'The label (#__alfa_labels) the product ticks',
   `corner` varchar(12) DEFAULT NULL COMMENT 'The corner of the image this product shows the label in: top-left, top-right, bottom-left or bottom-right; NULL = the label''s own corner',
-  `custom` mediumtext DEFAULT NULL COMMENT 'JSON of the product''s own label (label_key custom): its name by language, colours, class, where it shows and its period; NULL on every other row',
-  PRIMARY KEY (`item_id`, `label_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product shows: the ones it ticks with their corners, and its own label';
+  PRIMARY KEY (`item_id`, `label_id`),
+  KEY `idx_label_id` (`label_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product ticks, each in a corner of its own when one was chosen';
+
+ALTER TABLE `#__alfa_items` ADD COLUMN `label_settings` text DEFAULT NULL COMMENT 'JSON: the product''s own label (own: its name by language, colours, class, where it shows, its period) and its choice for the automatic New label (new: shown 0 or 1, corner); NULL = no own label and the New label as the shop shows it' AFTER `discount_rules` /** CAN FAIL **/;
 
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right' AFTER `tag_class` /** CAN FAIL **/;
-
--- Where the product page shows an item field
-
--- A field definition names the place of the product page that shows it: the buy box as a specification (as before,
--- the default), the Specifications section, a section of its own, under the title, under the price, beside add to
--- cart, or nowhere by itself (a template override prints it). A site that ran an earlier copy of this file gets the
--- column from script.php; the install SQL creates the same column.
-
-ALTER TABLE `#__alfa_item_fields` ADD COLUMN `placement` varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)' AFTER `show_on_listing` /** CAN FAIL **/;
-
--- A product's own page sections
-
--- The Sections tab of a product: each row replaces the general section of Options whose key it names on the product's
--- page, or is a section of its own; title and body per language in #__alfa_item_sections_<langtag>, made on the first
--- save as every language table is. A site that ran an earlier copy of this file gets the table from script.php; the
--- install SQL creates the same table.
-
-CREATE TABLE IF NOT EXISTS `#__alfa_item_sections` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK #__alfa_items.id',
-  `section_key` varchar(64) NOT NULL DEFAULT '' COMMENT 'The key of the general section (Options) this one replaces on the product page; empty for a section of its own',
-  `position` int(11) NOT NULL DEFAULT 0 COMMENT 'Its place among the page sections, with the general sections and the fields shown as sections, ascending',
-  PRIMARY KEY (`id`),
-  KEY `idx_item_position` (`item_id`, `position`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='A product page''s own sections; title and body in #__alfa_item_sections_<langtag>';

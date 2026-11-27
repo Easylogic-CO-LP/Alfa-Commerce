@@ -94,9 +94,11 @@ final class FilterKeyWhitelist
             'search',
             'category',
             'manufacturer',
+            'label',    // the shop's labels a product ticks (OR within)
             'price_min',
             'price_max',
             'on_sale',
+            'new',      // 1: only the products the shop counts as new (NewProducts)
             'discount_amount_min',
             'discount_percent_min',
             'stock',    // in / out: the view's radio, the module's checkboxes

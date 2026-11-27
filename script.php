@@ -217,6 +217,7 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_discount_items',
         '#__alfa_discount_excluded_items',
         '#__alfa_discount_excluded_categories',
+        '#__alfa_labels',
         '#__alfa_item_labels',
         '#__alfa_item_sections',
     ];
@@ -242,6 +243,7 @@ class com_alfaInstallerScript extends InstallerScript
             'commerce_changed_at' => ["datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]'", 'modified'],
             'discount_rules' => ["tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the discount rules apply; 0 = excluded from every discount rule, whatever the rules say'", 'is_virtual'],
             'created' => ["datetime DEFAULT NULL COMMENT 'UTC: when the product was made; NULL on a product made before the date was kept, which is then never new'", 'created_by'],
+            'label_settings' => ["text DEFAULT NULL COMMENT 'JSON: the product''s own label (own: its name by language, colours, class, where it shows, its period) and its choice for the automatic New label (new: shown 0 or 1, corner); NULL = no own label and the New label as the shop shows it'", 'discount_rules'],
         ],
         '#__alfa_item_combinations' => [
             'discount_rules' => ["tinyint(1) DEFAULT NULL COMMENT 'NULL = as the product; 1 = the discount rules apply; 0 = excluded from every discount rule'", 'min_qty'],
@@ -835,6 +837,42 @@ class com_alfaInstallerScript extends InstallerScript
             );
             Factory::getApplication()->enqueueMessage($message, 'error');
             self::maintenanceLog(line: $message, priority: \Joomla\CMS\Log\Log::ERROR);
+        }
+    }
+
+    /**
+     * Drop `#__alfa_item_labels` where it still has the shape a build of this version made before the labels became
+     * records: a label_key column naming a label of the Options, and the product's own label as JSON in the row. No
+     * release carried that shape and it held only test rows, so the table is dropped here, and
+     * {@see self::createMissingTables()} makes it again from the install SQL in its shape of today (item_id, label_id,
+     * corner). A table of today's shape, or none, is left alone.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function recreateItemLabels(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $table = $db->replacePrefix('#__alfa_item_labels');
+
+        try {
+            $columns = $db->setQuery(
+                'SELECT ' . $db->quoteName('COLUMN_NAME') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE()'
+                . ' AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table),
+            )->loadColumn() ?: [];
+
+            if (!\in_array('label_key', array_map('strval', $columns), true)) {
+                return;
+            }
+
+            $db->setQuery('DROP TABLE ' . $db->quoteName($table))->execute();
+            self::maintenanceLog(
+                line: sprintf('Update to %s: %s held the shape of a build before the labels became records and was dropped, to be made again.', self::SCHEMA_VERSION, $table),
+                priority: \Joomla\CMS\Log\Log::INFO,
+            );
+        } catch (\Throwable $e) {
+            self::maintenanceLog(line: $table . ' could not be dropped: ' . $e->getMessage(), priority: \Joomla\CMS\Log\Log::ERROR);
         }
     }
 
@@ -1643,6 +1681,7 @@ class com_alfaInstallerScript extends InstallerScript
         // 0. The columns no code reads are gone, the tables and columns this release adds are there, then the Alfa tables
         //    are at this package's schema: say so among them.
         $this->dropLeftoverColumns();
+        $this->recreateItemLabels();
         $this->createMissingTables();
         $this->addMissingColumns();
         $this->addMissingKeys();

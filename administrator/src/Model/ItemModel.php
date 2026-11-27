@@ -204,6 +204,8 @@ class ItemModel extends AlfaAdminModel
     protected $batch_commands = [
         'category_id' => 'batchCategory',
         'manufacturer_id' => 'batchManufacturer',
+        'label_add' => 'batchLabelAdd',
+        'label_remove' => 'batchLabelRemove',
         'user_id' => 'batchUser',
         'usergroup_id' => 'batchUserGroup',
     ];
@@ -323,6 +325,57 @@ class ItemModel extends AlfaAdminModel
         (new ProjectionManager())->syncItems($pks);
 
         $app->enqueueMessage(Text::_('COM_ALFA_MANUFACTURERS_SET_SUCCESSFULLY'), 'info');
+
+        return true;
+    }
+
+    /**
+     * Batch command: give the selected products these labels (the Products list's batch), in each label's own corner; a
+     * product that already ticks one keeps its row and its corner.
+     *
+     * @param array $value The label ids to add (a single empty value = no change).
+     * @param array $pks The item ids being processed.
+     * @param array $contexts The context for each item.
+     *
+     * @return bool True on success.
+     *
+     * @since  2.3.0
+     */
+    protected function batchLabelAdd($value, $pks, $contexts)
+    {
+        $labelIds = array_values(array_filter(array_map('intval', (array) $value), static fn (int $id): bool => $id > 0));
+
+        if ($labelIds === []) {
+            return true;
+        }
+
+        ItemLabels::add(db: $this->alfaDriver(), itemIds: array_map('intval', $pks), rows: array_fill_keys($labelIds, null));
+        Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ITEMS_LABELS_ADDED'), 'info');
+
+        return true;
+    }
+
+    /**
+     * Batch command: take these labels off the selected products (the Products list's batch).
+     *
+     * @param array $value The label ids to remove (a single empty value = no change).
+     * @param array $pks The item ids being processed.
+     * @param array $contexts The context for each item.
+     *
+     * @return bool True on success.
+     *
+     * @since  2.3.0
+     */
+    protected function batchLabelRemove($value, $pks, $contexts)
+    {
+        $labelIds = array_values(array_filter(array_map('intval', (array) $value), static fn (int $id): bool => $id > 0));
+
+        if ($labelIds === []) {
+            return true;
+        }
+
+        ItemLabels::remove(db: $this->alfaDriver(), itemIds: array_map('intval', $pks), labelIds: $labelIds);
+        Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ITEMS_LABELS_REMOVED'), 'info');
 
         return true;
     }
@@ -631,12 +684,15 @@ class ItemModel extends AlfaAdminModel
             // The related products, in their order, as the Related tab's rows.
             $item->related = RelatedItems::rows(db: $this->getDatabase(), itemId: (int) $item->id);
 
-            // The product's labels (ItemLabels): the Labels tab's ticks and corners, and its own label with its period.
-            $labelRows = ItemLabels::forItems(db: $this->getDatabase(), itemIds: [(int) $item->id])[(int) $item->id] ?? [];
-            $item->labels = ItemLabels::formValue(rows: $labelRows);
-            $item->custom_label = ItemLabels::customValue(rows: $labelRows);
-            $item->custom_label_from = (string) ($item->custom_label['publish_up'] ?? '');
-            $item->custom_label_to = (string) ($item->custom_label['publish_down'] ?? '');
+            // The product's labels (ItemLabels): the Labels tab's ticks with their corners (by label id: on, corner),
+            // its choice for the New label and its own label with its period (label_settings).
+            $item->labels = ItemLabels::formValue(rows: ItemLabels::forItems(db: $this->getDatabase(), itemIds: [(int) $item->id])[(int) $item->id] ?? []);
+            $labelSettings = ItemLabels::settingsOf($item->label_settings ?? null);
+            $item->new_label_shown = $labelSettings['new']['shown'];
+            $item->new_label_corner = $labelSettings['new']['corner'];
+            $item->own_label = $labelSettings['own'] ?? [];
+            $item->own_label_from = (string) ($labelSettings['own']['publish_up'] ?? '');
+            $item->own_label_to = (string) ($labelSettings['own']['publish_down'] ?? '');
 
             // The product's own page sections, as the Sections tab's rows.
             $item->sections = ItemSections::rows(db: $this->getDatabase(), itemId: (int) $item->id);
@@ -937,17 +993,31 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
-        // THE LABELS, judged before the transaction (ItemLabels::posted()): the labels the product ticks with their
-        // corners and its own label with its period; an own label whose period ends before it starts is refused and
-        // nothing is saved. A write that posts neither leaves the rows as they are.
-        $labelRows = \array_key_exists('labels', $data) || \array_key_exists('custom_label', $data)
-            ? ItemLabels::posted(labels: $data['labels'] ?? [], custom: $data['custom_label'] ?? [], from: $data['custom_label_from'] ?? '', to: $data['custom_label_to'] ?? '')
-            : null;
-        $labelRefusals = $labelRows === null ? [] : ItemLabels::refusals(rows: $labelRows);
+        // THE LABELS, judged before the transaction (ItemLabels): the labels the product ticks with their corners, and
+        // its own label with its choice for the New label, which travel with the row as its label_settings column; an
+        // own label whose period ends before it starts is refused and nothing is saved. A write that posts no ticks
+        // leaves them as they are; one that posts none of the settings' fields leaves the column as it is.
+        $labelRows = \array_key_exists('labels', $data) ? ItemLabels::posted(labels: $data['labels'], corners: $data['label_corners'] ?? []) : null;
+        $labelSettingsKeys = ['new_label_shown', 'new_label_corner', 'own_label', 'own_label_from', 'own_label_to'];
 
-        if ($labelRefusals !== []) {
-            return $this->refuseSave(messages: $labelRefusals);
+        if (array_intersect_key($data, array_flip($labelSettingsKeys)) !== []) {
+            // A write that posts some of the fields (a REST PATCH) keeps the stored values of the others.
+            $stored = ItemLabels::settingsOf($pk > 0 && array_diff($labelSettingsKeys, array_keys($data)) !== [] ? ($this->getItem($pk)->label_settings ?? null) : null);
+            $data[ItemLabels::SETTINGS_COLUMN] = ItemLabels::settingsPosted(
+                newShown:  \array_key_exists('new_label_shown', $data) ? $data['new_label_shown'] : $stored['new']['shown'],
+                newCorner: \array_key_exists('new_label_corner', $data) ? $data['new_label_corner'] : $stored['new']['corner'],
+                own:       \array_key_exists('own_label', $data) ? $data['own_label'] : ($stored['own'] ?? []),
+                from:      \array_key_exists('own_label_from', $data) ? $data['own_label_from'] : ($stored['own']['publish_up'] ?? ''),
+                to:        \array_key_exists('own_label_to', $data) ? $data['own_label_to'] : ($stored['own']['publish_down'] ?? ''),
+            );
+            $labelRefusals = ItemLabels::refusals(settings: $data[ItemLabels::SETTINGS_COLUMN]);
+
+            if ($labelRefusals !== []) {
+                return $this->refuseSave(messages: $labelRefusals);
+            }
         }
+
+        unset($data['label_corners'], $data['new_label_shown'], $data['new_label_corner'], $data['own_label'], $data['own_label_from'], $data['own_label_to']);
 
         // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
         // a save naming any other is refused before anything is written, from the form and the API alike, so the

@@ -44,6 +44,12 @@ $user = $this->getCurrentUser();
         </div>
     </div>
 
+    <div class="row">
+        <div class="form-group col-md-6">
+            <?php echo LayoutHelper::render('batch.labels'); ?>
+        </div>
+    </div>
+
     
 </div>
 <div class="btn-toolbar p-3">

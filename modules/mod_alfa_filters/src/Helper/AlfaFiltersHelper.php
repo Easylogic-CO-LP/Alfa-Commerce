@@ -119,12 +119,12 @@ class AlfaFiltersHelper
     }
 
     /**
-     * Build the available filter options: the category tree (depth/product-count from params) and the
-     * manufacturers available under the current item filters.
+     * Build the available filter options: the category tree (depth/product-count from params), the
+     * manufacturers and the labels available under the current item filters.
      *
      * @param Registry $params The module parameters.
      *
-     * @return array ['category' => category tree, 'manufacturer' => available manufacturers].
+     * @return array ['category' => category tree, 'manufacturer' => available manufacturers, 'label' => available labels].
      */
     public static function getAvailableFilters(Registry $params): array
     {
@@ -155,6 +155,10 @@ class AlfaFiltersHelper
 
         $allManufacturers = $model->getAvailableManufacturers();
 
+        // The labels the result reaches, of those the shop offers as filters; with how many products tick each when
+        // the merchant shows counts.
+        $allLabels = $model->getAvailableLabels(withCounts: $productCount);
+
         // Item-field value facets (Size, Color, ...), grouped per filterable field.
         $itemFields = $model->getAvailableItemFieldValues();
 
@@ -184,6 +188,7 @@ class AlfaFiltersHelper
         return [
             'category' => $allCategories,
             'manufacturer' => $allManufacturers,
+            'label' => $allLabels,
             'fields' => $itemFields,
             // Availability: how many sellable / not, under the other active filters.
             // Two counts, so only when the merchant shows counts at all.
@@ -319,11 +324,13 @@ class AlfaFiltersHelper
         $filterForm->setFieldAttribute('fullordering', 'onchange', '', 'list');
         $filterForm->setFieldAttribute('limit', 'onchange', '', 'list');
         $filterForm->setFieldAttribute('on_sale', 'onchange', '', 'filter');
+        $filterForm->setFieldAttribute('new', 'onchange', '', 'filter');
 
         // 2. Set unique IDs using the module ID
         $filterForm->setFieldAttribute('fullordering', 'id', 'alfa_filters_ordering_' . $moduleId, 'list');
         $filterForm->setFieldAttribute('limit', 'id', 'alfa_filters_limit_' . $moduleId, 'list');
         $filterForm->setFieldAttribute('on_sale', 'id', 'alfa_filters_on_sale_' . $moduleId, 'filter');
+        $filterForm->setFieldAttribute('new', 'id', 'alfa_filters_new_' . $moduleId, 'filter');
         $filterForm->setFieldAttribute('discount_amount_min', 'id', 'alfa_filters_discount_amount_min_' . $moduleId, 'filter');
         $filterForm->setFieldAttribute('discount_percent_min', 'id', 'alfa_filters_discount_percent_min_' . $moduleId, 'filter');
 
@@ -337,6 +344,7 @@ class AlfaFiltersHelper
         $orderingHtml = $render('fullordering', 'list');
         $limitHtml = $render('limit', 'list');
         $onSaleHtml = $render('on_sale', 'filter');
+        $newHtml = $render('new', 'filter');
         $discountAmountMinHtml = $render('discount_amount_min', 'filter');
         $discountPercentMinHtml = $render('discount_percent_min', 'filter');
 
@@ -344,6 +352,7 @@ class AlfaFiltersHelper
             'ordering' => $orderingHtml,
             'limit' => $limitHtml,
             'on_sale' => $onSaleHtml,
+            'new' => $newHtml,
             'discount_amount_min' => $discountAmountMinHtml,
             'discount_percent_min' => $discountPercentMinHtml,
         ];

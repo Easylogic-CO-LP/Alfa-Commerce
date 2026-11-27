@@ -11,18 +11,15 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemLabels;
 use Alfa\Component\Alfa\Site\Service\Catalog\LabelCorner;
 use Alfa\Component\Alfa\Site\Service\Catalog\Labels;
-use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
 
 /**
- * The product's Labels tab's first field: a row per label the product may show, the automatic New label first and
- * then the shop's predefined labels (Options > Labels) in their order, each with a tick (shown on this product) and a
- * corner of the image for this product ('' = the label's own). The value is by key: shown and corner
- * (ItemLabels::formValue(), ItemLabels::posted()).
+ * The product's Labels tab's tick table: a row per label of the Labels screen, in their order, each with a tick (the
+ * product shows it) and a corner of the image for this product ('' = the label's own). The value is by label id:
+ * {on, corner} (ItemLabels::formValue(), ItemLabels::posted()).
  *
  *   <field name="labels" type="itemlabels" filter="array" label="..." />
  *
@@ -71,8 +68,8 @@ class ItemlabelsField extends FormField
     }
 
     /**
-     * The layout's data: the rows (key, name, kind, colours, the label's own corner, whether it is shown by default),
-     * the corners to choose from, the shop's days, and the value by key.
+     * The layout's data: the rows (id, name, colours, the label's own corner, its state), the corners to choose from,
+     * and the value by label id.
      *
      * @return array<string, mixed>
      *
@@ -81,26 +78,15 @@ class ItemlabelsField extends FormField
     protected function getLayoutData()
     {
         $rows = [];
-        $new = Labels::newLabel();
-        $rows[] = [
-            'key' => ItemLabels::KEY_NEW,
-            'name' => $new?->name ?? Labels::NEW_NAME,
-            'kind' => 'new',
-            'bg' => $new?->bg ?? '',
-            'color' => $new?->color ?? '',
-            'corner' => ($new?->corner ?? LabelCorner::TopLeft)->text(),
-            'defaultShown' => 1,
-        ];
 
-        foreach (Labels::predefined() as $key => $label) {
+        foreach (Labels::all() as $id => $record) {
             $rows[] = [
-                'key' => $key,
-                'name' => $label->name,
-                'kind' => 'predefined',
-                'bg' => $label->bg,
-                'color' => $label->color,
-                'corner' => $label->corner->text(),
-                'defaultShown' => 0,
+                'id' => (int) $id,
+                'name' => $record->label->name,
+                'bg' => $record->label->bg,
+                'color' => $record->label->color,
+                'corner' => $record->label->corner->text(),
+                'published' => $record->state === 1,
             ];
         }
 
@@ -112,15 +98,14 @@ class ItemlabelsField extends FormField
 
         $value = [];
 
-        foreach ((array) $this->value as $key => $choice) {
+        foreach ((array) $this->value as $labelId => $choice) {
             $choice = (array) $choice;
-            $value[(string) $key] = ['shown' => (int) !empty($choice['shown']), 'corner' => (string) ($choice['corner'] ?? '')];
+            $value[(int) $labelId] = ['on' => (int) !empty($choice['on']), 'corner' => (string) ($choice['corner'] ?? '')];
         }
 
         return array_merge(parent::getLayoutData(), [
             'rows' => $rows,
             'corners' => $corners,
-            'days' => NewProducts::days(),
             'value' => $value,
         ]);
     }

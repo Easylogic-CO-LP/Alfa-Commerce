@@ -429,73 +429,31 @@
                label="COM_ALFA_FORM_LBL_ITEM_RELATED" description="COM_ALFA_FORM_DESC_ITEM_RELATED"/>
     </fieldset>
 
-    <!-- The product's labels (ItemLabels): the New label and the shop's predefined labels it ticks, each in a corner of
-         its own when wanted, and a label of its own, shown between its dates. Its own tab (the edit template draws every
-         fieldset beyond the core ones as one). -->
+    <!-- The product's labels (ItemLabels): the shop's labels it ticks (#__alfa_item_labels, each in a corner of its own
+         when wanted), its choice for the automatic New label and a label of its own shown between its dates (both in
+         label_settings). Its own tab (the edit template draws every fieldset beyond the core ones as one). -->
     <fieldset name="labels" label="COM_ALFA_TAB_ITEM_LABELS">
         <field name="labels" type="itemlabels" filter="array"
                label="COM_ALFA_FORM_LBL_ITEM_LABELS" description="COM_ALFA_FORM_DESC_ITEM_LABELS"/>
 
-        <field name="custom_label" type="subform" multiple="false"
-               formsource="administrator/components/com_alfa/forms/label.xml"
-               label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL"/>
-
-        <field name="custom_label_from" type="calendar" translateformat="true" showtime="true" filter="user_utc"
-               label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL_FROM" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL_FROM"/>
-
-        <field name="custom_label_to" type="calendar" translateformat="true" showtime="true" filter="user_utc"
-               label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL_TO" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL_TO"/>
-    </fieldset>
-
-    <!-- The product's own page sections (ItemSections): each replaces the general section of Options whose key it
-         names, or is a section of its own, with a title and a body per language and its ordering number among the
-         page sections. Rows of #__alfa_item_sections; texts in its language tables. -->
-    <fieldset name="sections" label="COM_ALFA_TAB_ITEM_SECTIONS">
-        <field
-                name="sections"
-                type="subform"
-                multiple="true"
-                layout="joomla.form.field.subform.repeatable"
-                buttons="add,remove,move"
-                label="COM_ALFA_FORM_LBL_ITEM_SECTIONS"
-                description="COM_ALFA_FORM_DESC_ITEM_SECTIONS"
-        >
-            <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
-                <field name="id" type="hidden" filter="integer" default="0"/>
-                <field
-                        name="section_key"
-                        type="sectionkeys"
-                        label="COM_ALFA_FORM_LBL_ITEM_SECTION_REPLACES"
-                        description="COM_ALFA_FORM_DESC_ITEM_SECTION_REPLACES"
-                >
-                    <option value="">COM_ALFA_ITEM_SECTION_REPLACES_NONE</option>
-                </field>
-                <field
-                        name="title"
-                        type="MultilingualText"
-                        label="COM_ALFA_SECTION_TITLE_LABEL"
-                        description="COM_ALFA_FORM_DESC_ITEM_SECTION_TITLE"
-                />
-                <field
-                        name="body"
-                        type="MultilingualEditor"
-                        editor="|"
-                        buttons="true"
-                        filter="Joomla\CMS\Component\ComponentHelper::filterText"
-                        label="COM_ALFA_SECTION_BODY_LABEL"
-                        description="COM_ALFA_FORM_DESC_ITEM_SECTION_BODY"
-                />
-                <field
-                        name="position"
-                        type="number"
-                        default="0"
-                        step="1"
-                        filter="integer"
-                        label="COM_ALFA_SECTION_ORDERING_LABEL"
-                        description="COM_ALFA_SECTION_ORDERING_DESC"
-                />
-            </form>
+        <field name="new_label_shown" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+               label="COM_ALFA_FORM_LBL_ITEM_NEW_LABEL_SHOWN" description="COM_ALFA_FORM_DESC_ITEM_NEW_LABEL_SHOWN">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
         </field>
+
+        <field name="new_label_corner" type="labelcorner" none="COM_ALFA_LABEL_CORNER_AS_LABEL" default="" showon="new_label_shown:1"
+               label="COM_ALFA_FORM_LBL_ITEM_NEW_LABEL_CORNER" description="COM_ALFA_FORM_DESC_ITEM_NEW_LABEL_CORNER"/>
+
+        <field name="own_label" type="subform" multiple="false"
+               formsource="administrator/components/com_alfa/forms/label_look.xml"
+               label="COM_ALFA_FORM_LBL_ITEM_OWN_LABEL" description="COM_ALFA_FORM_DESC_ITEM_OWN_LABEL"/>
+
+        <field name="own_label_from" type="calendar" translateformat="true" showtime="true" filter="user_utc"
+               label="COM_ALFA_FORM_LBL_ITEM_OWN_LABEL_FROM" description="COM_ALFA_FORM_DESC_ITEM_OWN_LABEL_FROM"/>
+
+        <field name="own_label_to" type="calendar" translateformat="true" showtime="true" filter="user_utc"
+               label="COM_ALFA_FORM_LBL_ITEM_OWN_LABEL_TO" description="COM_ALFA_FORM_DESC_ITEM_OWN_LABEL_TO"/>
     </fieldset>
 
     <!-- Layout overrides for THIS product; every key inherits category -> menu -> global when empty. -->

@@ -468,6 +468,7 @@ html.alfa-filters-noscroll {
 .af-discount-amount label,
 .af-discount-percent label,
 .af-onsale span,
+.af-new span,
 .af-price-header span {
     --alfa-filters-section-font-size: var(--alfa-filters-text-sm);
     --alfa-filters-section-font-weight: var(--alfa-filters-weight-semibold);
@@ -1332,6 +1333,7 @@ html.alfa-filters-noscroll {
 .af-ordering,
 .af-limit,
 .af-onsale,
+.af-new,
 .af-discount-amount,
 .af-discount-percent {
     padding-top: var(--alfa-filters-space-md);
@@ -1343,7 +1345,10 @@ html.alfa-filters-noscroll {
 
 .af-onsale .btn-group.radio,
 .af-onsale legend,
-.af-onsale fieldset {
+.af-onsale fieldset,
+.af-new .btn-group.radio,
+.af-new legend,
+.af-new fieldset {
     margin: 0;
 }
 

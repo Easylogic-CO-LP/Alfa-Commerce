@@ -23,6 +23,7 @@
         >
             <option value="items">MOD_ALFA_ITEMS_SOURCE_ITEMS</option>
             <option value="on_sale">MOD_ALFA_ITEMS_SOURCE_ON_SALE</option>
+            <option value="new">MOD_ALFA_ITEMS_SOURCE_NEW</option>
             <option value="best_sellers">MOD_ALFA_ITEMS_SOURCE_BEST_SELLERS</option>
             <option value="recently_viewed">MOD_ALFA_ITEMS_SOURCE_RECENTLY_VIEWED</option>
         </field>
@@ -36,6 +37,21 @@
                 label="MOD_ALFA_ITEMS_CATEGORIES_LBL"
                 description="MOD_ALFA_ITEMS_CATEGORIES_DESC"
                 hint="MOD_ALFA_ITEMS_CATEGORIES_HINT"
+        />
+
+        <field
+                name="labels"
+                type="model"
+                model="labels"
+                column_value="id"
+                column_text="name"
+                orderBy="a.ordering"
+                state="1"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_ITEMS_LABELS_LBL"
+                description="MOD_ALFA_ITEMS_LABELS_DESC"
+                hint="MOD_ALFA_ITEMS_LABELS_HINT"
         />
 
         <field

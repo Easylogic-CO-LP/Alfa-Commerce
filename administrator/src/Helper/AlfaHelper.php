@@ -922,6 +922,8 @@ class AlfaHelper
         'categories' => 'categories',
         'manufacturer' => 'manufacturers',
         'manufacturers' => 'manufacturers',
+        'label' => 'labels',
+        'labels' => 'labels',
         'itemfield' => 'itemfields',
         'itemfields' => 'itemfields',
         'order' => 'orders',
@@ -1062,7 +1064,7 @@ class AlfaHelper
      * @since  2.0.0
      */
     public const LIST_SCREENS = [
-        'items', 'categories', 'manufacturers', 'itemfields',
+        'items', 'categories', 'manufacturers', 'labels', 'itemfields',
         'orders', 'documents', 'documentseries', 'documenttypes', 'carts',
         'cartrules', 'discounts',
         'locations', 'inventorymovements', 'reservations',
@@ -1081,7 +1083,7 @@ class AlfaHelper
      * @since  2.0.0
      */
     public const FORM_SCREENS = [
-        'item', 'category', 'manufacturer', 'itemfield',
+        'item', 'category', 'manufacturer', 'label', 'itemfield',
         'order', 'documenttype', 'series',
         'cartrule', 'discount',
         'location',
