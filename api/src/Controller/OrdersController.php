@@ -147,7 +147,8 @@ class OrdersController extends ApiController
      * model applies it as it does for the screen (payment, fulfilment, waiting, reconciliation, overpaid, the
      * order date window and item_id; and the customer, by account or by the order's e-mail). The date window's bounds
      * are UTC, as every date the API publishes: a bound without a zone is a UTC time and a day is the UTC day;
-     * a bound with Z or an offset is read in its own zone. The screen's date presets are not read here.
+     * a bound with Z or an offset is read in its own zone. The screen's date presets are not read here. A page holds
+     * at most {@see HasApiGuards::LIST_PAGE_MOST} orders ({@see HasApiGuards::boundListPage()}).
      *
      * @return static A BaseController object to support chaining.
      *
@@ -155,6 +156,8 @@ class OrdersController extends ApiController
      */
     public function displayList()
     {
+        $this->boundListPage();
+
         $apiFilterInfo = $this->input->get('filter', [], 'array');
 
         if (\array_key_exists('search', $apiFilterInfo)) {

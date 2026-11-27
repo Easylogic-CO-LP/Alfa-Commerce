@@ -273,7 +273,12 @@ final class CoreSetupProvider
             ->probe(static fn (): bool => self::exists(table: '#__alfa_document_series', where: ['state' => 1]));
 
         // SKUs held by more than one product or variant: each SKU names one unit, so the REST API cannot find such a SKU
-        // and no other unit can take it. Read once per computation: the state and the reason follow.
+        // and no other unit can take it. The count is all of them; the reason names the first ones, a display limit,
+        // and says how many more there are. Read once per computation: the state and the reason follow.
+        $duplicateCount = null;
+        $skuDuplicateCount = static function () use (&$duplicateCount): int {
+            return $duplicateCount ??= SkuIndex::duplicateCount();
+        };
         $duplicateSkus = null;
         $skuDuplicates = static function () use (&$duplicateSkus): array {
             return $duplicateSkus ??= SkuIndex::duplicates();
@@ -284,16 +289,27 @@ final class CoreSetupProvider
             ->reason('COM_ALFA_SETUP_CHECK_SKU_UNIQUE')
             ->cta('index.php?option=com_alfa&view=items')
             ->priority(381)
-            ->probe(static fn (): string => $skuDuplicates() === [] ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
+            ->probe(static fn (): string => $skuDuplicateCount() === 0 ? SetupCheck::STATE_PASS : SetupCheck::STATE_WARN)
             ->reasonArguments(
-                arguments: static fn (): array => $skuDuplicates() === [] ? [] : [
-                    (string) \count($skuDuplicates()),
-                    implode('; ', array_map(
-                        static fn (string $sku, array $units): string => SkuIndex::shown(sku: $sku) . ' (' . implode(', ', $units) . ')',
-                        array_map('strval', array_keys($skuDuplicates())),
-                        array_values($skuDuplicates()),
-                    )),
-                ],
+                arguments: static function () use ($skuDuplicateCount, $skuDuplicates): array {
+                    $total = $skuDuplicateCount();
+
+                    if ($total === 0) {
+                        return [];
+                    }
+
+                    $named = $skuDuplicates();
+                    $more = $total - \count($named);
+
+                    return [
+                        (string) $total,
+                        implode('; ', array_map(
+                            static fn (string $sku, array $units): string => SkuIndex::shown(sku: $sku) . ' (' . implode(', ', $units) . ')',
+                            array_map('strval', array_keys($named)),
+                            array_values($named),
+                        )) . ($more > 0 ? Text::sprintf('COM_ALFA_SETUP_CHECK_SKU_UNIQUE_MORE', $more) : ''),
+                    ];
+                },
                 unnamed:   'COM_ALFA_SETUP_CHECK_SKU_UNIQUE_UNNAMED',
             );
 

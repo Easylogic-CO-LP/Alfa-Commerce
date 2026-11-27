@@ -20,6 +20,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginUnavailable;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\OutboundDeliveryJob;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskRetention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use DomainException;
@@ -52,6 +53,15 @@ final class OutboundConsumers
      * @since  2.3.0
      */
     public const NOTICE = 'alfa.outbound.dead:';
+
+    /**
+     * The most changes given up one Retry puts back: a batch size, the rows one statement of the shop's own clean-up
+     * changes ({@see TaskRetention::BATCH}), so a consumer with many keeps the request short. Retry says when more
+     * remain, and the next Retry puts back the next ones.
+     *
+     * @since  2.3.0
+     */
+    public const RETRY_BATCH = TaskRetention::BATCH;
 
     /**
      * Where the notice leads.
@@ -159,53 +169,72 @@ final class OutboundConsumers
     }
 
     /**
-     * Put a consumer's changes given up back in the queue, their attempts reset. A stock or price change whose unit
-     * already waits again is covered by the waiting one and is discarded instead.
+     * Put a consumer's changes given up back in the queue, their attempts reset, the oldest first and at most
+     * {@see self::RETRY_BATCH} at a time. A stock or price change whose unit already waits again is covered by the
+     * waiting one and is discarded instead, and of several changes given up for one unit the oldest is put back and
+     * the others are discarded, as one waiting change tells the unit's value when it is sent.
+     *
+     * Three statements over the batch, in one transaction: the changes covered by a waiting one discarded, the later
+     * changes of a unit discarded, the rest put back.
      *
      * @param int $id The consumer.
      *
-     * @return int The changes put back.
+     * @return array{back: int, more: bool} The changes put back, and whether changes given up remain after the batch.
      *
      * @throws DomainException When there is no such consumer.
      *
      * @since  2.3.0
      */
-    public static function retryDead(int $id): int
+    public static function retryDead(int $id): array
     {
         $db = self::db();
         self::existing(id: $id);
+        $table = $db->quoteName(OutboundFeed::DELIVERIES);
+        $dead = $db->quote(OutboundDelivery::STATE_DEAD);
+        $discarded = $db->quote(OutboundDelivery::STATE_DISCARDED);
+        $merged = implode(', ', array_map([$db, 'quote'], OutboundTopics::MERGED));
+        $sameUnit = implode(' AND ', array_map(
+            static fn (string $column): string => $db->quoteName('o.' . $column) . ' = ' . $db->quoteName('d.' . $column),
+            ['consumer_id', 'topic', 'subject_id', 'unit_id'],
+        ));
         $back = 0;
         $db->transactionStart(true);
 
         try {
-            $dead = $db->setQuery(
-                'SELECT ' . implode(', ', $db->quoteName(['id', 'topic', 'subject_id', 'unit_id'])) . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES)
-                . ' WHERE ' . $db->quoteName('consumer_id') . ' = ' . $id . ' AND ' . $db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_DEAD)
-                . ' ORDER BY ' . $db->quoteName('id') . ' FOR UPDATE',
-            )->loadObjectList() ?: [];
-            $waiting = [];
+            $ids = array_map('intval', $db->setQuery(
+                'SELECT ' . $db->quoteName('id') . ' FROM ' . $table
+                . ' WHERE ' . $db->quoteName('consumer_id') . ' = ' . $id . ' AND ' . $db->quoteName('state') . ' = ' . $dead
+                . ' ORDER BY ' . $db->quoteName('id') . ' LIMIT ' . self::RETRY_BATCH . ' FOR UPDATE',
+            )->loadColumn() ?: []);
 
-            foreach ($dead as $row) {
-                $merged = \in_array((string) $row->topic, OutboundTopics::MERGED, true);
-                $key = $row->topic . ':' . (int) $row->subject_id . ':' . (int) $row->unit_id;
+            if ($ids !== []) {
+                $batch = $db->quoteName('d.id') . ' IN (' . implode(',', $ids) . ') AND ' . $db->quoteName('d.state') . ' = ' . $dead;
 
-                if ($merged && ($waiting[$key] ?? OutboundFeed::waiting(consumerId: $id, topic: (string) $row->topic, itemId: (int) $row->subject_id, unitId: (int) $row->unit_id))) {
-                    $db->setQuery(
-                        'UPDATE ' . $db->quoteName(OutboundFeed::DELIVERIES) . ' SET ' . $db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_DISCARDED)
-                        . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $row->id,
-                    )->execute();
+                // A stock or price change whose unit waits again: the waiting change tells the unit's value.
+                $db->setQuery(
+                    'UPDATE ' . $table . ' AS ' . $db->quoteName('d') . ' INNER JOIN ' . $table . ' AS ' . $db->quoteName('o')
+                    . ' ON ' . $sameUnit . ' AND ' . $db->quoteName('o.pending') . ' = 1'
+                    . ' SET ' . $db->quoteName('d.state') . ' = ' . $discarded
+                    . ' WHERE ' . $batch . ' AND ' . $db->quoteName('d.topic') . ' IN (' . $merged . ')',
+                )->execute();
 
-                    continue;
-                }
+                // A later stock or price change of a unit with an older one given up: the older one is put back.
+                $db->setQuery(
+                    'UPDATE ' . $table . ' AS ' . $db->quoteName('d') . ' INNER JOIN ' . $table . ' AS ' . $db->quoteName('o')
+                    . ' ON ' . $sameUnit . ' AND ' . $db->quoteName('o.state') . ' = ' . $dead . ' AND ' . $db->quoteName('o.id') . ' < ' . $db->quoteName('d.id')
+                    . ' SET ' . $db->quoteName('d.state') . ' = ' . $discarded
+                    . ' WHERE ' . $batch . ' AND ' . $db->quoteName('d.topic') . ' IN (' . $merged . ')',
+                )->execute();
 
                 $db->setQuery(
-                    'UPDATE ' . $db->quoteName(OutboundFeed::DELIVERIES) . ' SET ' . $db->quoteName('state') . ' = ' . $db->quote(OutboundDelivery::STATE_PENDING)
-                    . ', ' . $db->quoteName('pending') . ' = ' . ($merged ? '1' : 'NULL') . ', ' . $db->quoteName('attempts') . ' = 0, '
-                    . $db->quoteName('next_attempt_at') . ' = NULL, ' . $db->quoteName('dead_at') . ' = NULL, ' . $db->quoteName('last_error') . ' = ' . $db->quote('')
-                    . ' WHERE ' . $db->quoteName('id') . ' = ' . (int) $row->id,
+                    'UPDATE ' . $table . ' AS ' . $db->quoteName('d')
+                    . ' SET ' . $db->quoteName('d.state') . ' = ' . $db->quote(OutboundDelivery::STATE_PENDING)
+                    . ', ' . $db->quoteName('d.pending') . ' = CASE WHEN ' . $db->quoteName('d.topic') . ' IN (' . $merged . ') THEN 1 ELSE NULL END'
+                    . ', ' . $db->quoteName('d.attempts') . ' = 0, ' . $db->quoteName('d.next_attempt_at') . ' = NULL, '
+                    . $db->quoteName('d.dead_at') . ' = NULL, ' . $db->quoteName('d.last_error') . ' = ' . $db->quote('')
+                    . ' WHERE ' . $batch,
                 )->execute();
-                $waiting[$key] = $merged;
-                $back++;
+                $back = (int) $db->getAffectedRows();
             }
 
             TransactionState::commitLevel(db: $db);
@@ -215,9 +244,15 @@ final class OutboundConsumers
             throw $e;
         }
 
+        $more = \count($ids) === self::RETRY_BATCH && (bool) $db->setQuery(
+            'SELECT 1 FROM ' . $table . ' WHERE ' . $db->quoteName('consumer_id') . ' = ' . $id . ' AND ' . $db->quoteName('state') . ' = ' . $dead,
+            0,
+            1,
+        )->loadResult();
+
         self::syncNotice(consumerId: $id);
 
-        return $back;
+        return ['back' => $back, 'more' => $more];
     }
 
     /**

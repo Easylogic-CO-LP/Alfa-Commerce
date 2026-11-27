@@ -867,6 +867,14 @@ class OrderModel extends AlfaAdminModel
     public const LOADED_STATUS_KEY = 'loaded_status';
 
     /**
+     * The most history entries the order screen shows, the newest: a display limit. The screen says how many the order
+     * has when it has more ({@see self::countOrderActivity()}).
+     *
+     * @since 2.3.0
+     */
+    public const HISTORY_SHOWN = 100;
+
+    /**
      * "Different invoice details" as the form getForm() last built shows it.
      *
      * @var bool|null Null until a form is built.
@@ -7132,10 +7140,11 @@ class OrderModel extends AlfaAdminModel
      *
      * @param int $orderId Order ID
      * @param string $eventFilter Filter by event prefix: 'item', 'payment', 'status', '' = all
-     * @param int $limit Max entries
+     * @param int $limit Max entries: by default the display limit of the order's history,
+     *                   {@see self::HISTORY_SHOWN}, whose total countOrderActivity() gives
      * @since  1.0.0
      */
-    public function getOrderActivityLog(int $orderId, string $eventFilter = '', int $limit = 100): array
+    public function getOrderActivityLog(int $orderId, string $eventFilter = '', int $limit = self::HISTORY_SHOWN): array
     {
         $db = $this->getDatabase();
 
@@ -7157,6 +7166,27 @@ class OrderModel extends AlfaAdminModel
         } catch (Exception $e) {
             return [];
         }
+    }
+
+    /**
+     * How many history entries an order has: the total the order screen's newest {@see self::HISTORY_SHOWN} are of, so
+     * the screen says when it shows fewer than the order has.
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.3.0
+     */
+    public function countOrderActivity(int $orderId): int
+    {
+        $db = $this->getDatabase();
+
+        return (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_order_activity_log'))
+                ->where($db->quoteName('id_order') . ' = :order')
+                ->bind(':order', $orderId, ParameterType::INTEGER),
+        )->loadResult();
     }
 
     /**

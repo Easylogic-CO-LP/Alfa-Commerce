@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemsListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
+use Alfa\Component\Alfa\Administrator\Field\ListLimitboxField;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ListLimitsHelper;
@@ -62,6 +63,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\DatabaseQuery;
 use Joomla\Database\ParameterType;
 use SimpleXMLElement;
 use Throwable;
@@ -226,6 +228,16 @@ class ItemsModel extends UrlListModel
      * @since  2.2.0
      */
     private bool $countingForStart = false;
+
+    /**
+     * The counts of the list made in this request, by the count statement and its bound values
+     * ({@see self::_getListCount()}).
+     *
+     * @var array<string, int>
+     *
+     * @since  2.3.0
+     */
+    private static array $listCounts = [];
 
     /**
      * The attribution of the current result set: what the view renders and the lifecycle event carries.
@@ -569,15 +581,16 @@ class ItemsModel extends UrlListModel
     /**
      * Enforce the offered page sizes on the REQUEST value.
      *
-     * With sizes configured, the merchant's menu is a contract, not a
-     * suggestion: a URL value outside it is dropped, falling back to the
-     * tier-resolved default. With no sizes configured, any POSITIVE size stays
-     * free (the dropdown grafts it in), but "All" (0, and negatives, which
-     * MySQL treats identically: no LIMIT clause, the entire catalogue with
-     * per-row pricing, media and plugin work off one cheap GET) is requestable
-     * ONLY where a merchant offers it via a 0 entry in the sizes. By default
-     * no shop offers it. A merchant may still set 0 as a tier DEFAULT: that
-     * is config, not a request, and is untouched here.
+     * The request takes only a size the shop offers in its page size
+     * dropdown, anything else is dropped and the tier-resolved default
+     * applies. With sizes configured (browsed category, menu item, Options),
+     * those sizes. With none configured, the stock sizes the dropdown draws
+     * ({@see ListLimitboxField::stockLimits()}), so a URL can never ask one
+     * page for the whole catalogue with per-row pricing, media and plugin
+     * work. "All" (0, and negatives, which MySQL treats identically: no LIMIT
+     * clause) is requestable ONLY where a merchant offers it via a 0 entry in
+     * the sizes. A merchant may still set any size, 0 included, as a tier
+     * DEFAULT: that is config, not a request, and is untouched here.
      *
      * @param array $list List input from URL
      * @param array $defaults Defaults from XML (already chain-resolved)
@@ -588,9 +601,9 @@ class ItemsModel extends UrlListModel
     {
         if (isset($list['limit']) && $list['limit'] !== '') {
             $requested = (int) $list['limit'];
-            $limits = $this->getListLimits();
+            $limits = $this->getListLimits() ?: ListLimitboxField::stockLimits();
 
-            $allowed = $limits ? \in_array($requested, $limits, true) : $requested > 0;
+            $allowed = \in_array($requested, $limits, true);
 
             if (!$allowed) {
                 unset($list['limit']);
@@ -1501,6 +1514,44 @@ class ItemsModel extends UrlListModel
         $query->group('a.id');
 
         return $query;
+    }
+
+    /**
+     * How many products the list holds, counted by the database.
+     *
+     * The list groups by a.id, and Joomla's own count does not count a grouped query: it runs the whole select and
+     * counts the rows it fetched. This is the same statement, its joins and conditions, without the selected columns,
+     * the ordering and the grouping: COUNT(DISTINCT a.id), one for each row the list returns, so the pagination, the
+     * results counter and the list agree.
+     *
+     * Kept for the request by the statement and its bound values: the filters module reads the total of the same
+     * listing through a model of its own and is answered with the count the view's model already made.
+     *
+     * @param \Joomla\Database\QueryInterface|string $query The list query.
+     *
+     * @return int
+     *
+     * @since  2.3.0
+     */
+    protected function _getListCount($query)
+    {
+        if (!$query instanceof DatabaseQuery || $query->type !== 'select' || $query->having !== null
+            || $query->merge !== null || $query->querySet !== null) {
+            return parent::_getListCount($query);
+        }
+
+        $db = $this->getDatabase();
+        $count = clone $query;
+        $count->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->clear('limit')
+            ->clear('offset')
+            ->select('COUNT(DISTINCT ' . $db->quoteName('a.id') . ')');
+
+        $key = self::statementKey(query: $count);
+
+        return self::$listCounts[$key] ??= (int) $db->setQuery($count)->loadResult();
     }
 
     /**
@@ -2780,22 +2831,34 @@ class ItemsModel extends UrlListModel
      */
     public function getAvailableStockCounts(): array
     {
-        $model = $this->createFilterSubModel(['filter.stock']);
         $sellable = (new StockVisibilityPolicy())->sellableExpression('a');
-        $out = [];
+        $base = $this->createFilterSubModel(['filter.stock'])->getListQuery();
+        $base->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->select('COUNT(DISTINCT a.id)');
+        $queries = [];
 
         foreach (['in' => $sellable, 'out' => 'NOT ' . $sellable] as $key => $predicate) {
-            $query = $model->getListQuery();
-            $query->clear('select')
-                ->clear('order')
-                ->clear('group')
-                ->select('COUNT(DISTINCT a.id)')
-                ->where($predicate);
+            $queries[$key] = (clone $base)->where($predicate);
+        }
 
+        // The filter module asks for this facet more than once per render (its asset checks and its layout); the two
+        // counts are identical for the same filter state, so memo by the built statement and the values bound to it.
+        static $cache = [];
+        $memo = self::statementKey(query: $queries['in']);
+
+        if (isset($cache[$memo])) {
+            return $cache[$memo];
+        }
+
+        $out = [];
+
+        foreach ($queries as $key => $query) {
             $out[$key] = (int) $this->getDatabase()->setQuery($query)->loadResult();
         }
 
-        return $out;
+        return $cache[$memo] = $out;
     }
 
     /**
