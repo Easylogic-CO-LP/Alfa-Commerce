@@ -16,6 +16,6 @@
 
 \defined('_JEXEC') or die;
 ?>
-<div class="alfa-panel alfa-panel--<?php echo htmlspecialchars(preg_replace('/[^a-z0-9_-]/i', '', $this->screen), ENT_QUOTES, 'UTF-8'); ?>">
+<div class="panel panel--<?php echo htmlspecialchars(preg_replace('/[^a-z0-9_-]/i', '', $this->screen), ENT_QUOTES, 'UTF-8'); ?>">
     <?php echo $this->body; ?>
 </div>

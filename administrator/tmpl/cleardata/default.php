@@ -52,7 +52,7 @@ $statusLine = function (array $extension): string {
     return $html . '</li>';
 };
 ?>
-<div class="com-alfa-cleardata p-3">
+<div class="cleardata-page p-3">
 
 <?php if ($state !== null) : ?>
     <?php
@@ -221,7 +221,7 @@ $statusLine = function (array $extension): string {
         <div class="alert alert-danger"><?php echo $this->escape((string) $preview['refusal']); ?></div>
     <?php else : ?>
         <form action="<?php echo $action; ?>" method="post" class="card card-body border-danger" autocomplete="off">
-            <?php echo LayoutHelper::render('actions.typedconfirm', ['phrase' => FactoryReset::PHRASE, 'id' => 'alfa-clear-phrase'], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+            <?php echo LayoutHelper::render('actions.typedconfirm', ['phrase' => FactoryReset::PHRASE, 'id' => 'clear-phrase'], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
             <div>
                 <button type="submit" class="btn btn-danger">
                     <span class="icon-trash" aria-hidden="true"></span>

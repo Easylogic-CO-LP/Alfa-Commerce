@@ -80,7 +80,7 @@ $inUse = match ($active) {
     default => '',
 };
 ?>
-<div class="card w-100 alfa-checkup" id="<?php echo $esc((string) ($displayData['id'] ?? '')); ?>" data-alfa-checkup>
+<div class="card w-100 checkup" id="<?php echo $esc((string) ($displayData['id'] ?? '')); ?>" data-checkup>
     <?php if (!empty($displayData['notice'])) : ?>
         <div class="card-header">
             <strong><?php echo $esc((string) ($displayData['title'] ?? '')); ?></strong><?php echo $inUse; ?>
@@ -90,7 +90,7 @@ $inUse = match ($active) {
         <details<?php echo $open ? ' open' : ''; ?>>
             <summary class="card-header d-flex justify-content-between align-items-center gap-2">
                 <span>
-                    <span class="icon-chevron-down alfa-checkup-caret me-1" aria-hidden="true"></span>
+                    <span class="icon-chevron-down checkup-caret me-1" aria-hidden="true"></span>
                     <strong><?php echo $esc((string) ($displayData['title'] ?? '')); ?></strong><?php echo $inUse; ?>
                 </span>
                 <?php if ($counted !== []) : ?>
@@ -124,7 +124,7 @@ $inUse = match ($active) {
             <?php if (is_array($check)) : ?>
                 <div class="card-footer d-flex flex-wrap align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-primary"
-                            data-alfa-checkup-run
+                            data-checkup-run
                             data-url="<?php echo $esc($check['url']); ?>"
                             data-token="<?php echo $esc($check['token']); ?>"
                             data-method="<?php echo (int) $check['method']; ?>"
@@ -132,7 +132,7 @@ $inUse = match ($active) {
                             data-error="<?php echo $esc(Text::_('COM_ALFA_CHECKUP_ERROR')); ?>">
                         <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_ALFA_CHECKUP_RUN'); ?>
                     </button>
-                    <span class="small text-body-secondary" data-alfa-checkup-state aria-live="polite">
+                    <span class="small text-body-secondary" data-checkup-state aria-live="polite">
                         <?php echo $esc((string) ($check['checked'] ?? '')); ?>
                     </span>
                 </div>

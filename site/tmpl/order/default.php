@@ -45,7 +45,7 @@ $this->getDocument()->getWebAssetManager()
     ->useScript('com_alfa.order-completed');
 
 ?>
-<div class="com-alfa cart-wrapper order-completed order-account" data-order-completed<?php echo $this->print ? ' data-order-print' : ''; ?>>
+<div class="cart-wrapper order-completed order-account" data-order-completed<?php echo $this->print ? ' data-order-print' : ''; ?>>
 <?php if ($order === null) : ?>
 
     <h1 class="order-not-available-heading"><?php echo Text::_('COM_ALFA_ORDER_NOT_AVAILABLE_HEADING'); ?></h1>

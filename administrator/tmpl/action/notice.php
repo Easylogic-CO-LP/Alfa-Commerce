@@ -49,12 +49,12 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 // The action page's stylesheet: the result's buttons follow its message, never over it.
 Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_alfa.action-page');
 ?>
-<div class="alfa-action-notice">
-    <div class="alfa-action-notice__card alfa-action-notice__card--<?php echo $isError ? 'error' : 'ok'; ?>">
-        <span class="alfa-action-notice__icon" aria-hidden="true">
+<div class="action-notice">
+    <div class="action-notice__card action-notice__card--<?php echo $isError ? 'error' : 'ok'; ?>">
+        <span class="action-notice__icon" aria-hidden="true">
             <span class="<?php echo $isError ? 'icon-warning' : 'icon-checkmark-circle'; ?>"></span>
         </span>
-        <p class="alfa-action-notice__msg"><?php echo $esc($message); ?></p>
+        <p class="action-notice__msg"><?php echo $esc($message); ?></p>
     </div>
 </div>
 <?php echo LayoutHelper::render('action.buttons', ['buttons' => $buttons], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>

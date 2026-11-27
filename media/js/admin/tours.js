@@ -47,10 +47,10 @@
     };
 
     /** Marker: the step id this element was already augmented for. */
-    var MARK = 'data-alfa-tour-step';
+    var MARK = 'data-tour-step';
 
     /** Marks our own close button so a re-scan never adds a second one. */
-    var CLOSE_ATTR = 'data-alfa-tour-close';
+    var CLOSE_ATTR = 'data-tour-close';
 
     /**
      * Is the running tour one of ours? The engine keeps the numeric id in session

@@ -41,7 +41,7 @@ $onWork = $this->tab === HtmlView::TAB_WORK;
         <div class="col-md-12">
             <div id="j-main-container" class="j-main-container">
                 <?php // Where the toolbar's tools show their progress and outcome: the Tools script fills it. ?>
-                <div class="alfa-progress mb-3" id="<?php echo HtmlView::PROGRESS_ID; ?>" style="display:none;">
+                <div class="tool-progress mb-3" id="<?php echo HtmlView::PROGRESS_ID; ?>" style="display:none;">
                     <div class="progress" style="height:1.5rem;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
                              style="width:0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>

@@ -1501,7 +1501,7 @@ class OrderController extends FormController
             $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
-        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#alfa-order-coupons');
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#order-coupons');
     }
 
     /**
@@ -1542,7 +1542,7 @@ class OrderController extends FormController
             $app->enqueueMessage(htmlspecialchars(ErrorText::of($e), ENT_QUOTES, 'UTF-8'), 'error');
         }
 
-        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#alfa-order-coupons');
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=order&layout=edit&id=' . $orderId, false) . '#order-coupons');
     }
 
     //  AJAX product search
@@ -1706,7 +1706,7 @@ class OrderController extends FormController
     /**
      * E-mail the customer the order's payment link: the payments panel's "Send payment link" button.
      *
-     * POST with the form token (the button posts the page's sibling form, alfa-order-credit-form), Orders: Edit. The
+     * POST with the form token (the button posts the page's sibling form, order-credit-form), Orders: Edit. The
      * order must be one its customer may pay again (PayAgain::verdict(), the rule the confirmation page and the order
      * e-mail read); the link it carries is the confirmation page's Pay now, so every use of it is checked again. Staff
      * never pay here: the customer pays on the shop's payment page. A sent link is written to Joomla's User Actions

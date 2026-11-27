@@ -22,7 +22,16 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 class HtmlView extends BaseHtmlView
 {
     /**
-     * Render the view wrapped in the #alfa-app container element tagged with the lowercased view name.
+     * @var string The page's class on the wrapper, what the page is (items-list-page, orders, ...), set by the view;
+     *             '' for none. A template's own rules name it beside the wrapper's id.
+     * @since  2.3.0
+     */
+    protected string $pageClass = '';
+
+    /**
+     * Render the view wrapped in the #alfa-app container: the one element of the storefront that carries the
+     * component's name, the root every component rule is scoped under (:where(#alfa-app)), tagged with the page's
+     * class and the lowercased view name.
      *
      * @param string|null $tpl The name of the template file to parse.
      *
@@ -33,8 +42,9 @@ class HtmlView extends BaseHtmlView
     public function display($tpl = null)
     {
         $viewName = strtolower($this->getName());
+        $class = $this->pageClass !== '' ? ' class="' . htmlspecialchars($this->pageClass, ENT_QUOTES, 'UTF-8') . '"' : '';
 
-        echo '<div id="alfa-app" data-view="' . htmlspecialchars($viewName) . '">';
+        echo '<div id="alfa-app"' . $class . ' data-view="' . htmlspecialchars($viewName) . '">';
 
         parent::display($tpl);
 

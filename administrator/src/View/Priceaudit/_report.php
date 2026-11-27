@@ -80,7 +80,7 @@ $detailValue = static function (string $name, $value) use ($date, $money): strin
 $itemUrl = static fn (int $id): string => Route::_(url: AlfaHelper::withReturn('index.php?option=com_alfa&task=item.edit&id=' . $id));
 $ruleUrl = static fn (string $kind, int $id): string => Route::_(url: AlfaHelper::withReturn('index.php?option=com_alfa&task=' . ($kind === RuleReach::TAX ? 'tax' : 'discount') . '.edit&id=' . $id));
 ?>
-<div class="com-alfa-price-audit com-alfa-audit">
+<div class="price-audit audit-report">
     <p class="text-muted">
         <?php echo Text::sprintf('COM_ALFA_PRICE_AUDIT_READ', $date((string) $report['now'])); ?>
         <?php if ($context['id'] !== null) : ?>
@@ -113,12 +113,12 @@ $ruleUrl = static fn (string $kind, int $id): string => Route::_(url: AlfaHelper
         $langKey = 'COM_ALFA_PRICE_AUDIT_SECTION_' . strtoupper($key);
         $badge = !$section['available'] ? 'bg-secondary' : ($count > 0 ? $this->badge(section: $key) : 'bg-secondary');
         ?>
-        <details class="card mb-4 alfa-audit-section" id="price-audit-<?php echo $this->escape(var: $key); ?>" data-audit-section="<?php echo $this->escape(var: $key); ?>">
+        <details class="card mb-4 audit-section" id="price-audit-<?php echo $this->escape(var: $key); ?>" data-audit-section="<?php echo $this->escape(var: $key); ?>">
             <summary class="card-header">
                 <?php // The card header is a flex row; one block inside it keeps the description under the title. ?>
-                <div class="alfa-audit-summary">
+                <div class="audit-summary">
                     <h2 class="h4 mb-1">
-                        <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
+                        <span class="audit-caret icon-chevron-down" aria-hidden="true"></span>
                         <?php echo Text::_($langKey); ?> <span class="badge <?php echo $badge; ?>"><?php echo $section['available'] ? $count : '-'; ?></span>
                     </h2>
                     <span class="d-block small text-muted"><?php echo Text::_($langKey . '_DESC'); ?></span>
@@ -195,11 +195,11 @@ $ruleUrl = static fn (string $kind, int $id): string => Route::_(url: AlfaHelper
     <?php endforeach; ?>
 
     <?php // The price index: the counters of its check, the context this report read, and what to run when a figure is off. ?>
-    <details class="card mb-4 alfa-audit-section" id="price-audit-<?php echo PriceAudit::SECTION_INDEX; ?>" data-audit-section="<?php echo PriceAudit::SECTION_INDEX; ?>" <?php echo $index['complete'] ? '' : 'open'; ?>>
+    <details class="card mb-4 audit-section" id="price-audit-<?php echo PriceAudit::SECTION_INDEX; ?>" data-audit-section="<?php echo PriceAudit::SECTION_INDEX; ?>" <?php echo $index['complete'] ? '' : 'open'; ?>>
         <summary class="card-header">
-            <div class="alfa-audit-summary">
+            <div class="audit-summary">
                 <h2 class="h4 mb-1">
-                    <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
+                    <span class="audit-caret icon-chevron-down" aria-hidden="true"></span>
                     <?php echo Text::_('COM_ALFA_PRICE_AUDIT_SECTION_INDEX'); ?>
                     <span class="badge <?php echo $index['complete'] ? 'bg-success' : $this->badge(section: PriceAudit::SECTION_INDEX); ?>">
                         <?php echo Text::_($index['complete'] ? 'COM_ALFA_PRICE_AUDIT_INDEX_OK' : 'COM_ALFA_PRICE_AUDIT_INDEX_CHECK'); ?>

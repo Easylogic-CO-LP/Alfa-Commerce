@@ -66,7 +66,7 @@ if ($dispute->evidence_due_by !== null && \in_array($state, [DisputeLedger::STAT
         : Text::sprintf('COM_ALFA_DISPUTE_CARD_OVERDUE', $date((string) $dispute->evidence_due_by));
 }
 ?>
-<div class="card mb-3 alfa-dispute" id="alfa-dispute-<?php echo (int) $dispute->id; ?>">
+<div class="card mb-3 dispute" id="dispute-<?php echo (int) $dispute->id; ?>">
     <div class="card-header d-flex flex-wrap align-items-center gap-2">
         <strong><?php echo Text::sprintf('COM_ALFA_DISPUTE_CARD_TITLE', (int) $dispute->id); ?></strong>
         <span class="badge <?php echo $badge; ?>"><?php echo Text::_('COM_ALFA_DISPUTE_STATE_' . strtoupper($state)); ?></span>

@@ -24,6 +24,12 @@ use Joomla\CMS\Router\Route;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * @var string The page's class on the wrapper.
+     * @since  2.3.0
+     */
+    protected string $pageClass = 'userinfo';
+
     /** @var object[] */
     protected $rows = [];
 

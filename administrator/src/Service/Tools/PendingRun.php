@@ -18,7 +18,8 @@ use Joomla\CMS\Language\Text;
  * The counts of one Run pending on the Background screen, kept in the member of staff's session from the plan to the
  * last step (each step is a request of its own), and the one message that says what the run did: the jobs run, the
  * stock movements applied, the products with updated prices, what is still pending and the errors, only the lines
- * that apply. A run stopped by a limit (a step that could not advance, the most steps) never says it finished.
+ * that apply. A run goes on while its steps make progress; it stops when a step made none (a job another process
+ * holds, nothing left) or after ERROR_STEPS_MAX steps in a row that only failed, and then never says it finished.
  *
  * @since  2.3.0
  */
@@ -32,11 +33,15 @@ final class PendingRun
     public const STATE = 'com_alfa.tools.pending';
 
     /**
-     * The most steps one run takes before it stops and says what is still pending.
+     * A safety limit: the steps in a row that ended in an error and did nothing else after which the run stops. A
+     * step that fails without progress would fail the same way again on the next press of the same work; three such
+     * steps in a row show the failure is not a passing one (a lock, a deadlock retried by the runner), and the
+     * background work goes on by itself with its own retries while the row names the failure. A run is never stopped
+     * for its length: it goes on as long as a step makes progress.
      *
      * @since  2.3.0
      */
-    public const STEPS_MAX = 300;
+    public const ERROR_STEPS_MAX = 3;
 
     /**
      * The counts a run keeps.
@@ -45,7 +50,7 @@ final class PendingRun
      *
      * @since  2.3.0
      */
-    public const COUNTS = ['jobs', 'stock', 'prices', 'errors', 'steps'];
+    public const COUNTS = ['jobs', 'stock', 'prices', 'errors', 'streak'];
 
     /**
      * Begin a run: every count at zero.
@@ -92,15 +97,20 @@ final class PendingRun
     }
 
     /**
-     * One more step taken; the steps so far.
+     * One more step taken: the steps in a row that ended in an error and did nothing else, this one counted; a step
+     * that made progress or ended cleanly starts the count again.
+     *
+     * @param bool $erredOnly Whether this step ended in an error and made no progress.
      *
      * @since  2.3.0
      */
-    public static function step(): int
+    public static function errorStreak(bool $erredOnly): int
     {
-        self::add('steps', 1);
+        $counts = self::counts();
+        $counts['streak'] = $erredOnly ? $counts['streak'] + 1 : 0;
+        Factory::getApplication()->setUserState(self::STATE, $counts);
 
-        return self::counts()['steps'];
+        return $counts['streak'];
     }
 
     /**

@@ -48,7 +48,7 @@ class FieldsHelper
 {
     /**
      * Prefix used for every fieldset injected by prepareForm(). Views detect
-     * alfa-injected fieldsets via str_starts_with($name, self::FIELDSET_PREFIX).
+     * injected fieldsets via str_starts_with($name, self::FIELDSET_PREFIX).
      */
     public const FIELDSET_PREFIX = 'formfield_group_';
 
@@ -350,7 +350,7 @@ class FieldsHelper
 
     /**
      * Return the fieldset stdClass objects produced by prepareForm() that are
-     * routed to a given UI slot. Pass $target = null to get every alfa-injected
+     * routed to a given UI slot. Pass $target = null to get every injected
      * fieldset regardless of routing.
      *
      * @return object[]
@@ -378,10 +378,10 @@ class FieldsHelper
     /**
      * Render the full UI slot for $target: the static fields declared in the
      * consumer's XML <fieldset name="$target"> first (loose at the top), then
-     * each alfa-injected group routed to $target as its own sub-fieldset with
+     * each injected group routed to $target as its own sub-fieldset with
      * the group title/description as legend.
      *
-     * Pass $target = null to render every alfa-injected group regardless of
+     * Pass $target = null to render every injected group regardless of
      * routing (useful for forms like the frontend cart where there are no
      * static fields to render alongside).
      * @since  1.0.0
@@ -394,7 +394,7 @@ class FieldsHelper
         // dynamic groups. With $target = null there is no static fieldset to pull from.
         $static = $target !== null ? $form->getFieldset($target) : [];
 
-        // Grouped fields: alfa-injected fieldsets created by prepareForm(), one per
+        // Grouped fields: injected fieldsets created by prepareForm(), one per
         // #__alfa_form_field_groups row, tagged with target="$target" so we pull only
         // the groups routed to this UI slot. Each becomes its own sub-fieldset with the
         // group title/description as legend. $target = null pulls every alfa group.

@@ -49,13 +49,13 @@ $wa->useScript('com_alfa.list');
 // A template-side load means each new view has to remember, and forgetting produces a
 // declared input that silently never gets enhanced.
 //
-// Keyed on the FIELD's own `data-alfa-search`, so the form XML stays the single source of
+// Keyed on the FIELD's own `data-search-enhance`, so the form XML stays the single source of
 // truth: filter_items.xml declares it and gets the widget, filter_manufacturers.xml does
 // not and keeps a plain input with no asset weight. Declaring it there later is a one-line
 // XML change that needs no PHP.
 $searchField = $filterForm->getField('search', 'filter');
 
-if ($searchField && $searchField->getAttribute('data-alfa-search')) {
+if ($searchField && $searchField->getAttribute('data-search-enhance')) {
 	$wa->useStyle('com_alfa.search')
 		->useScript('com_alfa.search');
 
@@ -140,7 +140,7 @@ if ($searchField && $searchField->getAttribute('data-alfa-search')) {
 		// enhance.js creates no elements and sets no classes of its own, so overriding
 		// `search/enhance_templates.php` restyles the whole dropdown. Rendered only when
 		// the declared input exists: without it neither the script nor its markup ships.
-		if ($searchField && $searchField->getAttribute('data-alfa-search')) {
+		if ($searchField && $searchField->getAttribute('data-search-enhance')) {
 			echo Layout::render('search.enhance_templates');
 		}
 		?>

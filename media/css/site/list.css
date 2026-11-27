@@ -8,7 +8,7 @@
 
 /* LIST CONTAINER */
 
-.list-container {
+:where(#alfa-app) .list-container {
     display: grid;
     grid-gap: 1rem;
     grid-template-columns: repeat(auto-fill,minmax(min(300px, 100%), 1fr));
@@ -16,11 +16,11 @@
 
 /* The subcategory strip keeps the same distance from what follows it (the search and filter bar) as its own cards
    keep from each other. */
-.categories-list {
+:where(#alfa-app) .categories-list {
     margin-block-end: 1rem;
 }
 
-.list-item {
+:where(#alfa-app) .list-item {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -34,11 +34,11 @@
 
 /* On a card the add-to-cart controls sit in a centred column, so centre their
    own row too (the product page keeps the default left flow). */
-.list-item .item-cart-add {
+:where(#alfa-app) .list-item .item-cart-add {
     justify-content: center;
 }
 
-.list-item img {
+:where(#alfa-app) .list-item img {
     width: 100%;
     object-fit: contain;
 }
@@ -50,12 +50,12 @@
    tall as a card of one image and the arrows centre on the image. The move is smooth only for a visitor who has not
    asked for reduced motion. */
 
-.card-slider {
+:where(#alfa-app) .card-slider {
     position: relative;
     width: 100%;
 }
 
-.card-slider-track {
+:where(#alfa-app) .card-slider-track {
     display: flex;
     overflow-x: auto;
     overscroll-behavior-x: contain;
@@ -64,19 +64,19 @@
     scrollbar-width: none;
 }
 
-.card-slider-track::-webkit-scrollbar {
+:where(#alfa-app) .card-slider-track::-webkit-scrollbar {
     display: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .card-slider-track {
+    :where(#alfa-app) .card-slider-track {
         scroll-behavior: smooth;
     }
 }
 
 /* While a mouse drags the track it follows the pointer freely, with nothing selected on the way, and snaps where the
    drag ends. */
-.card-slider-track[data-card-slider-dragging] {
+:where(#alfa-app) .card-slider-track[data-card-slider-dragging] {
     scroll-snap-type: none;
     scroll-behavior: auto;
     cursor: grabbing;
@@ -85,7 +85,7 @@
 
 /* The track is as tall as its tallest image; an image less tall stands in the middle of its slide, on the arrows'
    line. */
-.card-slider-slide {
+:where(#alfa-app) .card-slider-slide {
     display: flex;
     align-items: center;
     flex: 0 0 100%;
@@ -93,18 +93,18 @@
     scroll-snap-stop: always;
 }
 
-.card-slider-slide img {
+:where(#alfa-app) .card-slider-slide img {
     display: block;
 }
 
-.card-slider-dot:focus-visible {
+:where(#alfa-app) .card-slider-dot:focus-visible {
     outline: 2px solid var(--alfa-selected);
     outline-offset: 2px;
 }
 
 /* The dots' row lies over the image's lower edge; only the dots themselves take a click, the rest of the row lets
    it through to the image. */
-.card-slider-dots {
+:where(#alfa-app) .card-slider-dots {
     position: absolute;
     inset-inline: 0;
     bottom: 0.25rem;
@@ -115,7 +115,7 @@
 }
 
 /* Each dot is a 24 px target around a small round mark, ringed so it shows on any picture. */
-.card-slider-dot {
+:where(#alfa-app) .card-slider-dot {
     display: grid;
     place-items: center;
     width: 1.5rem;
@@ -127,7 +127,7 @@
     pointer-events: auto;
 }
 
-.card-slider-dot::before {
+:where(#alfa-app) .card-slider-dot::before {
     content: "";
     width: 0.5rem;
     height: 0.5rem;
@@ -136,7 +136,7 @@
     box-shadow: 0 0 0 1px var(--alfa-muted-color);
 }
 
-.card-slider-dot[aria-current="true"]::before {
+:where(#alfa-app) .card-slider-dot[aria-current="true"]::before {
     background: var(--alfa-selected);
 }
 
@@ -151,38 +151,38 @@
    The title carries no margin of its own: left to itself it is an <h3> wearing
    whatever heading margins the active template hands out, which is why this varied
    by template before. */
-.category-item {
+:where(#alfa-app) .category-item {
     gap: 0.7rem;
 }
 
-.category-item-title {
+:where(#alfa-app) .category-item-title {
     margin: 0;
 }
 
 /* PRODUCT */
 
-.product-title {
+:where(#alfa-app) .product-title {
     margin: 0.7rem 0;
     padding: 0 10px;
 }
 
 /* A product name of one word longer than the card is wide wraps rather than widen the card. */
-.item-title {
+:where(#alfa-app) .item-title {
     margin-top: auto;
     overflow-wrap: anywhere;
 }
 
 /* A card's read-only specifications: one line per field, its name then its
    values. Spaced only while a row is visible, since ShowOn can hide every spec. */
-.list-item .item-specifications:has(> .item-field-surface:not([hidden])) {
+:where(#alfa-app) .list-item .item-specifications:has(> .item-field-surface:not([hidden])) {
     margin: 0.35rem 0;
 }
 
-.list-item .item-specifications .spec-field {
+:where(#alfa-app) .list-item .item-specifications .spec-field {
     display: block;
 }
 
-.list-item .item-specifications .spec-field-label {
+:where(#alfa-app) .list-item .item-specifications .spec-field-label {
     margin-inline-end: 0.25rem;
 }
 
@@ -215,17 +215,17 @@
    a working toggle and a sane layout instead of a permanently open panel.
    (The mirror of the bug that made this necessary: an #id rule here outranked
    the template and broke the toggle. Defensive CSS belongs at zero, not high.) */
-:where(.js-stools-container-filters) {
+:where(#alfa-app) :where(.js-stools-container-filters) {
     display: none;
 }
 
-:where(.js-stools-container-filters-visible) {
+:where(#alfa-app) :where(.js-stools-container-filters-visible) {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
     gap: 0.5rem 0.75rem;
 }
 
-#adminForm .filter-field-wrapper > label {
+:where(#alfa-app) #adminForm .filter-field-wrapper > label {
     display: block;
     margin-block-end: 0.15rem;
     font-size: 0.8125rem;
@@ -233,40 +233,40 @@
 
 /* The facet block is a set of labelled selects of its own, so it takes the whole
    row of the template's grid and wraps internally. */
-#adminForm .filter-field-wrapper:has(.item-field-filters) {
+:where(#alfa-app) #adminForm .filter-field-wrapper:has(.item-field-filters) {
     grid-column: 1 / -1;
 }
 
-#adminForm .item-field-filters {
+:where(#alfa-app) #adminForm .item-field-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem 0.75rem;
 }
 
-#adminForm .item-field-filter {
+:where(#alfa-app) #adminForm .item-field-filter {
     flex: 1 1 12rem;
     min-inline-size: 12rem;
     max-inline-size: 20rem;
 }
 
-#adminForm .item-field-filter-label {
+:where(#alfa-app) #adminForm .item-field-filter-label {
     display: block;
     margin-block-end: 0.15rem;
     font-size: 0.8125rem;
 }
 
-#adminForm .item-field-filter .choices,
-#adminForm .item-field-filter .choices__inner {
+:where(#alfa-app) #adminForm .item-field-filter .choices,
+:where(#alfa-app) #adminForm .item-field-filter .choices__inner {
     inline-size: 100%;
     max-inline-size: 100%;
 }
 
 /* THE RESULTS REGION: brought into view below a sticky header, whose height a template sets as
    --alfa-scroll-offset (list-form.js measures the header when it is not set); focused by script. Under either root at
-   no weight of its own (:where), so the listing's .com-alfa root and an override of the listing made before it
+   no weight of its own (:where), so the wrapper's rule and an override of the listing made before it
    (#alfa-app only) both keep it. */
 
-:where(.com-alfa, #alfa-app) [data-results] {
+:where(#alfa-app) [data-results] {
     scroll-margin-top: var(--alfa-scroll-offset, 0px);
 }
 
@@ -278,7 +278,7 @@
    [tabindex]:focus-visible) would then box the whole list. [data-results][tabindex] weighs more than either, so no
    !important is needed; a template that wants a ring on the region writes its own rule on it. */
 
-:where(.com-alfa, #alfa-app) [data-results][tabindex]:focus,
-:where(.com-alfa, #alfa-app) [data-results][tabindex]:focus-visible {
+:where(#alfa-app) [data-results][tabindex]:focus,
+:where(#alfa-app) [data-results][tabindex]:focus-visible {
     outline: none;
 }

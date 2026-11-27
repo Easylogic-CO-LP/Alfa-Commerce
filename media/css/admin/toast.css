@@ -12,7 +12,7 @@
  */
 
 /* Toast container - fixed bottom-right                                */
-#alfa-notification {
+#notification-toasts {
     display: flex;
     align-items: center;
     position: fixed;
@@ -37,23 +37,23 @@
 }
 
 /* Color variants - via data-type attribute                            */
-#alfa-notification[data-type="success"] { background: #198754; }
-#alfa-notification[data-type="error"]   { background: #dc3545; }
-#alfa-notification[data-type="warning"] { background: #856404; }
-#alfa-notification[data-type="info"]    { background: #0d6efd; }
+#notification-toasts[data-type="success"] { background: #198754; }
+#notification-toasts[data-type="error"]   { background: #dc3545; }
+#notification-toasts[data-type="warning"] { background: #856404; }
+#notification-toasts[data-type="info"]    { background: #0d6efd; }
 
 /* Content layout                                                      */
-#alfa-notification .notify-content {
+#notification-toasts .notify-content {
     flex: 1;
 }
 
-#alfa-notification .notify-icon {
+#notification-toasts .notify-icon {
     margin-right: 8px;
     font-size: 1.1em;
 }
 
 /* Dismiss button - shown only on sticky notifications                 */
-#alfa-notification .notify-dismiss {
+#notification-toasts .notify-dismiss {
     margin-left: 16px;
     font-size: 1.2em;
     opacity: 0.7;
@@ -61,7 +61,7 @@
     flex-shrink: 0;
 }
 
-#alfa-notification .notify-dismiss:hover {
+#notification-toasts .notify-dismiss:hover {
     opacity: 1;
 }
 
@@ -138,7 +138,7 @@
 
 /* Responsive - center on small screens                                */
 @media (max-width: 768px) {
-    #alfa-notification {
+    #notification-toasts {
         right: 50%;
         max-width: 90%;
     }
@@ -161,7 +161,7 @@
 }
 
 @media (max-width: 480px) {
-    #alfa-notification {
+    #notification-toasts {
         width: 80%;
     }
 }

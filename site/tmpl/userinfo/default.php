@@ -23,7 +23,6 @@ $wa->useScript('com_alfa.showon.engine');
 Text::script('COM_ALFA_VALIDATE_FIELD_INVALID');
 ?>
 
-<div class="com-alfa com-alfa-userinfo">
 
     <h2 class="userinfo-heading">
         <?php echo Text::_('COM_ALFA_USERINFO_HEADING'); ?>
@@ -82,5 +81,3 @@ Text::script('COM_ALFA_VALIDATE_FIELD_INVALID');
             <?php echo HTMLHelper::_('form.token'); ?>
         </form>
     </section>
-
-</div>

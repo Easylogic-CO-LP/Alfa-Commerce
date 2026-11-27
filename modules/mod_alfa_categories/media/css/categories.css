@@ -7,7 +7,7 @@
 
 /* The module's own tokens: each takes the storefront palette where it is loaded, else the value after it. A site
    changes the look by setting a token on .mod-alfa-categories, or on one module's .mod-alfa-categories-<id>. */
-.mod-alfa-categories {
+:where(.mod-alfa-categories) {
     --mod-alfa-categories-indent: 1rem;
     --mod-alfa-categories-padding: 0.5rem;
     --mod-alfa-categories-color: var(--alfa-surface-color, inherit);
@@ -18,22 +18,22 @@
     color: var(--mod-alfa-categories-color);
 }
 
-.mod-alfa-categories .tree {
+:where(.mod-alfa-categories) .tree {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
 /* Each level below the first steps in. */
-.mod-alfa-categories .tree ul {
+:where(.mod-alfa-categories) .tree ul {
     padding-inline-start: var(--mod-alfa-categories-indent);
 }
 
-.mod-alfa-categories li + li {
+:where(.mod-alfa-categories) li + li {
     border-top: 1px solid var(--mod-alfa-categories-hairline);
 }
 
-.mod-alfa-categories .link {
+:where(.mod-alfa-categories) .link {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -43,22 +43,22 @@
     text-decoration: none;
 }
 
-.mod-alfa-categories .link:hover,
-.mod-alfa-categories .link:focus-visible {
+:where(.mod-alfa-categories) .link:hover,
+:where(.mod-alfa-categories) .link:focus-visible {
     color: var(--mod-alfa-categories-current);
 }
 
-.mod-alfa-categories .link[aria-current="page"] {
+:where(.mod-alfa-categories) .link[aria-current="page"] {
     color: var(--mod-alfa-categories-current);
     font-weight: 600;
 }
 
-.mod-alfa-categories .name {
+:where(.mod-alfa-categories) .name {
     min-width: 0;
     overflow-wrap: anywhere;
 }
 
-.mod-alfa-categories .count {
+:where(.mod-alfa-categories) .count {
     flex: none;
     color: var(--mod-alfa-categories-muted);
     font-variant-numeric: tabular-nums;

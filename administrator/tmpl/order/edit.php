@@ -110,7 +110,7 @@ HTMLHelper::_('bootstrap.tooltip');
                         'statusName'  => (string) (AlfaHelper::getOrderStatuses()[(int) $this->order->id_order_status]->name ?? '#' . (int) $this->order->id_order_status),
                         'recipient'   => OrderIdentity::notificationEmail($this->order),
                         'canEdit'     => AlfaHelper::can(section: 'orders', action: 'edit', user: $this->getCurrentUser()),
-                        'formId'      => 'alfa-order-email-form',
+                        'formId'      => 'order-email-form',
                         'formControl' => 'status_email',
                     ],
                     null,
@@ -208,19 +208,19 @@ foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
       // nested forms, and no hidden `task` (a POSTed empty task beats the query
       // string and lands on the default view). Each button names its own task
       // in its formaction. ?>
-<form id="alfa-order-credit-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+<form id="order-credit-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
     <input type="hidden" name="id_order" value="<?php echo (int) $this->order->id; ?>"/>
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
 <?php // Sibling form for the Coupons card (edit_coupons.php), for the same reasons. ?>
-<form id="alfa-order-coupon-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+<form id="order-coupon-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
 <?php // Sibling form for the Status e-mail card (layouts/order/status_email.php): its note and button name it
       // through the form attribute, for the same reasons. ?>
-<form id="alfa-order-email-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+<form id="order-email-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
     <input type="hidden" name="id_order" value="<?php echo (int) $this->order->id; ?>"/>
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>

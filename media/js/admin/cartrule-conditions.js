@@ -25,7 +25,7 @@
     const CONDITION_PLACEHOLDER = '__CIDX__';
     const TYPE_PARAM = /([?&]type=)[^&]*/;
 
-    const root = (el) => el.closest('[data-alfa-conditions]');
+    const root = (el) => el.closest('[data-conditions]');
 
     /**
      * Rewrite every input name from its position in the DOM.
@@ -160,7 +160,7 @@
         }
 
         const row = select.closest('[data-condition]');
-        const picker = row ? row.querySelector('[data-alfa-condition-values]') : null;
+        const picker = row ? row.querySelector('[data-condition-values]') : null;
 
         if (!picker) {
             return;

@@ -148,8 +148,8 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                           // ids together, so both are posted together and neither
                           // can be left behind by the other. ?>
                     <form action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
-                        <?php // Below 480 px the row folds (alfa-fold): the two choices and the action wrap under the address. ?>
-                        <table class="table align-middle mb-3 alfa-fold">
+                        <?php // Below 480 px the row folds (fold): the two choices and the action wrap under the address. ?>
+                        <table class="table align-middle mb-3 fold">
                             <thead>
                                 <tr>
                                     <th><?php echo Text::_('COM_ALFA_CART_BUILDER_ADDRESS'); ?></th>
@@ -174,19 +174,19 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                                         <?php endif; ?>
                                     </td>
 
-                                    <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_DELIVERY')); ?>">
+                                    <td class="text-center" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_DELIVERY')); ?>">
                                         <input class="form-check-input" type="radio" name="delivery_id"
                                                value="<?php echo $addressId; ?>"
                                                <?php echo $addressId === (int) $customer->deliveryId ? 'checked' : ''; ?>>
                                     </td>
 
-                                    <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_INVOICE')); ?>">
+                                    <td class="text-center" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_CART_BUILDER_INVOICE')); ?>">
                                         <input class="form-check-input" type="radio" name="invoice_id"
                                                value="<?php echo $addressId; ?>"
                                                <?php echo $addressId === (int) $customer->invoiceId ? 'checked' : ''; ?>>
                                     </td>
 
-                                    <td class="text-end alfa-fold-line">
+                                    <td class="text-end fold-line">
                                         <?php if ($this->canEditAddresses) : ?>
                                             <a href="#<?php echo $modalId; ?>" data-bs-toggle="modal"
                                                class="btn btn-sm btn-outline-secondary">
@@ -211,9 +211,9 @@ $editorUrl = static fn (int $infoId): string => Route::_(sprintf(
                               // screen and placement give it. ?>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="radio" name="invoice_id" value="0"
-                                   id="alfa-builder-invoice-same"
+                                   id="builder-invoice-same"
                                    <?php echo $customer->sameAddress ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="alfa-builder-invoice-same">
+                            <label class="form-check-label" for="builder-invoice-same">
                                 <?php echo Text::_('COM_ALFA_CART_BUILDER_INVOICE_SAME'); ?>
                             </label>
                         </div>

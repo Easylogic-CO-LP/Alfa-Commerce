@@ -86,7 +86,7 @@ $tools = '<a href="' . Route::_('index.php?option=com_alfa&view=tasks&tab=outbou
                             <td>
                                 <span class="badge <?php echo $badge; ?>"><?php echo $stateKey !== '' ? Text::_($stateKey) : $this->escape($state); ?></span>
                                 <?php if ($settled !== '') : ?>
-                                    <div class="small text-muted alfa-nowrap"><?php echo $date($settled); ?></div>
+                                    <div class="small text-muted nowrap"><?php echo $date($settled); ?></div>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -127,10 +127,10 @@ $tools = '<a href="' . Route::_('index.php?option=com_alfa&view=tasks&tab=outbou
                                     <?php echo Text::sprintf('COM_ALFA_WEBHOOK_DELIVERY_TRIES', $attempts, $tries); ?>
                                 <?php endif; ?>
                                 <?php if ($state === OutboundDelivery::STATE_PENDING && (string) $item->next_attempt_at !== '') : ?>
-                                    <div class="text-muted alfa-nowrap"><?php echo Text::sprintf('COM_ALFA_WEBHOOK_DELIVERY_NEXT_AFTER', $date((string) $item->next_attempt_at)); ?></div>
+                                    <div class="text-muted nowrap"><?php echo Text::sprintf('COM_ALFA_WEBHOOK_DELIVERY_NEXT_AFTER', $date((string) $item->next_attempt_at)); ?></div>
                                 <?php endif; ?>
                             </td>
-                            <td class="small alfa-nowrap d-none d-md-table-cell"><?php echo $date((string) $item->created); ?></td>
+                            <td class="small nowrap d-none d-md-table-cell"><?php echo $date((string) $item->created); ?></td>
                             <td class="d-none d-lg-table-cell"><?php echo (int) $item->id; ?></td>
                         </tr>
                     <?php endforeach; ?>

@@ -196,7 +196,7 @@ class InventoryStockField extends FormField
 
         $total = 0.0;
         $recorded = 0.0;
-        $html = '<table class="table table-sm mb-1" id="' . $this->id . '_locations" data-alfa-location-total>';
+        $html = '<table class="table table-sm mb-1" id="' . $this->id . '_locations" data-location-total>';
         $html .= '<thead><tr>'
             . '<th>' . Text::_('COM_ALFA_INVENTORY_HEADING_LOCATION') . '</th>'
             . '<th class="w-25 text-end">' . Text::_('COM_ALFA_FORM_LBL_ITEM_STOCK') . '</th>'
@@ -228,7 +228,7 @@ class InventoryStockField extends FormField
                     : '')
                 . '</td>'
                 . '<td class="text-end"><input type="number" step="any" class="form-control form-control-sm text-end"'
-                . ' data-alfa-location-stock'
+                . ' data-location-stock'
                 . ' name="jform[inventory_stock][' . $locationId . ']"'
                 . ' value="' . self::escape(value: $value) . '"'
                 . ($tracked ? '' : ' placeholder="' . self::escape(value: $ledger) . '"')
@@ -243,7 +243,7 @@ class InventoryStockField extends FormField
 
         $html .= '</tbody><tfoot><tr>'
             . '<td>' . Text::_('COM_ALFA_INVENTORY_STOCK_TOTAL') . '</td>'
-            . '<td class="text-end"><strong data-alfa-location-total-value id="' . $this->id . '_total">'
+            . '<td class="text-end"><strong data-location-total-value id="' . $this->id . '_total">'
             . InventoryAvailabilityService::formatQuantity(value: $total) . '</strong></td>'
             . '<td></td><td></td></tr></tfoot></table>';
         $html .= '<div class="form-text">' . Text::_('COM_ALFA_INVENTORY_STOCK_BREAKDOWN_HINT') . '</div>';

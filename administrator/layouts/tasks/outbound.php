@@ -36,7 +36,7 @@ $form = static function (string $task, int $id, string $label, string $class): s
         . '<input type="hidden" name="id" value="' . $id . '">' . HTMLHelper::_('form.token') . '</form>';
 };
 ?>
-<div class="card mb-3" data-alfa-outbound-card>
+<div class="card mb-3" data-outbound-card>
     <div class="card-header"><?php echo Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'); ?></div>
     <div class="card-body">
         <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_OUTBOUND_CARD_DESC'); ?></p>
@@ -47,7 +47,7 @@ $form = static function (string $task, int $id, string $label, string $class): s
             <p class="mb-0"><?php echo Text::_('COM_ALFA_OUTBOUND_NONE'); ?></p>
         <?php else : ?>
             <div class="table-responsive">
-            <table class="table table-sm align-top alfa-fold">
+            <table class="table table-sm align-top fold">
                 <thead>
                     <tr>
                         <th scope="col"><?php echo Text::_('COM_ALFA_OUTBOUND_COL_CONSUMER'); ?></th>
@@ -88,7 +88,7 @@ $form = static function (string $task, int $id, string $label, string $class): s
                         </td>
                         <td class="d-none d-md-table-cell small">
                             <?php if ($row['lastAttemptAt'] !== '') : ?>
-                                <span class="alfa-nowrap"><?php echo HTMLHelper::_('date', (string) $row['lastAttemptAt'], Text::_('DATE_FORMAT_LC6')); ?></span>
+                                <span class="nowrap"><?php echo HTMLHelper::_('date', (string) $row['lastAttemptAt'], Text::_('DATE_FORMAT_LC6')); ?></span>
                                 <div class="<?php echo $row['lastOk'] === true ? 'text-success' : 'text-danger'; ?> text-break"><?php echo $e($said((string) $row['lastResult'])); ?></div>
                             <?php else : ?>
                                 <?php echo Text::_('COM_ALFA_WEBHOOK_NEVER'); ?>

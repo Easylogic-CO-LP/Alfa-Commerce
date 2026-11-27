@@ -1,6 +1,6 @@
 
 
-.cart-item-remove{
+:where(#alfa-app) .cart-item-remove{
     background: none;       /* Remove background */
     border: none;           /* Remove border */
     padding: 0;             /* Remove padding */
@@ -11,7 +11,7 @@
     outline: none;          /* Remove focus outline */
 }
 
-.cart-item-remove:focus {
+:where(#alfa-app) .cart-item-remove:focus {
     outline: none;          /* Remove focus outline when the button is focused */
 }
 
@@ -20,7 +20,7 @@
 /* The quantity cell stays a table cell: its stepper and remove button share an inner
    row, an inline box that follows the cell's alignment, centred on wide screens and at
    the end of the stacked cell on phones, opposite the column's label. */
-.com-alfa.cart-wrapper .quantity-control {
+:where(#alfa-app).cart-wrapper .quantity-control {
     display: inline-flex;
     /* Remove drops under the spinner instead of overflowing the fixed-width column */
     flex-wrap: wrap;
@@ -32,7 +32,7 @@
 }
 
 /* Chosen configuration (variants / options / custom) listed under the line name */
-.cart-item-fields {
+:where(#alfa-app) .cart-item-fields {
     list-style: none;
     margin: 6px 0 0;
     padding: 0;
@@ -41,48 +41,48 @@
     gap: 2px;
 }
 
-.cart-item-fields li {
+:where(#alfa-app) .cart-item-fields li {
     font-size: 0.82rem;
     line-height: 1.4;
 }
 
-.cart-item-field-label {
+:where(#alfa-app) .cart-item-field-label {
     font-weight: 600;
     color: var(--alfa-surface-color);
 }
 
-.cart-item-field-value {
+:where(#alfa-app) .cart-item-field-value {
     color: var(--alfa-muted-color);
 }
 
 /* Edit sits under the name + configuration; inline-block .action keeps the mobile
    stacked layout intact. */
-.com-alfa .cart-item-edit {
+:where(#alfa-app) .cart-item-edit {
     margin-top: 6px;
 }
 
 /* Checkout customer / payment-shipment columns: auto-responsive, NO media query
    (collapses to one column on narrow screens), like .item-container. */
-.cart-form-grid {
+:where(#alfa-app) .cart-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: 1.5rem;
 }
 
 /* Payment / shipment method blocks (replaces Bootstrap .mb-3). */
-.cart-methods {
+:where(#alfa-app) .cart-methods {
     margin-bottom: 1rem;
 }
 
 /* A payment or shipping method's image, before its title: held to the token's height, never wider than a
    few words, its own proportions kept. */
-:where(.method-image) {
+:where(#alfa-app) :where(.method-image) {
     display: inline-block;
     margin-inline-end: 0.5em;
     vertical-align: middle;
 }
 
-:where(.method-image img) {
+:where(#alfa-app) :where(.method-image img) {
     display: block;
     width: auto;
     height: auto;
@@ -91,7 +91,7 @@
 }
 
 /* The fee a payment method adds to the order, after its title. */
-.cart-method-fee {
+:where(#alfa-app) .cart-method-fee {
     margin-inline-start: 0.5em;
     color: var(--alfa-muted-color);
     font-size: 0.9375rem;
@@ -99,7 +99,7 @@
 }
 
 /* A shipping method the cart's goods keep off the list, and the products it does not deliver. */
-.cart-methods-refused {
+:where(#alfa-app) .cart-methods-refused {
     margin: 0.5rem 0 0;
     color: var(--alfa-muted-color);
     font-size: 0.9375rem;
@@ -110,8 +110,8 @@
    info colour rather than sitting in body copy where they read as ordinary prose.
    The rule already carried `currentColor` on its border, so colouring the text
    colours the border with it. */
-.cart-methods-notice,
-.cart-methods-empty {
+:where(#alfa-app) .cart-methods-notice,
+:where(#alfa-app) .cart-methods-empty {
     margin: 0 0 0.75rem;
     padding: 0.5rem 0.75rem;
     border-left: 3px solid currentColor;
@@ -120,22 +120,22 @@
 }
 
 /* The empty cart's notice that the cart changed elsewhere. Under Alfa's root, not the
-   cart wrapper: a fresh empty page renders the empty layout alone (its own .com-alfa
+   cart wrapper: a fresh empty page renders the empty layout alone (its own root
    root), a page emptied in place inside the wrapper, and the notice looks the same on
    both. */
-.com-alfa .cart-changed-notice {
+:where(#alfa-app) .cart-changed-notice {
     margin-block-start: 1rem;
     color: var(--alfa-info-color);
 }
 
 /* Cart page heading (replaces Bootstrap .text-center). */
-.cart-heading {
+:where(#alfa-app) .cart-heading {
     text-align: center;
 }
 
 /* Inline control rows (coupon, saved-info picker): structure only. */
-.cart-coupon-form,
-.cart-user-info {
+:where(#alfa-app) .cart-coupon-form,
+:where(#alfa-app) .cart-user-info {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -143,36 +143,36 @@
 }
 
 /* The coupon belongs to the totals block; align it under the Total. */
-.cart-coupon-form {
+:where(#alfa-app) .cart-coupon-form {
     justify-content: flex-end;
 }
 
-.cart-coupon-form .form-control,
-.cart-user-info .form-select {
+:where(#alfa-app) .cart-coupon-form .form-control,
+:where(#alfa-app) .cart-user-info .form-select {
     max-width: 280px;
 }
 
 /* Phones: the coupon's label above a full-width field, Apply beside it. */
 @media screen and (max-width: 600px) {
-    .cart-coupon-form {
+    :where(#alfa-app) .cart-coupon-form {
         flex-wrap: wrap;
     }
 
-    .cart-coupon-form label {
+    :where(#alfa-app) .cart-coupon-form label {
         flex-basis: 100%;
     }
 
-    .cart-coupon-form .form-control {
+    :where(#alfa-app) .cart-coupon-form .form-control {
         flex: 1;
         max-width: none;
     }
 }
 
-.cart-invoice-toggle {
+:where(#alfa-app) .cart-invoice-toggle {
     margin: 0.75rem 0;
 }
 
-.cart-invoice-toggle label {
+:where(#alfa-app) .cart-invoice-toggle label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -180,16 +180,16 @@
 
 /* The picker's box after its redirect: brought under the page's sticky header, whose height a template sets as
    --alfa-scroll-offset (Alfa.headerOffset measures the header when it is not set), with a little room. */
-.cart-user-info {
+:where(#alfa-app) .cart-user-info {
     scroll-margin-top: calc(var(--alfa-scroll-offset, 0px) + 1rem);
 }
 
 /* Coupon remove: a token-protected POST rendered as a plain x affordance. */
-.cart-rule-remove-form {
+:where(#alfa-app) .cart-rule-remove-form {
     display: inline;
 }
 
-.cart-rule-remove {
+:where(#alfa-app) .cart-rule-remove {
     padding: 0;
     border: 0;
     background: none;
@@ -200,7 +200,7 @@
     opacity: 0.6;
 }
 
-.cart-rule-remove:hover {
+:where(#alfa-app) .cart-rule-remove:hover {
     opacity: 1;
 }
 
@@ -215,11 +215,11 @@
    row's amount column towards the start, its end edge unmoved. The heading row holds the Items label (one size on both
    pages, .cart-lines-title) and, on the cart, Clear cart at the end edge.
    Logical properties only, so a right-to-left page mirrors. */
-.com-alfa.cart-wrapper .cart-lines {
+:where(#alfa-app).cart-wrapper .cart-lines {
     --cart-lines-columns: 6;
 }
 
-.com-alfa.cart-wrapper .cart-lines-heading {
+:where(#alfa-app).cart-wrapper .cart-lines-heading {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -227,52 +227,52 @@
     gap: 0.5rem 1rem;
 }
 
-.com-alfa.cart-wrapper .cart-lines-title {
+:where(#alfa-app).cart-wrapper .cart-lines-title {
     font-size: 1.5em;
 }
 
-.com-alfa.cart-wrapper .summary-rows {
+:where(#alfa-app).cart-wrapper .summary-rows {
     margin: 0;
     border: 1px solid var(--alfa-hairline);
 }
 
-.com-alfa.cart-wrapper .summary-row {
+:where(#alfa-app).cart-wrapper .summary-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: baseline;
 }
 
-.com-alfa.cart-wrapper .summary-row + .summary-row {
+:where(#alfa-app).cart-wrapper .summary-row + .summary-row {
     border-block-start: 1px solid var(--alfa-hairline);
 }
 
 /* A long or translated label wraps; an amount never does (below). */
-.com-alfa.cart-wrapper .summary-label,
-.com-alfa.cart-wrapper .summary-value {
+:where(#alfa-app).cart-wrapper .summary-label,
+:where(#alfa-app).cart-wrapper .summary-value {
     margin: 0;
     padding: 0.625em;
     font-weight: inherit;
     overflow-wrap: anywhere;
 }
 
-.com-alfa.cart-wrapper .summary-value {
+:where(#alfa-app).cart-wrapper .summary-value {
     text-align: end;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     unicode-bidi: isolate;
 }
 
-.com-alfa.cart-wrapper .summary-was {
+:where(#alfa-app).cart-wrapper .summary-was {
     display: block;
 }
 
-.com-alfa.cart-wrapper .summary-total {
+:where(#alfa-app).cart-wrapper .summary-total {
     font-weight: 700;
 }
 
 /* Phones: the stacked cells' text size (general.css), so the lines and their totals read as one piece. */
 @media screen and (max-width: 600px) {
-    .com-alfa.cart-wrapper .cart-lines .cart-summary {
+    :where(#alfa-app).cart-wrapper .cart-lines .cart-summary {
         font-size: 0.8em;
     }
 }
@@ -280,15 +280,15 @@
 /* Wide screens and the printed order: the summary continues the table, under its last row's line, its amounts in the
    Total column. */
 @media (min-width: 601px) {
-    .com-alfa.cart-wrapper .cart-lines .cart-money {
+    :where(#alfa-app).cart-wrapper .cart-lines .cart-money {
         text-align: end;
     }
 
-    .com-alfa.cart-wrapper .cart-lines .summary-rows {
+    :where(#alfa-app).cart-wrapper .cart-lines .summary-rows {
         border-block-start: 0;
     }
 
-    .com-alfa.cart-wrapper .cart-lines .summary-row {
+    :where(#alfa-app).cart-wrapper .cart-lines .summary-row {
         grid-template-columns: minmax(0, 1fr) minmax(calc(100% / var(--cart-lines-columns)), max-content);
     }
 }

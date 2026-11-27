@@ -4,7 +4,7 @@
  * Example: .mod-alfa-filters-wrapper { --alfa-filters-accent: #e63946; }
  */
 
-.mod-alfa-filters-wrapper {
+:where(.mod-alfa-filters-wrapper) {
 
     /* Spacing scale (4px base) */
     --alfa-filters-space-xs: 0.25em;    /* 4px  */
@@ -107,7 +107,7 @@
  * Offcanvas Toggler
  */
 
-.alfa-filters-offcanvas-toggler {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas-toggler {
     display: block;
     background-color: var(--mod-alfa-filters-toggler-color, var(--alfa-filters-accent));
     color: var(--alfa-filters-surface);
@@ -125,7 +125,7 @@
     width: 100%;
 }
 
-.alfa-filters-offcanvas-toggler:hover {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas-toggler:hover {
     opacity: 0.85;
 }
 
@@ -133,7 +133,7 @@
  * Fixed Position
  */
 
-.mod-alfa-filters-wrapper.alfa-filters-fixed.top-left .alfa-filters-offcanvas-toggler{
+:where(.mod-alfa-filters-wrapper).filters-fixed.top-left .filters-offcanvas-toggler{
     position: fixed;
     width: clamp(180px, 10vw, 220px);
     height: clamp(45px, 5vw, 55px);
@@ -142,7 +142,7 @@
     z-index: 1000;
 }
 
-.mod-alfa-filters-wrapper.alfa-filters-fixed.top-right .alfa-filters-offcanvas-toggler{
+:where(.mod-alfa-filters-wrapper).filters-fixed.top-right .filters-offcanvas-toggler{
     position: fixed;
     width: clamp(180px, 10vw, 220px);
     height: clamp(45px, 5vw, 55px);
@@ -152,7 +152,7 @@
     z-index: 1000;
 }
 
-.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-left .alfa-filters-offcanvas-toggler{
+:where(.mod-alfa-filters-wrapper).filters-fixed.bottom-left .filters-offcanvas-toggler{
     position: fixed;
     width: clamp(180px, 10vw, 220px);
     height: clamp(45px, 5vw, 55px);
@@ -162,7 +162,7 @@
     z-index: 1000;
 }
 
-.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-right .alfa-filters-offcanvas-toggler{
+:where(.mod-alfa-filters-wrapper).filters-fixed.bottom-right .filters-offcanvas-toggler{
     position: fixed;
     width: clamp(180px, 10vw, 220px);
     height: clamp(45px, 5vw, 55px);
@@ -172,7 +172,7 @@
     z-index: 1000;
 }
 
-.mod-alfa-filters-wrapper.alfa-filters-fixed.top-center .alfa-filters-offcanvas-toggler{
+:where(.mod-alfa-filters-wrapper).filters-fixed.top-center .filters-offcanvas-toggler{
     position: fixed;
     width: clamp(180px, 10vw, 220px);
     height: clamp(45px, 5vw, 55px);
@@ -182,7 +182,7 @@
     z-index: 1000;
 }
 
-.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-center .alfa-filters-offcanvas-toggler{
+:where(.mod-alfa-filters-wrapper).filters-fixed.bottom-center .filters-offcanvas-toggler{
     position: fixed;
     width: clamp(180px, 10vw, 220px);
     height: clamp(45px, 5vw, 55px);
@@ -200,7 +200,7 @@
    browser's top layer, placed against the screen whatever its ancestors do; as a column
    it is shown in the page. The browser's own dialog frame (size limits, margin, padding,
    border, colours, backdrop) is set aside; the panel draws its own scrim. */
-.alfa-filters-offcanvas {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas {
     position: fixed;
     inset: 0;
     width: auto;
@@ -219,27 +219,27 @@
 }
 
 /* Closed, it is not shown at all, and its controls are out of the Tab order. */
-.alfa-filters-offcanvas:not([open]) {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas:not([open]) {
     display: none;
 }
 
 /* Over the page: visible even inside a header that hides itself, and its movements never
    scroll its frame. */
-.alfa-filters-offcanvas:modal {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas:modal {
     visibility: visible;
     overflow: hidden;
 }
 
-.alfa-filters-offcanvas::backdrop {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas::backdrop {
     background: none;
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--visible {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible {
     opacity: 1;
     pointer-events: auto;
 }
 
-.alfa-filters-offcanvas::after {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -248,12 +248,12 @@
     pointer-events: none;
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner::after {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner::after {
     opacity: 1;
     pointer-events: auto;
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable::after {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--animatable::after {
     transition: opacity 0.4s var(--alfa-filters-ease);
 }
 
@@ -261,7 +261,7 @@
  * Header
  */
 
-.alfa-filters-offcanvas .alfa-filters-header {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas .filters-header {
     display: flex;
     align-items: center;
     padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-md);
@@ -269,14 +269,14 @@
     min-height: 3rem;
 }
 
-.alfa-filters-header-title {
+:where(.mod-alfa-filters-wrapper) .filters-header-title {
     margin: 0;
     font-size: var(--alfa-filters-text-lg);
     font-weight: var(--alfa-filters-weight-semibold);
     letter-spacing: -0.01em;
 }
 
-.af-reset-all {
+:where(.mod-alfa-filters-wrapper) .af-reset-all {
     display: none;
     margin-left: var(--alfa-filters-space-sm);
     background: none;
@@ -290,11 +290,11 @@
     text-underline-offset: 2px;
 }
 
-.af-reset-all.is-visible {
+:where(.mod-alfa-filters-wrapper) .af-reset-all.is-visible {
     display: inline-block;
 }
 
-.af-reset-all:hover {
+:where(.mod-alfa-filters-wrapper) .af-reset-all:hover {
     color: var(--alfa-filters-text);
 }
 
@@ -304,7 +304,7 @@
 
 /* Revealed by the breakpoint CSS the dispatcher emits per instance; the bar
    collapses to nothing while its button is hidden. */
-.alfa-filters-actions {
+:where(.mod-alfa-filters-wrapper) .filters-actions {
     display: none;
 }
 
@@ -312,7 +312,7 @@
  * Close Button
  */
 
-.alfa-filters-offcanvas .alfa-filters-close-btn {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas .filters-close-btn {
     --alfa-filters-close-size: 2.5rem;
     width: var(--alfa-filters-close-size);
     height: var(--alfa-filters-close-size);
@@ -330,7 +330,7 @@
  * Scroll Disable
  */
 
-html.alfa-filters-noscroll {
+html.filters-noscroll {
     overflow: hidden;
 }
 
@@ -338,10 +338,10 @@ html.alfa-filters-noscroll {
  * Animatable Transition
  */
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.zoomIn .alfa-filters-wrapper-inner,
-.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromRight .alfa-filters-wrapper-inner,
-.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromLeft .alfa-filters-wrapper-inner,
-.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromTop .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--animatable.zoomIn .filters-wrapper-inner,
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--animatable.fromRight .filters-wrapper-inner,
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--animatable.fromLeft .filters-wrapper-inner,
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--animatable.fromTop .filters-wrapper-inner {
     transition: transform 0.4s var(--alfa-filters-ease), opacity 0.4s var(--alfa-filters-ease);
 }
 
@@ -351,16 +351,15 @@ html.alfa-filters-noscroll {
 
 /* The panel is a column of its header, its actions bar and its form: the form takes the
    height the others leave, whatever the header's own height, and scrolls inside it. */
-.alfa-filters-wrapper-inner{
+:where(.mod-alfa-filters-wrapper) .filters-wrapper-inner{
     display: flex;
     flex-direction: column;
     transition: width 0.25s ease;
 }
 
-.alfa-filters-offcanvas.fromLeft .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.fromLeft .filters-wrapper-inner {
     width: var(--alfa-filters-panel-width);
     height: 100%;
-    background: var(--alfa-filters-surface);
     transform: translate3d(-100%, 0, 0);
     will-change: transform, opacity;
     contain: layout paint;
@@ -368,16 +367,15 @@ html.alfa-filters-noscroll {
     z-index: 1002;
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromLeft .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner.fromLeft .filters-wrapper-inner {
     transform: translate3d(0, 0, 0);
     opacity: 1;
 }
 
-.alfa-filters-offcanvas.zoomIn .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.zoomIn .filters-wrapper-inner {
     max-width: 800px;
     width: 80%;
     height: clamp(200px, 80%, 400px);
-    background: var(--alfa-filters-surface);
     transform: scale(0.95);
     will-change: transform, opacity;
     contain: layout paint;
@@ -389,15 +387,14 @@ html.alfa-filters-noscroll {
     border-radius: var(--alfa-filters-radius-lg);
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.zoomIn .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner.zoomIn .filters-wrapper-inner {
     transform: scale(1);
     opacity: 1;
 }
 
-.alfa-filters-offcanvas.fromRight .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.fromRight .filters-wrapper-inner {
     width: var(--alfa-filters-panel-width);
     height: 100%;
-    background: var(--alfa-filters-surface);
     transform: translate3d(100%, 0, 0);
     will-change: transform, opacity;
     contain: layout paint;
@@ -406,15 +403,14 @@ html.alfa-filters-noscroll {
     z-index: 1002;
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromRight .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner.fromRight .filters-wrapper-inner {
     transform: translate3d(0, 0, 0);
     opacity: 1;
 }
 
-.alfa-filters-offcanvas.fromTop .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.fromTop .filters-wrapper-inner {
     width: 100%;
     height: 440px;
-    background: var(--alfa-filters-surface);
     transform: translate3d(0, -100%, 0);
     will-change: transform, opacity;
     contain: layout paint;
@@ -426,7 +422,7 @@ html.alfa-filters-noscroll {
     z-index: 1002;
 }
 
-.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop .alfa-filters-wrapper-inner {
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner.fromTop .filters-wrapper-inner {
     transform: translate3d(0, 0, 0);
     opacity: 1;
 }
@@ -435,11 +431,27 @@ html.alfa-filters-noscroll {
  * Form
  */
 
-.mod-alfa-filters {
+/* The panel's own surface and inset belong to the panel over the page: the dialog shown as a modal (the off-canvas
+   state). Inline, as a column in a sidebar or a card, the module paints no background and adds no padding of its own;
+   the page's own box does. */
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas:modal .filters-wrapper-inner {
+    background: var(--alfa-filters-surface);
+}
+
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas:modal .mod-alfa-filters {
     padding: var(--alfa-filters-panel-padding);
     /* The panel's foot is its last row and carries its own inset; a bottom padding here
        would lift the foot, which stays at the bottom of the scroll, off the panel's edge. */
     padding-bottom: 0;
+}
+
+:where(.mod-alfa-filters-wrapper) .filters-offcanvas:modal .mod-alfa-filters .af-foot {
+    margin: var(--alfa-filters-space-xl) calc(var(--alfa-filters-panel-padding-inline) * -1) 0;
+    padding: var(--alfa-filters-space-md) var(--alfa-filters-panel-padding-inline);
+    background-color: var(--alfa-filters-surface);
+}
+
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters {
     overflow-y: auto;
     overflow-x: hidden;
     font-size: var(--alfa-filters-text-base);  /* base size for all filter content; scales with parent */
@@ -451,7 +463,7 @@ html.alfa-filters-noscroll {
     gap: var(--alfa-filters-space-xl);
 }
 
-.mod-alfa-filters fieldset {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters fieldset {
     margin: 0;
     padding: 0;
     border: none;
@@ -462,14 +474,14 @@ html.alfa-filters-noscroll {
 
 /* Section headings (legends / labels) */
 
-.mod-alfa-filters legend,
-.af-ordering label,
-.af-limit label,
-.af-discount-amount label,
-.af-discount-percent label,
-.af-onsale span,
-.af-new span,
-.af-price-header span {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters legend,
+:where(.mod-alfa-filters-wrapper) .af-ordering label,
+:where(.mod-alfa-filters-wrapper) .af-limit label,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount label,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent label,
+:where(.mod-alfa-filters-wrapper) .af-onsale span,
+:where(.mod-alfa-filters-wrapper) .af-new span,
+:where(.mod-alfa-filters-wrapper) .af-price-header span {
     --alfa-filters-section-font-size: var(--alfa-filters-text-sm);
     --alfa-filters-section-font-weight: var(--alfa-filters-weight-semibold);
     --alfa-filters-section-color: var(--alfa-filters-text);
@@ -486,27 +498,27 @@ html.alfa-filters-noscroll {
 
 /* Filter fieldset sections (category, manufacturer, etc.) */
 
-.mod-alfa-filters .af-fieldset {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-fieldset {
     padding-top: var(--alfa-filters-space-md);
 }
 
-.mod-alfa-filters .af-fieldset:first-child {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-fieldset:first-child {
     padding-top: 0;
 }
 
-.af-fieldset-header {
+:where(.mod-alfa-filters-wrapper) .af-fieldset-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--alfa-filters-space-sm);
 }
 
-.af-fieldset-header legend {
+:where(.mod-alfa-filters-wrapper) .af-fieldset-header legend {
     float: none;
     width: auto;
 }
 
-.af-fieldset-header .af-reset {
+:where(.mod-alfa-filters-wrapper) .af-fieldset-header .af-reset {
     display: none;
     background: none;
     border: none;
@@ -519,11 +531,11 @@ html.alfa-filters-noscroll {
     text-underline-offset: 2px;
 }
 
-.af-fieldset-header .af-reset.is-visible {
+:where(.mod-alfa-filters-wrapper) .af-fieldset-header .af-reset.is-visible {
     display: inline-block;
 }
 
-.af-fieldset-header .af-reset:hover {
+:where(.mod-alfa-filters-wrapper) .af-fieldset-header .af-reset:hover {
     color: var(--alfa-filters-text);
 }
 
@@ -532,20 +544,19 @@ html.alfa-filters-noscroll {
  * while the panel scrolls. Full width under the panel's own inline inset.
  */
 
-.mod-alfa-filters .af-foot {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-foot {
     position: sticky;
     bottom: 0;
     z-index: 1;
     display: flex;
     align-items: stretch;
     gap: var(--alfa-filters-space-sm);
-    margin: var(--alfa-filters-space-xl) calc(var(--alfa-filters-panel-padding-inline) * -1) 0;
-    padding: var(--alfa-filters-space-md) var(--alfa-filters-panel-padding-inline);
-    background-color: var(--alfa-filters-surface);
+    margin: var(--alfa-filters-space-xl) 0 0;
+    padding: var(--alfa-filters-space-md) 0;
     border-top: 1px solid var(--alfa-filters-border);
 }
 
-.mod-alfa-filters .af-foot .af-reset-all {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-foot .af-reset-all {
     flex: none;
     margin: 0;
     padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-lg);
@@ -556,7 +567,7 @@ html.alfa-filters-noscroll {
     border-radius: var(--alfa-filters-radius-md);
 }
 
-.mod-alfa-filters .af-show-results {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-show-results {
     flex: 1 1 auto;
     display: block;
     width: 100%;
@@ -574,11 +585,11 @@ html.alfa-filters-noscroll {
     transition: background-color var(--alfa-filters-duration) var(--alfa-filters-ease);
 }
 
-.mod-alfa-filters .af-show-results:hover {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-show-results:hover {
     background-color: var(--mod-alfa-filters-submit-color-hover, var(--alfa-filters-accent-hover));
 }
 
-.mod-alfa-filters .af-show-results:disabled {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-show-results:disabled {
     background-color: var(--alfa-filters-border);
     color: var(--alfa-filters-text-muted);
     cursor: not-allowed;
@@ -588,20 +599,20 @@ html.alfa-filters-noscroll {
  * Filter List (Categories & Manufacturers)
  */
 
-.mod-alfa-filters .af-list {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-list {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.mod-alfa-filters .af-option {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-option {
     display: flex;
     gap: var(--alfa-filters-space-sm);
     padding: var(--alfa-filters-space-xs) 0;
     align-items: center;
 }
 
-.mod-alfa-filters .af-label {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-label {
     cursor: pointer;
     font-size: var(--alfa-filters-text-base);
     font-weight: var(--alfa-filters-weight-normal);
@@ -609,11 +620,11 @@ html.alfa-filters-noscroll {
     transition: color var(--alfa-filters-duration-fast);
 }
 
-.mod-alfa-filters .af-label:hover {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-label:hover {
     color: var(--mod-alfa-filters-filter-text-color-hover);
 }
 
-.mod-alfa-filters .af-count {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-count {
     --alfa-filters-count-font-size: var(--alfa-filters-text-xs);
     /* The item's own colour, softened: a fixed grey cannot stay readable
        against every panel background a merchant sets. */
@@ -633,20 +644,20 @@ html.alfa-filters-noscroll {
  * painted from the input's :checked / :focus-visible state.
  */
 
-.mod-alfa-filters .af-chip-list {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-list {
     display: flex;
     flex-wrap: wrap;
     gap: var(--alfa-filters-space-xs);
 }
 
-.mod-alfa-filters .af-chip-list .af-item {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-list .af-item {
     margin: 0;
 }
 
 /* Clip the native input instead of removing it: display:none would drop it from
    the tab order and from the accessibility tree. Overriding the blanket
    input[type=checkbox] sizing rule above needs !important: it sets one too. */
-.mod-alfa-filters input[type="checkbox"].af-chip-input {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"].af-chip-input {
     position: absolute;
     width: 1px !important;
     height: 1px !important;
@@ -659,7 +670,7 @@ html.alfa-filters-noscroll {
     border: 0;
 }
 
-.mod-alfa-filters .af-chip {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip {
     display: inline-flex;
     align-items: center;
     gap: var(--alfa-filters-space-xs);
@@ -677,34 +688,34 @@ html.alfa-filters-noscroll {
                 color var(--alfa-filters-duration-fast);
 }
 
-.mod-alfa-filters .af-chip:hover {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip:hover {
     border-color: var(--mod-alfa-filters-checkbox-color-before, var(--alfa-filters-border));
     color: var(--mod-alfa-filters-filter-text-color-hover);
 }
 
-.mod-alfa-filters .af-chip-input:checked + .af-chip {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-input:checked + .af-chip {
     border-color: var(--mod-alfa-filters-checkbox-color);
     background: var(--mod-alfa-filters-checkbox-color);
     color: var(--mod-alfa-filters-submit-color-text);
 }
 
-.mod-alfa-filters .af-chip-input:checked + .af-chip .af-count {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-input:checked + .af-chip .af-count {
     --alfa-filters-count-color: currentColor;
 }
 
 /* The focus ring the clipped input can no longer show for itself. */
-.mod-alfa-filters .af-chip-input:focus-visible + .af-chip {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-input:focus-visible + .af-chip {
     outline: 2px solid var(--mod-alfa-filters-checkbox-color);
     outline-offset: 2px;
 }
 
 /* swatches */
 
-.mod-alfa-filters .af-render-swatches .af-chip {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-render-swatches .af-chip {
     padding: var(--alfa-filters-space-xs);
 }
 
-.mod-alfa-filters .af-chip-swatch {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-swatch {
     width: var(--alfa-filters-swatch-size);
     height: var(--alfa-filters-swatch-size);
     border-radius: var(--alfa-filters-radius-sm);
@@ -715,7 +726,7 @@ html.alfa-filters-noscroll {
 }
 
 /* A value with no swatch_colors/swatch_image still needs a visible chip. */
-.mod-alfa-filters .af-chip-swatch[data-empty="1"] {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-swatch[data-empty="1"] {
     background-image: linear-gradient(
         135deg,
         var(--alfa-filters-surface) 45%,
@@ -729,19 +740,19 @@ html.alfa-filters-noscroll {
 
 /* A grouped colour list sits above whatever plain values remain, so it needs a little
    air between the two rather than reading as one run-on row. */
-.mod-alfa-filters .af-color-groups {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-color-groups {
     margin-bottom: var(--alfa-filters-space-xs);
 }
 
 /* The chip's own swatch carries the gradient inline (1 colour = flat, 2 = diagonal
    split, 3+ = equal hard-stop bands), so nothing here paints; this only sizes it. */
-.mod-alfa-filters .af-chip-more {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-more {
     font-size: var(--alfa-filters-text-xs);
     color: var(--alfa-filters-text-muted);
     font-variant-numeric: tabular-nums;
 }
 
-.mod-alfa-filters .af-chip-input:checked + .af-chip .af-chip-more {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-chip-input:checked + .af-chip .af-chip-more {
     color: currentColor;
 }
 
@@ -749,7 +760,7 @@ html.alfa-filters-noscroll {
 
 /* The native multiple select: what renders before Choices dresses it, and all
    that renders without JS. */
-.mod-alfa-filters .af-field-select {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-field-select {
     width: 100%;
     padding: var(--alfa-filters-space-xs);
     border: var(--alfa-filters-check-border-width) solid var(--alfa-filters-border);
@@ -758,19 +769,19 @@ html.alfa-filters-noscroll {
     font-size: var(--alfa-filters-text-base);
 }
 
-.mod-alfa-filters .af-field-select:focus-visible {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-field-select:focus-visible {
     outline: 2px solid var(--mod-alfa-filters-checkbox-color);
     outline-offset: 1px;
 }
 
-.mod-alfa-filters .af-field-select option {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-field-select option {
     padding: var(--alfa-filters-space-xs);
 }
 
 /* Choices.js, themed through its own custom properties so the widget follows
    the module tokens without a single rule fight: chips take the checked-chip
    colours of the buttons mode, the list takes the panel's surface and border. */
-.mod-alfa-filters .choices {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .choices {
     --choices-guttering: 0;
     --choices-font-size-lg: var(--alfa-filters-text-base);
     --choices-font-size-md: var(--alfa-filters-text-sm);
@@ -795,12 +806,12 @@ html.alfa-filters-noscroll {
 }
 
 /* The open list overlays the facets below it. */
-.mod-alfa-filters .choices.is-open {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .choices.is-open {
     z-index: 10;
 }
 
-.mod-alfa-filters .choices__inner,
-.mod-alfa-filters .choices__input {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .choices__inner,
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .choices__input {
     color: inherit;
 }
 
@@ -808,18 +819,18 @@ html.alfa-filters-noscroll {
  * Categories - Subcategories
  */
 
-.mod-alfa-filters-wrapper .af-children {
+:where(.mod-alfa-filters-wrapper) .af-children {
     display: none;
 }
 
 /* An opened category (filters.js marks it) shows its subcategories; so does every
    category while its group is searched, where the search decides what stays. */
-.mod-alfa-filters-wrapper .af-item[data-af-open] > .af-children,
-.mod-alfa-filters-wrapper [data-af-filtering] .af-children {
+:where(.mod-alfa-filters-wrapper) .af-item[data-af-open] > .af-children,
+:where(.mod-alfa-filters-wrapper) [data-af-filtering] .af-children {
     display: block;
 }
 
-.mod-alfa-filters-wrapper .af-children .af-list {
+:where(.mod-alfa-filters-wrapper) .af-children .af-list {
     margin-left: var(--alfa-filters-indent);
     padding-top: var(--alfa-filters-space-xs);
 }
@@ -828,12 +839,12 @@ html.alfa-filters-noscroll {
  * Option groups: the heading opens and shuts the group
  */
 
-.mod-alfa-filters .af-fieldset-header legend {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-fieldset-header legend {
     flex: 1 1 auto;
     min-width: 0;
 }
 
-.mod-alfa-filters .af-group-toggle {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-group-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -851,28 +862,28 @@ html.alfa-filters-noscroll {
     cursor: pointer;
 }
 
-.mod-alfa-filters .af-group-icon {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-group-icon {
     flex: none;
     width: 1rem;
     height: 1rem;
 }
 
-.mod-alfa-filters [data-af-closed] > .af-group-body {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters [data-af-closed] > .af-group-body {
     display: none;
 }
 
 /* The icon turns while its group is open, unless the module keeps it still; a plus turns
    into a cross. */
-.mod-alfa-filters-wrapper[data-af-icon-turn] .af-group-toggle[aria-expanded="true"] .af-group-icon {
+:where(.mod-alfa-filters-wrapper)[data-af-icon-turn] .af-group-toggle[aria-expanded="true"] .af-group-icon {
     transform: rotate(var(--alfa-filters-group-icon-turn, 180deg));
 }
 
-.mod-alfa-filters-wrapper[data-af-icon="plus"] {
+:where(.mod-alfa-filters-wrapper)[data-af-icon="plus"] {
     --alfa-filters-group-icon-turn: 45deg;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .mod-alfa-filters .af-group-icon {
+    :where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-group-icon {
         transition: transform var(--alfa-filters-duration) var(--alfa-filters-ease);
     }
 }
@@ -882,11 +893,11 @@ html.alfa-filters-noscroll {
  */
 
 /* Past the group's length an option waits until the group is opened out, or searched. */
-.mod-alfa-filters [data-af-group]:not([data-af-expanded], [data-af-filtering]) .af-item[data-af-more] {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters [data-af-group]:not([data-af-expanded], [data-af-filtering]) .af-item[data-af-more] {
     display: none;
 }
 
-.mod-alfa-filters .af-more {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-more {
     align-self: flex-start;
     margin: 0;
     padding: var(--alfa-filters-space-xs) 0;
@@ -901,9 +912,9 @@ html.alfa-filters-noscroll {
     cursor: pointer;
 }
 
-.mod-alfa-filters .af-more[aria-expanded="true"] .af-more-show,
-.mod-alfa-filters .af-more[aria-expanded="false"] .af-more-hide,
-.mod-alfa-filters [data-af-filtering] .af-more {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-more[aria-expanded="true"] .af-more-show,
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-more[aria-expanded="false"] .af-more-hide,
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters [data-af-filtering] .af-more {
     display: none;
 }
 
@@ -911,7 +922,7 @@ html.alfa-filters-noscroll {
  * Option groups: the search box
  */
 
-.mod-alfa-filters .af-group-search-input {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-group-search-input {
     box-sizing: border-box;
     width: 100%;
     margin: 0 0 var(--alfa-filters-space-xs);
@@ -924,17 +935,17 @@ html.alfa-filters-noscroll {
     border-radius: var(--alfa-filters-radius-sm);
 }
 
-.mod-alfa-filters .af-group-search-input:focus-visible {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-group-search-input:focus-visible {
     outline: 2px solid var(--alfa-filters-border-focus);
     outline-offset: 1px;
 }
 
 /* While a group is searched, only the options it marked stay. */
-.mod-alfa-filters [data-af-filtering] .af-item:not([data-af-match]) {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters [data-af-filtering] .af-item:not([data-af-match]) {
     display: none;
 }
 
-.mod-alfa-filters .af-group-empty {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters .af-group-empty {
     margin: 0;
     padding: var(--alfa-filters-space-xs) 0;
     font-size: var(--alfa-filters-text-sm);
@@ -945,8 +956,8 @@ html.alfa-filters-noscroll {
  * Checkbox & Radio
  */
 
-.mod-alfa-filters input[type="checkbox"],
-.mod-alfa-filters input[type="radio"] {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"],
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="radio"] {
     -webkit-appearance: none;
     appearance: none;
     margin: 0;
@@ -963,20 +974,20 @@ html.alfa-filters-noscroll {
                 box-shadow var(--alfa-filters-duration-fast);
 }
 
-.mod-alfa-filters input[type="checkbox"] {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"] {
     border-radius: var(--alfa-filters-check-radius);
 }
 
-.mod-alfa-filters input[type="radio"] {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="radio"] {
     border-radius: var(--alfa-filters-radius-full);
 }
 
-.mod-alfa-filters input[type="checkbox"]:hover,
-.mod-alfa-filters input[type="radio"]:hover {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]:hover,
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="radio"]:hover {
     border-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
 }
 
-.mod-alfa-filters input[type="checkbox"]::before {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]::before {
     content: "";
     width: 10px;
     height: 10px;
@@ -988,7 +999,7 @@ html.alfa-filters-noscroll {
     background-color: CanvasText;
 }
 
-.mod-alfa-filters input[type="radio"]::before {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="radio"]::before {
     content: "";
     width: 7px;
     height: 7px;
@@ -999,18 +1010,18 @@ html.alfa-filters-noscroll {
     background-color: CanvasText;
 }
 
-.mod-alfa-filters input[type="checkbox"]:checked,
-.mod-alfa-filters input[type="radio"]:checked {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]:checked,
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="radio"]:checked {
     border-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
     background-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
 }
 
-.mod-alfa-filters input[type="checkbox"]:checked::before,
-.mod-alfa-filters input[type="radio"]:checked::before {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]:checked::before,
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="radio"]:checked::before {
     transform: scale(1);
 }
 
-.mod-alfa-filters input[type="checkbox"]:disabled {
+:where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]:disabled {
     border-color: var(--alfa-filters-border);
     background: var(--alfa-filters-surface-hover);
     cursor: not-allowed;
@@ -1018,13 +1029,13 @@ html.alfa-filters-noscroll {
 
 /* Safari 9+, < 13.1 fallback */
 @supports (-webkit-marquee-repetition:infinite) and (object-fit:fill) {
-    .mod-alfa-filters input[type="checkbox"]:before { display: none; }
-    .mod-alfa-filters input[type="checkbox"]:checked {
+    :where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]:before { display: none; }
+    :where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"]:checked {
         border-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
         background-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
         accent-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
     }
-    .mod-alfa-filters input[type="checkbox"] {
+    :where(.mod-alfa-filters-wrapper) .mod-alfa-filters input[type="checkbox"] {
         -webkit-appearance: checkbox;
         appearance: checkbox;
     }
@@ -1034,7 +1045,7 @@ html.alfa-filters-noscroll {
  * Subcategory Toggle
  */
 
-.af-toggle {
+:where(.mod-alfa-filters-wrapper) .af-toggle {
     --alfa-filters-toggle-size: 1.75rem;
     --alfa-filters-toggle-bg: var(--alfa-filters-surface-hover);
     --alfa-filters-toggle-bg-hover: var(--alfa-filters-surface-active);
@@ -1058,18 +1069,18 @@ html.alfa-filters-noscroll {
     margin-left: auto;
 }
 
-.af-toggle:hover {
+:where(.mod-alfa-filters-wrapper) .af-toggle:hover {
     background-color: var(--alfa-filters-toggle-bg-hover);
     color: var(--alfa-filters-toggle-color-hover);
 }
 
-.af-toggle svg {
+:where(.mod-alfa-filters-wrapper) .af-toggle svg {
     width: 1rem;
     height: 1rem;
     transition: transform var(--alfa-filters-duration-slow) var(--alfa-filters-ease);
 }
 
-.af-toggle[aria-expanded="true"] svg {
+:where(.mod-alfa-filters-wrapper) .af-toggle[aria-expanded="true"] svg {
     transform: rotate(90deg);
 }
 
@@ -1077,13 +1088,13 @@ html.alfa-filters-noscroll {
  * Price Slider
  */
 
-.af-price-header {
+:where(.mod-alfa-filters-wrapper) .af-price-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.af-price-header .af-price-reset {
+:where(.mod-alfa-filters-wrapper) .af-price-header .af-price-reset {
     display: none;
     background: none;
     border: none;
@@ -1096,21 +1107,21 @@ html.alfa-filters-noscroll {
     text-underline-offset: 2px;
 }
 
-.af-price-header .af-price-reset.is-visible {
+:where(.mod-alfa-filters-wrapper) .af-price-header .af-price-reset.is-visible {
     display: inline-block;
 }
 
-.af-price-header .af-price-reset:hover {
+:where(.mod-alfa-filters-wrapper) .af-price-header .af-price-reset:hover {
     color: var(--alfa-filters-text);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range {
     position: relative;
     width: 100%;
     height: 2.5rem;
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range-track {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range-track {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -1120,7 +1131,7 @@ html.alfa-filters-noscroll {
     border-radius: calc(var(--alfa-filters-track-height) / 2);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range-highlight {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range-highlight {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -1129,7 +1140,7 @@ html.alfa-filters-noscroll {
     border-radius: calc(var(--alfa-filters-track-height) / 2);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"] {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range input[type="range"] {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -1147,14 +1158,14 @@ html.alfa-filters-noscroll {
     background: transparent;
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-runnable-track {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range input[type="range"]::-webkit-slider-runnable-track {
     /* The whole input, so the thumb centres in it without an offset. The visible
        track is the .af-range-track element underneath; this one only positions. */
     height: 100%;
     background: transparent;
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb {
     pointer-events: auto;
     -webkit-appearance: none;
     appearance: none;
@@ -1169,12 +1180,12 @@ html.alfa-filters-noscroll {
     transition: box-shadow var(--alfa-filters-duration-fast), transform var(--alfa-filters-duration-fast);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb:hover {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb:hover {
     box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
     transform: scale(1.05);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb {
     pointer-events: auto;
     box-sizing: content-box;
     width: var(--alfa-filters-thumb-size);
@@ -1187,17 +1198,17 @@ html.alfa-filters-noscroll {
     transition: box-shadow var(--alfa-filters-duration-fast), transform var(--alfa-filters-duration-fast);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb:hover {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb:hover {
     box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
     transform: scale(1.05);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-price-values {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-price-values {
     display: flex;
     justify-content: space-between;
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-price-box {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-price-box {
     font-weight: var(--alfa-filters-weight-medium);
     color: var(--alfa-filters-text);
     font-size: var(--alfa-filters-text-base);
@@ -1208,7 +1219,7 @@ html.alfa-filters-noscroll {
     flex: 1;
 }
 
-.af-price-fieldset .af-price-box input {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-price-box input {
     height: 100%;
     width: 100%;
     text-align: center;
@@ -1222,13 +1233,13 @@ html.alfa-filters-noscroll {
     transition: border-color var(--alfa-filters-duration-fast);
 }
 
-.af-price-fieldset .af-price-box input:focus {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-price-box input:focus {
     outline: none;
     border-color: var(--alfa-filters-border-focus);
     box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
 }
 
-.mod-alfa-filters-wrapper .af-price-fieldset .af-price-label {
+:where(.mod-alfa-filters-wrapper) .af-price-fieldset .af-price-label {
     color: var(--alfa-filters-text-muted);
     font-weight: var(--alfa-filters-weight-normal);
     font-size: var(--alfa-filters-text-xs);
@@ -1245,7 +1256,7 @@ html.alfa-filters-noscroll {
     white-space: nowrap;
 }
 
-.mod-alfa-filters-wrapper .af-price-search {
+:where(.mod-alfa-filters-wrapper) .af-price-search {
     display: flex;
     flex-direction: row;
     width: 100%;
@@ -1253,13 +1264,13 @@ html.alfa-filters-noscroll {
     align-items: center;
 }
 
-.af-price-search input::-webkit-outer-spin-button,
-.af-price-search input::-webkit-inner-spin-button {
+:where(.mod-alfa-filters-wrapper) .af-price-search input::-webkit-outer-spin-button,
+:where(.mod-alfa-filters-wrapper) .af-price-search input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
-.af-price-search input[type=number] {
+:where(.mod-alfa-filters-wrapper) .af-price-search input[type=number] {
     -moz-appearance: textfield;
 }
 
@@ -1267,9 +1278,9 @@ html.alfa-filters-noscroll {
  * Arrow Buttons (Price / Discount apply)
  */
 
-.mod-alfa-filters-wrapper .af-price-search button[type='button'],
-.af-discount-amount button,
-.af-discount-percent button {
+:where(.mod-alfa-filters-wrapper) .af-price-search button[type='button'],
+:where(.mod-alfa-filters-wrapper) .af-discount-amount button,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent button {
     flex-shrink: 0;
     aspect-ratio: 1;
     width: 2.5rem;
@@ -1287,40 +1298,40 @@ html.alfa-filters-noscroll {
                 background-color var(--alfa-filters-duration-fast);
 }
 
-.mod-alfa-filters-wrapper .af-price-search button[type='button']:hover,
-.af-discount-amount-inner button[type='button']:hover,
-.af-discount-percent-inner button[type='button']:hover {
+:where(.mod-alfa-filters-wrapper) .af-price-search button[type='button']:hover,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount-inner button[type='button']:hover,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent-inner button[type='button']:hover {
     border-color: var(--alfa-filters-accent);
     color: var(--alfa-filters-accent);
     background-color: var(--alfa-filters-surface-hover);
 }
 
-.af-price-search .af-arrow-icon,
-.af-discount-amount .af-arrow-icon,
-.af-discount-percent .af-arrow-icon {
+:where(.mod-alfa-filters-wrapper) .af-price-search .af-arrow-icon,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount .af-arrow-icon,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent .af-arrow-icon {
     width: 1rem;
     height: 1rem;
 }
 
 /* Arrow SVG line transforms */
-.af-price-search .af-arrow-icon .line-bottom, .af-price-search .af-arrow-icon .line-top,
-.af-discount-amount .af-arrow-icon .line-bottom, .af-discount-amount .af-arrow-icon .line-top,
-.af-discount-percent .af-arrow-icon .line-bottom, .af-discount-percent .af-arrow-icon .line-top,
-.af-toggle .line-top, .af-toggle .line-bottom {
+:where(.mod-alfa-filters-wrapper) .af-price-search .af-arrow-icon .line-bottom, :where(.mod-alfa-filters-wrapper) .af-price-search .af-arrow-icon .line-top,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount .af-arrow-icon .line-bottom, :where(.mod-alfa-filters-wrapper) .af-discount-amount .af-arrow-icon .line-top,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent .af-arrow-icon .line-bottom, :where(.mod-alfa-filters-wrapper) .af-discount-percent .af-arrow-icon .line-top,
+:where(.mod-alfa-filters-wrapper) .af-toggle .line-top, :where(.mod-alfa-filters-wrapper) .af-toggle .line-bottom {
     transform-origin: 150px 100px;
 }
 
-.af-price-search .af-arrow-icon .line-bottom,
-.af-discount-amount .af-arrow-icon .line-bottom,
-.af-discount-percent .af-arrow-icon .line-bottom,
-.af-toggle .line-bottom {
+:where(.mod-alfa-filters-wrapper) .af-price-search .af-arrow-icon .line-bottom,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount .af-arrow-icon .line-bottom,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent .af-arrow-icon .line-bottom,
+:where(.mod-alfa-filters-wrapper) .af-toggle .line-bottom {
     transform: rotate(35deg);
 }
 
-.af-price-search .af-arrow-icon .line-top,
-.af-discount-amount .af-arrow-icon .line-top,
-.af-discount-percent .af-arrow-icon .line-top,
-.af-toggle .line-top {
+:where(.mod-alfa-filters-wrapper) .af-price-search .af-arrow-icon .line-top,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount .af-arrow-icon .line-top,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent .af-arrow-icon .line-top,
+:where(.mod-alfa-filters-wrapper) .af-toggle .line-top {
     transform: rotate(-35deg);
 }
 
@@ -1329,13 +1340,13 @@ html.alfa-filters-noscroll {
  * Consistent top-border pattern for all filter sections.
  */
 
-.af-price,
-.af-ordering,
-.af-limit,
-.af-onsale,
-.af-new,
-.af-discount-amount,
-.af-discount-percent {
+:where(.mod-alfa-filters-wrapper) .af-price,
+:where(.mod-alfa-filters-wrapper) .af-ordering,
+:where(.mod-alfa-filters-wrapper) .af-limit,
+:where(.mod-alfa-filters-wrapper) .af-onsale,
+:where(.mod-alfa-filters-wrapper) .af-new,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent {
     padding-top: var(--alfa-filters-space-md);
 }
 
@@ -1343,25 +1354,25 @@ html.alfa-filters-noscroll {
  * Extra Filters (Onsale, Discounts)
  */
 
-.af-onsale .btn-group.radio,
-.af-onsale legend,
-.af-onsale fieldset,
-.af-new .btn-group.radio,
-.af-new legend,
-.af-new fieldset {
+:where(.mod-alfa-filters-wrapper) .af-onsale .btn-group.radio,
+:where(.mod-alfa-filters-wrapper) .af-onsale legend,
+:where(.mod-alfa-filters-wrapper) .af-onsale fieldset,
+:where(.mod-alfa-filters-wrapper) .af-new .btn-group.radio,
+:where(.mod-alfa-filters-wrapper) .af-new legend,
+:where(.mod-alfa-filters-wrapper) .af-new fieldset {
     margin: 0;
 }
 
-.af-discount-amount-inner,
-.af-discount-percent-inner {
+:where(.mod-alfa-filters-wrapper) .af-discount-amount-inner,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent-inner {
     display: flex;
     flex-direction: row;
     gap: var(--alfa-filters-space-sm);
     align-items: center;
 }
 
-.af-discount-amount,
-.af-discount-percent {
+:where(.mod-alfa-filters-wrapper) .af-discount-amount,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent {
     display: flex;
     flex-direction: column;
     gap: var(--alfa-filters-space-xs);
@@ -1371,17 +1382,17 @@ html.alfa-filters-noscroll {
  * Ordering & Limit selects
  */
 
-.af-ordering select,
-.af-limit select,
-.af-onsale label,
-.af-discount-amount input,
-.af-discount-percent input {
+:where(.mod-alfa-filters-wrapper) .af-ordering select,
+:where(.mod-alfa-filters-wrapper) .af-limit select,
+:where(.mod-alfa-filters-wrapper) .af-onsale label,
+:where(.mod-alfa-filters-wrapper) .af-discount-amount input,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent input {
     font-size: var(--alfa-filters-text-base);
     font-family: var(--alfa-filters-font);
 }
 
-.af-ordering select,
-.af-limit select {
+:where(.mod-alfa-filters-wrapper) .af-ordering select,
+:where(.mod-alfa-filters-wrapper) .af-limit select {
     width: 100%;
     padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-md);
     /* Room for the drop-down arrow, wherever it is drawn. */
@@ -1398,15 +1409,15 @@ html.alfa-filters-noscroll {
     transition: border-color var(--alfa-filters-duration-fast);
 }
 
-.af-ordering select:focus,
-.af-limit select:focus {
+:where(.mod-alfa-filters-wrapper) .af-ordering select:focus,
+:where(.mod-alfa-filters-wrapper) .af-limit select:focus {
     outline: none;
     border-color: var(--alfa-filters-border-focus);
     box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
 }
 
-.af-discount-amount input,
-.af-discount-percent input {
+:where(.mod-alfa-filters-wrapper) .af-discount-amount input,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent input {
     padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-md);
     border: 1px solid var(--alfa-filters-border);
     border-radius: var(--alfa-filters-radius-md);
@@ -1415,8 +1426,8 @@ html.alfa-filters-noscroll {
     transition: border-color var(--alfa-filters-duration-fast);
 }
 
-.af-discount-amount input:focus,
-.af-discount-percent input:focus {
+:where(.mod-alfa-filters-wrapper) .af-discount-amount input:focus,
+:where(.mod-alfa-filters-wrapper) .af-discount-percent input:focus {
     outline: none;
     border-color: var(--alfa-filters-border-focus);
     box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
@@ -1427,7 +1438,7 @@ html.alfa-filters-noscroll {
  * not shown.
  */
 
-.af-results-status {
+:where(.mod-alfa-filters-wrapper) .af-results-status {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -1443,7 +1454,7 @@ html.alfa-filters-noscroll {
  * Loading Animation
  */
 
-.alfa-filters-loading-overlay {
+:where(.mod-alfa-filters-wrapper) .filters-loading-overlay {
     position: fixed;
     display: flex;
     align-items: center;
@@ -1459,29 +1470,29 @@ html.alfa-filters-noscroll {
                 visibility var(--alfa-filters-duration) var(--alfa-filters-ease);
 }
 
-.alfa-filters-loading-overlay.is-active {
+:where(.mod-alfa-filters-wrapper) .filters-loading-overlay.is-active {
     opacity: 1;
     visibility: visible;
 }
 
-.alfa-filters-loading-overlay svg,
-.alfa-filters-loading-overlay img {
+:where(.mod-alfa-filters-wrapper) .filters-loading-overlay svg,
+:where(.mod-alfa-filters-wrapper) .filters-loading-overlay img {
     --loading-size: clamp(80px, 12vw, 120px);
     width: var(--loading-size);
     height: auto;
     object-fit: contain;
 }
 
-.af-loading-anim {
+:where(.mod-alfa-filters-wrapper) .af-loading-anim {
     animation: var(--mod-alfa-filters-loading-animation);
 }
 
-@keyframes alfa-filters-spinner {
+@keyframes filters-spinner {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 
-@keyframes alfa-filters-pulsate {
+@keyframes filters-pulsate {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.05); opacity: 0.6; }
 }
@@ -1491,14 +1502,14 @@ html.alfa-filters-noscroll {
  */
 
 @media (max-width: 440px) {
-    .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner .alfa-filters-wrapper-inner {
+    :where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner .filters-wrapper-inner {
         width: 100%;
         transition: width 0.25s ease;
     }
 }
 
 @media (max-height: 600px) {
-    .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop .alfa-filters-wrapper-inner {
+    :where(.mod-alfa-filters-wrapper) .filters-offcanvas.filters-offcanvas--visible-inner.fromTop .filters-wrapper-inner {
         height: 100%;
         transition: height 0.25s ease;
     }

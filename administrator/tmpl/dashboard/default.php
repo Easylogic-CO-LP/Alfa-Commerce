@@ -42,7 +42,7 @@ $this->getDocument()->addScriptOptions('com_alfa.setup', [
 // The card's failure notice: a refused request's body is never shown to the operator.
 Text::script('COM_ALFA_SETUP_REQUEST_FAILED');
 ?>
-<div class="alfa-dashboard">
+<div class="dashboard">
     <?php // The download store's direct-download protection: only while it is not verified. ?>
     <?php echo LayoutHelper::render('downloads.protection', ['always' => false], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
     <header class="dash-head">

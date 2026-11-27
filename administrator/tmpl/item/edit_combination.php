@@ -86,7 +86,7 @@ $galleryForm->bind([
 </div>
 
 <form action="<?php echo $formAction; ?>" method="post" enctype="multipart/form-data"
-      name="adminForm" id="combination-form" class="form-validate form-horizontal alfa-studio">
+      name="adminForm" id="combination-form" class="form-validate form-horizontal studio">
 
 
     <?php echo $detailLayout->render([

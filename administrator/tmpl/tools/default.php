@@ -61,7 +61,7 @@ $showDevelopment = $toolsUser->authorise('core.admin');
  *  the development surface, rendered only for a Super User; anything else a plugin names opens its own tab. */
 $coreSurfaces = ['maintenance', 'tasks', 'security', 'extensions', 'development', 'background'];
 ?>
-<div class="com-alfa-tools p-3">
+<div class="tools-page p-3">
 
     <?php // Outer tabset carries recall; the devguide's inner tabset must NOT, or
           // nested recall shares one sessionStorage key and can hang the page. ?>

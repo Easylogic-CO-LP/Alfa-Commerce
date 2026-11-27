@@ -8,7 +8,7 @@
 /* Add-to-cart confirmation card (the `cart.added` layout). The layout's attributes
    choose placement and entrance, the script stamps the open/closing state; only
    opacity and transform animate. Phones always get a bottom sheet. */
-.cart-added {
+:where(.cart-added) {
     --cart-added-offset-y: 16px;
     --cart-added-offset-x: 16px;
     --cart-added-x: translateX(0);
@@ -25,47 +25,47 @@
     pointer-events: none;
 }
 
-.cart-added[data-state="open"] {
+:where(.cart-added)[data-state="open"] {
     opacity: 1;
     transform: var(--cart-added-x);
     transition: opacity 200ms ease-out, transform 200ms ease-out;
     pointer-events: auto;
 }
 
-.cart-added[data-placement^="bottom"] {
+:where(.cart-added)[data-placement^="bottom"] {
     top: auto;
     bottom: var(--cart-added-offset-y);
 }
 
-.cart-added[data-placement$="left"] {
+:where(.cart-added)[data-placement$="left"] {
     right: auto;
     left: var(--cart-added-offset-x);
 }
 
-.cart-added[data-placement$="center"] {
+:where(.cart-added)[data-placement$="center"] {
     --cart-added-x: translateX(-50%);
     right: auto;
     left: 50%;
 }
 
-.cart-added[data-effect="slide"] {
+:where(.cart-added)[data-effect="slide"] {
     --cart-added-enter: translateY(-8px);
 }
 
-.cart-added[data-effect="slide"][data-placement^="bottom"] {
+:where(.cart-added)[data-effect="slide"][data-placement^="bottom"] {
     --cart-added-enter: translateY(8px);
 }
 
-.cart-added[data-effect="zoom"] {
+:where(.cart-added)[data-effect="zoom"] {
     --cart-added-enter: scale(0.96);
 }
 
-.cart-added[data-effect="none"],
-.cart-added[data-effect="none"][data-state="open"] {
+:where(.cart-added)[data-effect="none"],
+:where(.cart-added)[data-effect="none"][data-state="open"] {
     transition: none;
 }
 
-.cart-added-card {
+:where(.cart-added) .cart-added-card {
     display: grid;
     gap: 14px;
     padding: 18px 20px;
@@ -75,22 +75,22 @@
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
 }
 
-.cart-added-header {
+:where(.cart-added) .cart-added-header {
     display: flex;
     align-items: flex-start;
     gap: 12px;
 }
 
-.cart-added-title {
+:where(.cart-added) .cart-added-title {
     flex: 1;
     font-weight: 600;
 }
 
-.cart-added[data-outcome="rejected"] .cart-added-title {
+:where(.cart-added)[data-outcome="rejected"] .cart-added-title {
     color: var(--alfa-error-color);
 }
 
-.cart-added-close {
+:where(.cart-added) .cart-added-close {
     display: inline-flex;
     margin: -4px -6px 0 0;
     padding: 4px;
@@ -100,12 +100,12 @@
     cursor: pointer;
 }
 
-.cart-added-line {
+:where(.cart-added) .cart-added-line {
     display: flex;
     gap: 14px;
 }
 
-.cart-added-image img {
+:where(.cart-added) .cart-added-image img {
     display: block;
     width: 72px;
     height: 72px;
@@ -113,7 +113,7 @@
     border-radius: 4px;
 }
 
-.cart-added-details {
+:where(.cart-added) .cart-added-details {
     display: grid;
     flex: 1;
     min-width: 0;
@@ -121,70 +121,70 @@
     font-size: 0.92rem;
 }
 
-.cart-added-name {
+:where(.cart-added) .cart-added-name {
     font-weight: 600;
 }
 
-.cart-added-fields {
+:where(.cart-added) .cart-added-fields {
     margin: 0;
     padding: 0;
     list-style: none;
     color: var(--alfa-muted-color);
 }
 
-.cart-added-meta {
+:where(.cart-added) .cart-added-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 4px 12px;
     color: var(--alfa-muted-color);
 }
 
-.cart-added-summary {
+:where(.cart-added) .cart-added-summary {
     display: flex;
     justify-content: space-between;
     gap: 12px;
     font-size: 0.92rem;
 }
 
-.cart-added-actions {
+:where(.cart-added) .cart-added-actions {
     display: flex;
     gap: 8px;
 }
 
-.cart-added-actions .action {
+:where(.cart-added) .cart-added-actions .action {
     flex: 1;
 }
 
-.cart-added-messages {
+:where(.cart-added) .cart-added-messages {
     margin: 0;
     padding: 0 0 0 1.1em;
 }
 
-.cart-added-notice {
+:where(.cart-added) .cart-added-notice {
     margin: 0;
     font-size: 0.92rem;
 }
 
 @media (max-width: 600px) {
-    .cart-added,
-    .cart-added[data-placement] {
+    :where(.cart-added),
+    :where(.cart-added)[data-placement] {
         --cart-added-x: translateX(0);
         inset: auto 0 0 0;
         width: auto;
     }
 
-    .cart-added[data-effect="slide"][data-placement] {
+    :where(.cart-added)[data-effect="slide"][data-placement] {
         --cart-added-enter: translateY(12px);
     }
 
-    .cart-added-card {
+    :where(.cart-added) .cart-added-card {
         border-radius: 12px 12px 0 0;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cart-added,
-    .cart-added[data-state="open"] {
+    :where(.cart-added),
+    :where(.cart-added)[data-state="open"] {
         transition: none;
     }
 }

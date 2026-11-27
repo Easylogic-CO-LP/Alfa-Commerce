@@ -24,6 +24,12 @@ use Joomla\CMS\Language\Text;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * @var string The page's class on the wrapper.
+     * @since  2.3.0
+     */
+    protected string $pageClass = 'manufacturers-list-page';
+
     protected $items;
 
     protected $pagination;

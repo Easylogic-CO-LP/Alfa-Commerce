@@ -1,32 +1,32 @@
 /* item prices subform */
 
-.prices-subform .subform-repeatable-group{
+:where(#alfa-app) .prices-subform .subform-repeatable-group{
     display: flex;
     flex-wrap: wrap;
 }
 
-.prices-subform .control-group{
+:where(#alfa-app) .prices-subform .control-group{
     display: flex;
     flex-direction: column;
 }
 
-.prices-subform .control-label{
+:where(#alfa-app) .prices-subform .control-label{
     padding: 0;
     margin: 0 5px;
 }
 
 /* order items subform */
-.order-items-subform .subform-repeatable-group{
+:where(#alfa-app) .order-items-subform .subform-repeatable-group{
     display: flex;
     flex-wrap: wrap;
 }
 
-.order-items-subform .control-group{
+:where(#alfa-app) .order-items-subform .control-group{
     display: flex;
     flex-direction: column;
 }
 
-.order-items-subform .control-label{
+:where(#alfa-app) .order-items-subform .control-label{
     padding: 0;
     margin: 0 5px;
 }
@@ -40,35 +40,35 @@
     margin-left:0;
     margin-right:0;
 }*/
-.table-mobile-responsive tbody td{
+:where(#alfa-app) .table-mobile-responsive tbody td{
     white-space: nowrap;
 }
 @media screen and (max-width: 992px) {
 
-    .table-mobile-responsive thead {
+    :where(#alfa-app) .table-mobile-responsive thead {
         display: none;
     }
 
-    .table-mobile-responsive tr {
+    :where(#alfa-app) .table-mobile-responsive tr {
         border-bottom: 3px solid var(--body-color, #000);
         display: block;
     }
 
-    .table-mobile-responsive td {
+    :where(#alfa-app) .table-mobile-responsive td {
         border-bottom: 1px solid var(--border-color, #ddd) !important;
         display: block;
         font-size: .8em;
         text-align: right;
     }
 
-    .table-mobile-responsive td::before {
+    :where(#alfa-app) .table-mobile-responsive td::before {
         content: attr(data-th);
         float: left;
         font-weight: bold;
         text-transform: uppercase;
     }
 
-    .table-mobile-responsive td:last-child {
+    :where(#alfa-app) .table-mobile-responsive td:last-child {
         border-bottom: 0;
     }
 }
@@ -76,31 +76,31 @@
 
 
 /* SHIPMENT COTS SUBFORM */
-.subform-repeatable.shrinked-repeatable-table thead th { width: 1% !important; }
-.subform-repeatable.shrinked-repeatable-table tbody td .controls { min-width:auto !important;max-width: 100px !important; }
+:where(#alfa-app) .subform-repeatable.shrinked-repeatable-table thead th { width: 1% !important; }
+:where(#alfa-app) .subform-repeatable.shrinked-repeatable-table tbody td .controls { min-width:auto !important;max-width: 100px !important; }
 
 /* Items list "Available" cell: the salable number and its status badge read as
  * one value, so they must not wrap apart at narrow widths. */
-.alfa-availability {
+:where(#alfa-app) .availability {
     display: inline-flex;
     align-items: baseline;
     gap: 0.35rem;
     white-space: nowrap;
 }
 
-.alfa-availability .badge {
+:where(#alfa-app) .availability .badge {
     font-weight: 500;
 }
 
 /* Derived read-out, not a field: muted so it never reads as something the
  * merchant forgot to make editable. */
-.alfa-availability-value {
+:where(#alfa-app) .availability-value {
     color: var(--secondary-color, #566370);
 }
 
 /* The figure and its badge are one value and must not wrap apart; the safety
  * note sits on the line beneath, like every other qualified cell. */
-.alfa-availability-line {
+:where(#alfa-app) .availability-line {
     display: inline-flex;
     align-items: baseline;
     gap: 0.35rem;
@@ -111,21 +111,21 @@
  * beneath it. Side by side, a long SKU and its "3 variants" note compete for a
  * narrow column and wrap mid-phrase; stacked, the value always reads first.
  * One pattern for every cell that qualifies its number or code. */
-.alfa-cell {
+:where(#alfa-app) .cell {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     line-height: 1.3;
 }
 
-.alfa-cell-meta {
+:where(#alfa-app) .cell-meta {
     font-size: 0.78rem;
     color: var(--secondary-color, #566370);
 }
 
 /* The inline-edit marker is a full-width flex box; inside a stacked cell it
  * must still span the column so the pencil keeps its position. */
-.alfa-cell > .alfa-editable {
+:where(#alfa-app) .cell > .editable {
     align-self: stretch;
 }
 
@@ -133,7 +133,7 @@
  * separates stock from shipping from purchase limits without fragmenting it
  * into competing boxes. The rules are spacer fields in forms/item.xml, so the
  * hairline has to escape the label column Joomla renders a spacer into. */
-.alfa-group-rule {
+:where(#alfa-app) .group-rule {
     margin: 1.5rem 0 1rem;
     border: 0;
     border-top: 1px solid var(--border-color, #dee2e6);
@@ -143,23 +143,23 @@
 /* Atum renders a spacer into the 240px label column and caps its hr at 380px
  * (.control-group .control-label, .spacer hr). Both selectors have to be
  * out-specified for the rule to read as a divider rather than a stray dash. */
-.control-group.field-spacer > .control-label {
+:where(#alfa-app) .control-group.field-spacer > .control-label {
     inline-size: 100%;
     max-inline-size: 100%;
     padding-inline: 0;
 }
 
-.field-spacer > .controls {
+:where(#alfa-app) .field-spacer > .controls {
     display: none;
 }
 
-.spacer hr.alfa-group-rule {
+:where(#alfa-app) .spacer hr.group-rule {
     inline-size: 100%;
 }
 
 /* Identity: three machine codes reading as one line, like the Studio's grid.
  * The template just renders the fieldset; the columns are this rule. */
-.alfa-identity-grid {
+:where(#alfa-app) .identity-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
     gap: 0 1.5rem;
@@ -169,7 +169,7 @@
    Scoped to the builder root so nothing leaks into the rest of the admin.
    The point of the layout is that a condition reads as one sentence:
    "Match by [Categories] [is one of] [Footwear]". */
-.alfa-conditions .alfa-condition-group {
+:where(#alfa-app) .conditions .condition-group {
     border: 1px solid var(--border-color, #dfe3e8);
     border-radius: .35rem;
     padding: .75rem;
@@ -177,7 +177,7 @@
     background: var(--card-bg, #fff);
 }
 
-.alfa-conditions .alfa-condition-group-head {
+:where(#alfa-app) .conditions .condition-group-head {
     display: flex;
     align-items: center;
     gap: .5rem;
@@ -185,23 +185,23 @@
     margin-bottom: .5rem;
 }
 
-.alfa-conditions .alfa-condition-group-head label {
+:where(#alfa-app) .conditions .condition-group-head label {
     margin: 0;
     font-weight: 600;
     white-space: nowrap;
 }
 
-.alfa-conditions .alfa-condition-group-head input[type="number"] {
+:where(#alfa-app) .conditions .condition-group-head input[type="number"] {
     width: 6rem;
     flex: 0 0 auto;
 }
 
-.alfa-conditions .alfa-condition-group-hint {
+:where(#alfa-app) .conditions .condition-group-hint {
     font-size: .85em;
     color: var(--secondary-color, #6c757d);
 }
 
-.alfa-conditions .alfa-condition-row {
+:where(#alfa-app) .conditions .condition-row {
     display: flex;
     align-items: center;
     gap: .5rem;
@@ -209,28 +209,28 @@
     padding: .4rem 0;
 }
 
-.alfa-conditions .alfa-condition-row + .alfa-condition-row {
+:where(#alfa-app) .conditions .condition-row + .condition-row {
     border-top: 1px dashed var(--border-color, #dfe3e8);
 }
 
-.alfa-conditions .alfa-condition-lead {
+:where(#alfa-app) .conditions .condition-lead {
     font-weight: 600;
     white-space: nowrap;
 }
 
-.alfa-conditions .alfa-condition-row select:not([multiple]) {
+:where(#alfa-app) .conditions .condition-row select:not([multiple]) {
     width: auto;
     flex: 0 0 auto;
 }
 
 /* The values picker takes the slack: it is the part with real content. */
-.alfa-conditions .alfa-condition-values {
+:where(#alfa-app) .conditions .condition-values {
     flex: 1 1 18rem;
     min-width: 12rem;
 }
 
 /* Groups are ANDed; say so between them rather than in a paragraph above. */
-.alfa-conditions .alfa-condition-group + .alfa-condition-group::before {
+:where(#alfa-app) .conditions .condition-group + .condition-group::before {
     content: attr(data-and-label);
     display: block;
     margin: -1.15rem 0 .5rem;
@@ -248,7 +248,7 @@
    text turns white on it: the refunds on an order become unreadable the moment
    an admin switches to dark. The subtle pair flips together, so it stays legible
    in both. */
-tr.alfa-row-refund > * {
+:where(#alfa-app) tr.row-refund > * {
     --table-bg: var(--warning-bg-subtle, #fff3cd);
     --table-color: var(--warning-text-emphasis, #664d03);
     background-color: var(--warning-bg-subtle, #fff3cd);
@@ -274,7 +274,7 @@ tr.alfa-row-refund > * {
    text and no background, i.e. invisible on a light page. Defining it with the
    stylesheet both screens load is the fix; the pair is solid purple on white in
    either colour scheme, so it needs no dark variant. */
-.badge.bg-purple {
+:where(#alfa-app) .badge.bg-purple {
     background-color: #6f42c1 !important;
     color: #fff;
 }
@@ -289,25 +289,25 @@ tr.alfa-row-refund > * {
    so this one field, which renders N selects, was confined to a single 263px
    column and stacked them vertically no matter what it did inside. The cell that
    holds them spans the whole row instead; everything below is then free to flow. */
-.js-stools-container-filters:has(.item-field-filters) .js-stools-field-filter:has(> .item-field-filters),
-.js-stools-field-filter:has(> .item-field-filters) {
+:where(#alfa-app) .js-stools-container-filters:has(.item-field-filters) .js-stools-field-filter:has(> .item-field-filters),
+:where(#alfa-app) .js-stools-field-filter:has(> .item-field-filters) {
     grid-column: 1 / -1;
 }
 
-.item-field-filters {
+:where(#alfa-app) .item-field-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem 0.75rem;
     inline-size: 100%;
 }
 
-.item-field-filter {
+:where(#alfa-app) .item-field-filter {
     flex: 1 1 12rem;
     min-inline-size: 12rem;
     max-inline-size: 20rem;
 }
 
-.item-field-filter-label {
+:where(#alfa-app) .item-field-filter-label {
     display: block;
     margin-bottom: 0.15rem;
     font-size: var(--alfa-filter-label-size, 0.8125rem);
@@ -315,8 +315,8 @@ tr.alfa-row-refund > * {
 }
 
 /* The choices.js shell the fancy-select renders must not overflow its column. */
-.item-field-filter .choices,
-.item-field-filter .choices__inner {
+:where(#alfa-app) .item-field-filter .choices,
+:where(#alfa-app) .item-field-filter .choices__inner {
     inline-size: 100%;
     max-inline-size: 100%;
 }
@@ -325,7 +325,7 @@ tr.alfa-row-refund > * {
    uses (see sidebar.css), so a button can carry a real Alfa menu icon instead of a
    font glyph and still follow the text colour in light and dark. The file arrives
    as --alfa-icon on the element, exactly as the sidebar layout sets it. */
-.alfa-icon {
+:where(#alfa-app) .icon {
     display: inline-block;
     inline-size: 1em;
     block-size: 1em;
@@ -341,11 +341,11 @@ tr.alfa-row-refund > * {
    popup, so its styling is shared too: one search box that looks the same on
    both screens, overridable in one place.
    */
-.product-search-container {
+:where(#alfa-app) .product-search-container {
     position: relative;
 }
 
-.product-search-results {
+:where(#alfa-app) .product-search-results {
     position: absolute;
     z-index: 1050;
     width: 100%;
@@ -358,46 +358,46 @@ tr.alfa-row-refund > * {
     display: none;
 }
 
-.product-search-results.show {
+:where(#alfa-app) .product-search-results.show {
     display: block;
 }
 
-.product-result {
+:where(#alfa-app) .product-result {
     padding: 10px 14px;
     cursor: pointer;
     border-bottom: 1px solid var(--border-color-translucent, #f0f0f0);
     transition: background .15s;
 }
 
-.product-result:hover {
+:where(#alfa-app) .product-result:hover {
     background-color: var(--secondary-bg, #f8f9fa);
 }
 
-.product-result:last-child {
+:where(#alfa-app) .product-result:last-child {
     border-bottom: none;
 }
 
-.product-result-name {
+:where(#alfa-app) .product-result-name {
     font-weight: 600;
     color: var(--emphasis-color, #212529);
 }
 
-.product-result-meta {
+:where(#alfa-app) .product-result-meta {
     font-size: .85em;
     color: var(--secondary-color, #6c757d);
     margin-top: 2px;
 }
 
-.product-result-price {
+:where(#alfa-app) .product-result-price {
     font-weight: 600;
     color: var(--success-text-emphasis, #198754);
 }
 
-.product-result-stock.low {
+:where(#alfa-app) .product-result-stock.low {
     color: #dc3545;
 }
 
-.search-spinner {
+:where(#alfa-app) .search-spinner {
     display: none;
     position: absolute;
     right: 12px;
@@ -405,18 +405,18 @@ tr.alfa-row-refund > * {
     transform: translateY(-50%);
 }
 
-.search-spinner.show {
+:where(#alfa-app) .search-spinner.show {
     display: block;
 }
 
-.no-results {
+:where(#alfa-app) .no-results {
     padding: 20px;
     text-align: center;
     color: var(--secondary-color, #6c757d);
     font-style: italic;
 }
 
-.selected-product-header {
+:where(#alfa-app) .selected-product-header {
     background: var(--tertiary-bg, #f8f9fa);
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 6px;
@@ -442,7 +442,7 @@ tr.alfa-row-refund > * {
  * Scoped to this panel on purpose. A global `details { margin: 0 }` would
  * flatten every standalone accordion in the administrator to fix one card.
  */
-#alfa-reconciliation-panel > details {
+:where(#alfa-app) #reconciliation-panel > details {
     margin: 0;
     padding: 0;
     background: none;
@@ -452,12 +452,12 @@ tr.alfa-row-refund > * {
 
 /* The summary carries the card header, so it takes the card's own radius and
    loses the marker indent Atum's list-item display adds. */
-#alfa-reconciliation-panel > details > summary {
+:where(#alfa-app) #reconciliation-panel > details > summary {
     border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
 }
 
 /* Closed: the header is the whole card, so it must round at the bottom too. */
-#alfa-reconciliation-panel > details:not([open]) > summary {
+:where(#alfa-app) #reconciliation-panel > details:not([open]) > summary {
     border-bottom: 0;
     border-radius: calc(0.25rem - 1px);
 }
@@ -468,7 +468,7 @@ tr.alfa-row-refund > * {
  * header, the steps and "Check connection" open under it. The caret stands in
  * for the marker the flex summary drops.
  */
-.alfa-checkup > details {
+:where(#alfa-app) .checkup > details {
     margin: 0;
     padding: 0;
     background: none;
@@ -476,32 +476,32 @@ tr.alfa-row-refund > * {
     border-radius: 0;
 }
 
-.alfa-checkup > details > summary {
+:where(#alfa-app) .checkup > details > summary {
     cursor: pointer;
     list-style: none;
     border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
 }
 
-.alfa-checkup > details > summary::-webkit-details-marker {
+:where(#alfa-app) .checkup > details > summary::-webkit-details-marker {
     display: none;
 }
 
-.alfa-checkup > details:not([open]) > summary {
+:where(#alfa-app) .checkup > details:not([open]) > summary {
     border-bottom: 0;
     border-radius: calc(0.25rem - 1px);
 }
 
-.alfa-checkup .alfa-checkup-caret {
+:where(#alfa-app) .checkup .checkup-caret {
     display: inline-block;
     transition: transform 0.15s ease-in-out;
 }
 
-.alfa-checkup > details:not([open]) .alfa-checkup-caret {
+:where(#alfa-app) .checkup > details:not([open]) .checkup-caret {
     transform: rotate(-90deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .alfa-checkup .alfa-checkup-caret {
+    :where(#alfa-app) .checkup .checkup-caret {
         transition: none;
     }
 }
@@ -524,93 +524,93 @@ tr.alfa-row-refund > * {
  * every iframe modal alone. Twelve inline modals in this component were
  * affected, not one.
  */
-.joomla-modal:not([data-iframe]) .modal-body {
+:where(#alfa-app) .joomla-modal:not([data-iframe]) .modal-body {
     padding: 1rem;
 }
 
 /* The administrator's main column may shrink below its content, so a wide list
    scrolls inside its own .table-responsive box instead of moving the whole page
    sideways (the template's column keeps the width of its widest content). */
-.com_alfa #wrapper > .container-main {
+:where(#alfa-app) .com_alfa #wrapper > .container-main {
     min-width: 0;
 }
 
 /* The box also holds what its cells position (the sort links' hidden captions),
    so nothing in the table widens the page. */
-.com_alfa .table-responsive {
+:where(#alfa-app) .com_alfa .table-responsive {
     position: relative;
 }
 
 /* The Columns chooser Joomla puts above a list table sits inside that box: while
    its menu is open the box shows the menu whole instead of cutting it off. */
-.com_alfa .table-responsive:has(> .dropdown .dropdown-menu.show) {
+:where(#alfa-app) .com_alfa .table-responsive:has(> .dropdown .dropdown-menu.show) {
     overflow: visible;
 }
 
 /* A raw stored value (a path, a key, a transaction id, a SKU): it wraps inside its
    cell at any character instead of widening the table and the page. */
-.com_alfa .raw-value {
+:where(#alfa-app) .com_alfa .raw-value {
     overflow-wrap: anywhere;
 }
 
 /* Tools > Reset to default: three columns of fixed widths, so a long stored value
    wraps inside its cell (raw-value) instead of widening the table and the page. */
-.com-alfa-resetdefaults .changes {
+:where(#alfa-app) .com-alfa-resetdefaults .changes {
     table-layout: fixed;
     width: 100%;
 }
 
-.com-alfa-resetdefaults .changes th:first-child {
+:where(#alfa-app) .com-alfa-resetdefaults .changes th:first-child {
     width: 30%;
 }
 
 
-.com-alfa-resetdefaults .changes .values {
+:where(#alfa-app) .com-alfa-resetdefaults .changes .values {
     margin: 0.25rem 0 0;
     padding: 0;
     list-style: none;
 }
 
 /* A value read as one, never broken inside itself (a date and its time): Tools > Tasks' "Next try after" date. */
-.alfa-nowrap {
+:where(#alfa-app) .nowrap {
     white-space: nowrap;
 }
 
 /* A table that folds on a phone: Tools > Tasks' jobs, the orders list, the order's payments, shipments, items,
    documents, reconciliation, totals, coupons, history and document previews, and the order builder's addresses and
    lines. Below 480 px a row's cells wrap onto as many lines as the screen needs, in their
-   order, instead of widening the page; the cell that holds the row's actions (alfa-fold-line) takes a line of its own
-   under the row. The headings give way, but a heading kept on purpose (alfa-fold-keep, the select-all box); each cell
-   that needs its heading says it above its value (data-alfa-label). From 480 px up the table is as it was. */
+   order, instead of widening the page; the cell that holds the row's actions (fold-line) takes a line of its own
+   under the row. The headings give way, but a heading kept on purpose (fold-keep, the select-all box); each cell
+   that needs its heading says it above its value (data-cell-label). From 480 px up the table is as it was. */
 @media (max-width: 479.98px) {
-    .alfa-fold > thead > tr > :not(.alfa-fold-keep) {
+    :where(#alfa-app) .fold > thead > tr > :not(.fold-keep) {
         display: none;
     }
 
-    .alfa-fold > thead > tr,
-    .alfa-fold > tbody > tr {
+    :where(#alfa-app) .fold > thead > tr,
+    :where(#alfa-app) .fold > tbody > tr {
         display: flex;
         flex-wrap: wrap;
     }
 
-    .alfa-fold > tbody > tr > td {
+    :where(#alfa-app) .fold > tbody > tr > td {
         display: block;
         flex: 1 1 auto;
         min-width: 0;
         overflow-wrap: break-word;
     }
 
-    .alfa-fold > tbody > tr > .alfa-fold-line {
+    :where(#alfa-app) .fold > tbody > tr > .fold-line {
         flex-basis: 100%;
     }
 
     /* A row's buttons wrap inside their line rather than run past the screen. */
-    .alfa-fold .alfa-fold-line .btn-group {
+    :where(#alfa-app) .fold .fold-line .btn-group {
         flex-wrap: wrap;
     }
 
-    .alfa-fold [data-alfa-label]::before {
-        content: attr(data-alfa-label);
+    :where(#alfa-app) .fold [data-cell-label]::before {
+        content: attr(data-cell-label);
         display: block;
         font-size: 0.75rem;
         color: var(--secondary-color, #6c757d);
@@ -626,20 +626,20 @@ tr.alfa-row-refund > * {
 }
 
 #alfa-app [id]:target,
-.com-alfa-tools [id]:target,
-.com-alfa-audit [id]:target {
+:where(#alfa-app) .com-alfa-tools [id]:target,
+:where(#alfa-app) .com-alfa-audit [id]:target {
     scroll-margin-top: var(--alfa-anchor-offset);
 }
 
 /* Order builder: one page of sections. Each section stands apart from the next by
    space and a rule, and an address with a section's id (the page reopens at the
    section a form posted from) lands below the sticky toolbar, not under it. */
-.alfa-builder-section {
+:where(#alfa-app) .builder-section {
     margin-bottom: 2rem;
     scroll-margin-top: var(--alfa-anchor-offset);
 }
 
-.alfa-builder-section + .alfa-builder-section {
+:where(#alfa-app) .builder-section + .builder-section {
     padding-top: 1.5rem;
     border-top: 1px solid var(--template-bg-dark-7, var(--bs-border-color));
 }
@@ -648,37 +648,37 @@ tr.alfa-row-refund > * {
    header, one block holding the title row (caret, title, count) and the description under it;
    the table opens under the header. The caret stands in for the marker the summary drops, and
    turns with the block. */
-.com-alfa-audit > details {
+:where(#alfa-app) .com-alfa-audit > details {
     margin: 0 0 1.5rem;
     padding: 0;
 }
 
-.com-alfa-audit > details > summary {
+:where(#alfa-app) .com-alfa-audit > details > summary {
     cursor: pointer;
     list-style: none;
     border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
 }
 
-.com-alfa-audit > details > summary::-webkit-details-marker {
+:where(#alfa-app) .com-alfa-audit > details > summary::-webkit-details-marker {
     display: none;
 }
 
-.com-alfa-audit > details:not([open]) > summary {
+:where(#alfa-app) .com-alfa-audit > details:not([open]) > summary {
     border-bottom: 0;
     border-radius: calc(0.25rem - 1px);
 }
 
-.com-alfa-audit .alfa-audit-caret {
+:where(#alfa-app) .com-alfa-audit .audit-caret {
     display: inline-block;
     transition: transform 0.15s ease-in-out;
 }
 
-.com-alfa-audit > details:not([open]) .alfa-audit-caret {
+:where(#alfa-app) .com-alfa-audit > details:not([open]) .audit-caret {
     transform: rotate(-90deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .com-alfa-audit .alfa-audit-caret {
+    :where(#alfa-app) .com-alfa-audit .audit-caret {
         transition: none;
     }
 }
@@ -689,28 +689,28 @@ tr.alfa-row-refund > * {
  * and takes the same frame, drawn in that colour, so the three read as one set.
  * Atum's own alert rule names two classes, so this one names three to win.
  */
-.card-body .alert.alfa-integrity-block {
+:where(#alfa-app) .card-body .alert.integrity-block {
     border: 1px solid currentColor;
 }
 
 /* Item edit, the Preview control: Atum draws an external link glyph before every link that opens a new tab. The
    control's "In a new tab" choice carries its own icon, so the glyph stays out of this control only. */
-#toolbar-preview a[target="_blank"]::before {
+:where(#alfa-app) #toolbar-preview a[target="_blank"]::before {
     content: none;
 }
 
 /* The webhook form's Topics tab: one box under the other, the line that says when the topic is told right under its
    name. */
-.alfa-topics .form-check + .form-check {
+:where(#alfa-app) .topics .form-check + .form-check {
     margin-top: 0.75rem;
 }
 
-.alfa-topics .form-text {
+:where(#alfa-app) .topics .form-text {
     margin-top: 0;
 }
 
 /* The webhook form's Deliveries tab: the deliveries list in a frame of its own, as tall as the screen allows. */
-.alfa-webhook-deliveries {
+:where(#alfa-app) .webhook-deliveries {
     display: block;
     width: 100%;
     height: 70vh;

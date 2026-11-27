@@ -56,12 +56,12 @@ $hint      = (string) ($displayData['hint'] ?? '');
                 : '';
         ?>
         <div class="ml-field-item">
-            <input type="number" step="any" class="form-control form-control-sm alfa-inline-input"
+            <input type="number" step="any" class="form-control form-control-sm inline-input"
                    data-name="<?php echo $locationId; ?>"
                    data-baseline="<?php echo htmlspecialchars($figure, ENT_QUOTES, 'UTF-8'); ?>"
                    value="<?php echo htmlspecialchars($figure, ENT_QUOTES, 'UTF-8'); ?>">
             <?php if (!$single) : ?>
-                <span class="ml-field-flag ml-field-flag--text alfa-inline-location<?php echo empty($location['published']) ? ' is-unpublished' : ''; ?>"
+                <span class="ml-field-flag ml-field-flag--text inline-location<?php echo empty($location['published']) ? ' is-unpublished' : ''; ?>"
                       title="<?php echo htmlspecialchars(
                           $title . ($note !== '' ? ' - ' . $note : ''),
                           ENT_QUOTES,
@@ -74,5 +74,5 @@ $hint      = (string) ($displayData['hint'] ?? '');
     <?php endforeach; ?>
 </div>
 <?php if ($hint !== '') : ?>
-    <div class="alfa-inline-hint"><?php echo htmlspecialchars($hint, ENT_QUOTES, 'UTF-8'); ?></div>
+    <div class="inline-hint"><?php echo htmlspecialchars($hint, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>

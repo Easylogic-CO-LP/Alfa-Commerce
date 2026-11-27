@@ -139,9 +139,9 @@ class CartruleGroupsField extends FormField
                 . '<span class="icon-plus" aria-hidden="true"></span> '
                 . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_ADD')) . '</button>';
 
-        return '<div class="alfa-conditions" data-alfa-conditions'
+        return '<div class="conditions" data-conditions'
             . ' data-name="' . $this->esc($this->name) . '" data-id="' . $this->esc($this->id) . '">'
-            . '<div class="alfa-conditions-groups" data-groups>' . $rows . '</div>'
+            . '<div class="conditions-groups" data-groups>' . $rows . '</div>'
             . $addGroup
             . $this->templates()
             . '</div>';
@@ -229,20 +229,20 @@ class CartruleGroupsField extends FormField
                 . '<span class="icon-plus" aria-hidden="true"></span> '
                 . $this->esc(Text::_('COM_ALFA_CARTRULE_CONDITION_ADD')) . '</button>';
 
-        return '<fieldset class="alfa-condition-group" data-group>'
-            . '<div class="alfa-condition-group-head">'
+        return '<fieldset class="condition-group" data-group>'
+            . '<div class="condition-group-head">'
             . '<label for="' . $this->esc($quantityId) . '" data-min-qty-label>' . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_MIN_QTY_LBL')) . '</label>'
             . '<input type="number" min="1" step="1" class="form-control"'
             . ' id="' . $this->esc($quantityId) . '"'
             . ' name="' . $this->esc($base . '[min_quantity]') . '"'
             . ' value="' . (int) ($group['min_quantity'] ?? 1) . '">'
-            . '<span class="alfa-condition-group-hint">'
+            . '<span class="condition-group-hint">'
             . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_MIN_QTY_DESC')) . '</span>'
             . '<button type="button" class="btn btn-danger btn-sm ms-auto" data-remove-group'
             . ' title="' . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_REMOVE')) . '">'
             . '<span class="icon-minus" aria-hidden="true"></span></button>'
             . '</div>'
-            . '<div class="alfa-conditions-rows" data-conditions>' . $conditions . '</div>'
+            . '<div class="conditions-rows" data-conditions>' . $conditions . '</div>'
             . $addCondition
             . '</fieldset>';
     }
@@ -284,8 +284,8 @@ class CartruleGroupsField extends FormField
             . $this->esc(Text::_('COM_ALFA_CARTRULE_CONDITION_OPERATOR_IS_NOT')) . '</option>'
             . '</select>';
 
-        return '<div class="alfa-condition-row" data-condition>'
-            . '<span class="alfa-condition-lead">' . $this->esc(Text::_('COM_ALFA_CARTRULE_CONDITION_TYPE_LBL')) . '</span>'
+        return '<div class="condition-row" data-condition>'
+            . '<span class="condition-lead">' . $this->esc(Text::_('COM_ALFA_CARTRULE_CONDITION_TYPE_LBL')) . '</span>'
             . $typeSelect
             . $operator
             . ($locked
@@ -341,10 +341,10 @@ class CartruleGroupsField extends FormField
         $url = 'index.php?option=com_alfa&task=cartrule.conditionValues&format=json'
             . '&type=' . $type . '&' . Session::getFormToken() . '=1';
 
-        return '<joomla-field-fancy-select class="alfa-condition-values"'
+        return '<joomla-field-fancy-select class="condition-values"'
             . ' placeholder="' . $this->esc(Text::_('JGLOBAL_TYPE_OR_SELECT_SOME_OPTIONS')) . '"'
             . ' remote-search term-key="term" min-term-length="1"'
-            . ' url="' . $this->esc($url) . '" data-alfa-condition-values>'
+            . ' url="' . $this->esc($url) . '" data-condition-values>'
             . $select
             . '</joomla-field-fancy-select>';
     }
@@ -374,7 +374,7 @@ class CartruleGroupsField extends FormField
 
         $shown = $ids === [] ? '-' : implode(', ', array_map(static fn (int $id): string => '#' . $id, $ids));
 
-        return '<div class="alfa-condition-values alfa-condition-values-locked">'
+        return '<div class="condition-values condition-values-locked">'
             . '<select multiple hidden name="' . $this->esc($name) . '">' . $options . '</select>'
             . '<span class="form-control-plaintext">' . $this->esc($shown) . '</span>'
             . '<span class="form-text">'

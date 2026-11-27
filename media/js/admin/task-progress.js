@@ -13,19 +13,19 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
-        const card = document.querySelector('[data-alfa-job-progress]');
+        const card = document.querySelector('[data-job-progress]');
 
         if (!card) {
             return;
         }
 
-        const bar = card.querySelector('[data-alfa-job-bar]');
-        const state = card.querySelector('[data-alfa-job-state]');
-        const units = card.querySelector('[data-alfa-job-units]');
-        const unitsLine = card.querySelector('[data-alfa-job-units-line]');
-        const error = card.querySelector('[data-alfa-job-error]');
-        const wait = card.querySelector('[data-alfa-job-wait]');
-        const report = card.querySelector('[data-alfa-job-report]');
+        const bar = card.querySelector('[data-job-bar]');
+        const state = card.querySelector('[data-job-state]');
+        const units = card.querySelector('[data-job-units]');
+        const unitsLine = card.querySelector('[data-job-units-line]');
+        const error = card.querySelector('[data-job-error]');
+        const wait = card.querySelector('[data-job-wait]');
+        const report = card.querySelector('[data-job-report]');
         const solid = { done: 'bg-success', failed: 'bg-danger', resolved: 'bg-secondary' };
         let started = 0;
 
@@ -50,8 +50,8 @@
                 bar.classList.add(solid[data.state]);
             }
 
-            card.querySelectorAll('[data-alfa-job-end]').forEach(function (line) {
-                line.hidden = line.getAttribute('data-alfa-job-end') !== data.state;
+            card.querySelectorAll('[data-job-end]').forEach(function (line) {
+                line.hidden = line.getAttribute('data-job-end') !== data.state;
             });
             report.textContent = data.report || '';
             report.hidden = !data.report;

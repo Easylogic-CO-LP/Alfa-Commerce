@@ -20,7 +20,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
  * THE EXTENSION BOUNDARY, documented and not yet opened: provider-specific metadata would attach here as a
  * namespaced map, filled through onAlfaResultSetRender and rendered by the same two view calls. At result-set level
  * only the configured engine that minted the handle could add; per result nobody but core. Each extension would get one
- * namespace from its element (data-alfa-ext-<element>-<key>, the key matching ^[a-z0-9]+(-[a-z0-9]+)*$), never class,
+ * namespace from its element (data-ext-<element>-<key>, the key matching ^[a-z0-9]+(-[a-z0-9]+)*$), never class,
  * id, style, on* or a non-data attribute; scalars only, escaped by core's one helper; a write to a reserved core name
  * refused and logged; every value opaque, and anything a browser echoes back revalidated by the endpoint receiving it.
  *

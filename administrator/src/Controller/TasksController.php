@@ -233,7 +233,7 @@ class TasksController extends BaseController
      * The Dashboard's background-work card, drawn by its own layout from the one source of its data
      * (CoreCardProvider::backgroundWork()), as JSON {html}: the staff kick swaps it in after each of its ticks while the
      * card is on the page, so the card follows the job without a reload. Its html holds no
-     * [data-alfa-background-card] when there is nothing left to show. A POST with the form token, by a user with the
+     * [data-background-card] when there is nothing left to show. A POST with the form token, by a user with the
      * Tools permission.
      *
      * @since  2.2.0

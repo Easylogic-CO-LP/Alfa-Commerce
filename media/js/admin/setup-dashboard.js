@@ -43,7 +43,7 @@
      * The shared iframe modal actions.js builds (Alfa.openActionFrame); closing it
      * is our cue that a setup task may have been completed.
      */
-    var FRAME_MODAL_ID = 'alfa-action-frame-modal';
+    var FRAME_MODAL_ID = 'action-frame-modal';
 
     var opts; // resolved script options (cardUrl, stateUrl, token)
 

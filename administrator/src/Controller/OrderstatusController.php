@@ -593,13 +593,13 @@ class OrderstatusController extends FormController
                                 <input type="hidden" name="recipient" value="{$recipientEsc}">
                                 <input type="hidden" name="lang" value="{$langEsc}">
                                 <div class="mb-3">
-                                    <label for="alfa-test-order" class="form-label fw-semibold">{$lblOrder}</label>
-                                    <select id="alfa-test-order" name="order_id" class="form-select" required>{$orderOptions}</select>
+                                    <label for="test-order" class="form-label fw-semibold">{$lblOrder}</label>
+                                    <select id="test-order" name="order_id" class="form-select" required>{$orderOptions}</select>
                                     <div class="form-text">{$lblOrderHint}</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="alfa-test-destination" class="form-label fw-semibold">{$lblDestination}</label>
-                                    <input id="alfa-test-destination" type="email" name="destination" class="form-control" value="{$userEmailEsc}" required>
+                                    <label for="test-destination" class="form-label fw-semibold">{$lblDestination}</label>
+                                    <input id="test-destination" type="email" name="destination" class="form-control" value="{$userEmailEsc}" required>
                                 </div>
                                 <div class="text-end mt-4">
                                     <button type="submit" class="btn btn-primary">{$lblSubmit}</button>

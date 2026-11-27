@@ -3,7 +3,7 @@
  *
  * Loaded by layouts/actions/action_credit_refund_partial.php. Reads the typed
  * amount and navigates to the MUTATING 'credit_refund_partial_do' arm via
- * AlfaAction.run(); the declarative data-alfa-run attribute can only carry
+ * AlfaAction.run(); the declarative data-action-run attribute can only carry
  * values known at render time, hence this file.
  *
  * The form arm itself never mutates: a GET that refunds money is a GET a

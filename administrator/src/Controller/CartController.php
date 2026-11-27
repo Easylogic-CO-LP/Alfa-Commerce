@@ -127,7 +127,7 @@ class CartController extends BaseController
     ];
 
     /**
-     * The builder page's sections a form may name for its reply to land on (the page's ids are alfa-builder-<name>).
+     * The builder page's sections a form may name for its reply to land on (the page's ids are builder-<name>).
      *
      * @var string[]
      * @since  2.3.0
@@ -1345,7 +1345,7 @@ class CartController extends BaseController
      * Where on the builder page a form's reply lands: the section the form belongs to, so the operator goes on where
      * they were. When the act left a message, the page opens at the top instead, where Joomla prints it.
      *
-     * @return string The address fragment, '#alfa-builder-<section>', or '' for the top of the page.
+     * @return string The address fragment, '#builder-<section>', or '' for the top of the page.
      *
      * @since  2.3.0
      */
@@ -1357,7 +1357,7 @@ class CartController extends BaseController
             return '';
         }
 
-        return '#alfa-builder-' . $section;
+        return '#builder-' . $section;
     }
 
     /**

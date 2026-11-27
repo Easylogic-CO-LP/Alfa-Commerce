@@ -32,8 +32,8 @@ $token     = $displayData['token'] ?? '';
 $e         = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 $fieldsets = $form->getFieldsets();
 ?>
-<form action="index.php" method="post" name="adminForm" id="adminForm" class="form-validate form-horizontal alfa-panel-form" enctype="multipart/form-data">
-    <div class="alfa-panel-form__body">
+<form action="index.php" method="post" name="adminForm" id="adminForm" class="form-validate form-horizontal panel-form" enctype="multipart/form-data">
+    <div class="panel-form__body">
         <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaPanelTab', ['active' => 'general', 'recall' => true, 'breakpoint' => 768]); ?>
         <?php echo HTMLHelper::_('uitab.addTab', 'alfaPanelTab', 'general', Text::_('COM_ALFA_PANEL_TAB_GENERAL')); ?>
             <?php if ($fieldsets !== []) : ?>

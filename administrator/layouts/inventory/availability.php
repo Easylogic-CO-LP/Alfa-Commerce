@@ -94,7 +94,7 @@ $badge = match (true) {
     default => null,
 };
 ?>
-<span class="alfa-availability-cell" data-alfa-cell="availability" data-id="<?php echo $id; ?>">
+<span class="availability-cell" data-inline-cell="availability" data-id="<?php echo $id; ?>">
 <?php if (!$tracked) : ?>
     <span class="text-muted"><?php echo Text::_('COM_ALFA_ITEMS_STOCK_NOT_TRACKED'); ?></span>
     <?php if ($badge !== null) : ?>
@@ -109,17 +109,17 @@ $badge = match (true) {
     );
     ?>
     <?php // Derived, never editable: muted number, no pencil ever. ?>
-    <span class="alfa-cell alfa-availability" title="<?php echo htmlspecialchars(Text::_(!empty($hasVariants)
+    <span class="cell availability" title="<?php echo htmlspecialchars(Text::_(!empty($hasVariants)
         ? 'COM_ALFA_ITEMS_AVAILABLE_VARIANTS'
         : 'COM_ALFA_ITEMS_AVAILABLE_HINT'), ENT_QUOTES, 'UTF-8'); ?>">
-        <span class="alfa-availability-line">
-            <span class="alfa-availability-value"><?php echo htmlspecialchars(InventoryAvailabilityService::formatQuantity($available), ENT_QUOTES, 'UTF-8'); ?></span>
+        <span class="availability-line">
+            <span class="availability-value"><?php echo htmlspecialchars(InventoryAvailabilityService::formatQuantity($available), ENT_QUOTES, 'UTF-8'); ?></span>
             <?php if ($badge !== null) : ?>
                 <span class="badge bg-<?php echo $badge[0]; ?>"><?php echo Text::_($badge[1]); ?></span>
             <?php endif; ?>
         </span>
         <?php if ($heldBack) : ?>
-            <span class="alfa-cell-meta" title="<?php echo htmlspecialchars(Text::_('COM_ALFA_ITEMS_AVAILABLE_SAFETY_HINT'), ENT_QUOTES, 'UTF-8'); ?>">
+            <span class="cell-meta" title="<?php echo htmlspecialchars(Text::_('COM_ALFA_ITEMS_AVAILABLE_SAFETY_HINT'), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo Text::sprintf(
                     'COM_ALFA_ITEMS_AVAILABLE_SAFETY',
                     InventoryAvailabilityService::formatQuantity($minQty),

@@ -31,7 +31,7 @@ $next = $this->takenOver
     ? 'COM_ALFA_CART_SHOPPER_CART_TAKEN_OVER'
     : ($this->canTakeOver ? 'COM_ALFA_CART_SHOPPER_CART_TAKEOVER_HINT' : 'COM_ALFA_CART_SHOPPER_CART_READONLY');
 ?>
-<div class="alert <?php echo $this->takenOver ? 'alert-info' : 'alert-warning'; ?>" role="status" data-alfa-shopper-cart>
+<div class="alert <?php echo $this->takenOver ? 'alert-info' : 'alert-warning'; ?>" role="status" data-shopper-cart>
     <p class="fw-semibold mb-1"><?php echo Text::_('COM_ALFA_CART_SHOPPER_CART_NOTICE'); ?></p>
     <p class="mb-0"><?php echo Text::_($next); ?></p>
 </div>

@@ -5,7 +5,7 @@
  *
  * Progressive enhancement for any storefront search input that DECLARES itself.
  *
- * BINDS TO A DECLARATION, NEVER TO MARKUP: the contract is `data-alfa-search` on the
+ * BINDS TO A DECLARATION, NEVER TO MARKUP: the contract is `data-search-enhance` on the
  * input, not `#filter_search`. Selecting by id would tie this file to the markup Joomla's
  * searchtools happens to emit today, so a template override, a second search box, a
  * mobile-specific layout or a moved module would each silently break enhancement. Any
@@ -14,7 +14,7 @@
  * CREATES NO MARKUP AND SETS NO CLASSES, EVER. Every element the dropdown shows is
  * authored by the `search/enhance_templates` layout as inert <template> fragments this
  * script clones and fills. The contract with the layout is ATTRIBUTES only:
- * `data-alfa-search-template` names a fragment, `data-alfa-search-slot` names a part to
+ * `data-search-enhance-template` names a fragment, `data-search-enhance-slot` names a part to
  * fill, and state is expressed as data-attributes (`data-active`, `data-section`,
  * `data-unrouted`). The active option is also told to assistive technology: it gets an
  * `id` when it has none and `aria-selected`, and the input names it in
@@ -33,7 +33,7 @@
 (function () {
     'use strict';
 
-    var SELECTOR = '[data-alfa-search]';
+    var SELECTOR = '[data-search-enhance]';
     var DEBOUNCE_MS = 220;
 
     function options() {
@@ -48,7 +48,7 @@
      * not render.
      */
     function fragment(name) {
-        var tpl = document.querySelector('template[data-alfa-search-template="' + name + '"]');
+        var tpl = document.querySelector('template[data-search-enhance-template="' + name + '"]');
 
         return (tpl && tpl.content && tpl.content.firstElementChild) ? tpl.content.firstElementChild : null;
     }
@@ -64,7 +64,7 @@
      * carry the slot (the suggestion chip does).
      */
     function slot(root, name) {
-        var selector = '[data-alfa-search-slot="' + name + '"]';
+        var selector = '[data-search-enhance-slot="' + name + '"]';
 
         if (root.matches && root.matches(selector)) {
             return root;
@@ -394,7 +394,7 @@
 
         // Name the list this combobox drives, now that it is in the document.
         if (!panel.id) {
-            panel.id = 'alfa-search-panel-' + (++panelSeq);
+            panel.id = 'search-panel-' + (++panelSeq);
         }
 
         this.input.setAttribute('aria-controls', panel.id);
@@ -488,8 +488,8 @@
         var inputs = document.querySelectorAll(SELECTOR);
 
         for (var i = 0; i < inputs.length; i++) {
-            if (!inputs[i].dataset.alfaSearchBound) {
-                inputs[i].dataset.alfaSearchBound = '1';
+            if (!inputs[i].dataset.searchBound) {
+                inputs[i].dataset.searchBound = '1';
                 new Enhancer(inputs[i]);
             }
         }

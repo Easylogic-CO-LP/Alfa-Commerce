@@ -97,16 +97,16 @@ class PresetFiltersField extends FormField
         $presetCategories = array_filter((array) ($filterValues['category'] ?? []), static fn ($v) => $v !== '' && $v !== null);
 
         $html = [];
-        $html[] = '<div class="alfa-preset-filters">';
+        $html[] = '<div class="preset-filters">';
 
         foreach ($filterForm->getGroup('filter') as $field) {
             if ($field->fieldname === 'category') {
                 // Own wrapper, own id: the XOR hides THIS container; no coupling
                 // to whatever enhancement wraps the native select.
-                $html[] = '<div id="alfa-preset-cats-wrap"' . ($identityId > 0 ? ' hidden' : '') . '>' . $field->renderField() . '</div>';
-                $html[] = '<div id="alfa-preset-cats-note" class="alert alert-info"' . ($identityId > 0 ? '' : ' hidden') . '>'
+                $html[] = '<div id="preset-cats-wrap"' . ($identityId > 0 ? ' hidden' : '') . '>' . $field->renderField() . '</div>';
+                $html[] = '<div id="preset-cats-note" class="alert alert-info"' . ($identityId > 0 ? '' : ' hidden') . '>'
                     . Text::_('COM_ALFA_PRESET_CATS_CONTROLLED_BY_IDENTITY') . '</div>';
-                $html[] = '<div id="alfa-preset-single-hint" class="alert alert-warning"'
+                $html[] = '<div id="preset-single-hint" class="alert alert-warning"'
                     . (\count($presetCategories) === 1 && $identityId === 0 ? '' : ' hidden') . '>'
                     . Text::_('COM_ALFA_PRESET_SINGLE_CATEGORY_HINT') . '</div>';
 

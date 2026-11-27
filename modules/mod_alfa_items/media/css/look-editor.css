@@ -9,16 +9,16 @@
  */
 
 /* On the module's tabs the editor is the whole row: its settings are rows themselves. */
-.control-group:has(> .controls > .alfa-look-module) > .control-label {
+.control-group:has(> .controls > .look-module) > .control-label {
     display: none;
 }
 
-.control-group:has(> .controls > .alfa-look) > .controls {
+.control-group:has(> .controls > .look) > .controls {
     flex: 1 1 100%;
     max-width: 100%;
 }
 
-.alfa-look-group {
+:where(.look) .look-group {
     margin: 0 0 0.75rem;
     padding: 0;
     border: 1px solid var(--template-bg-dark-7, #dee2e6);
@@ -26,7 +26,7 @@
     background: none;
 }
 
-.alfa-look-group > summary {
+:where(.look) .look-group > summary {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -36,12 +36,12 @@
     list-style: none;
 }
 
-.alfa-look-group > summary::-webkit-details-marker {
+:where(.look) .look-group > summary::-webkit-details-marker {
     display: none;
 }
 
 /* A chevron that turns when the group opens. */
-.alfa-look-group > summary::before {
+:where(.look) .look-group > summary::before {
     content: "";
     width: 0.45rem;
     height: 0.45rem;
@@ -51,64 +51,64 @@
     transition: transform 0.15s ease;
 }
 
-.alfa-look-group[open] > summary::before {
+:where(.look) .look-group[open] > summary::before {
     transform: rotate(45deg);
 }
 
-.alfa-look-group[open] > summary {
+:where(.look) .look-group[open] > summary {
     border-bottom: 1px solid var(--template-bg-dark-7, #dee2e6);
 }
 
-.alfa-look-rows {
+:where(.look) .look-rows {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
 }
 
-.alfa-look-rows > .control-group {
+:where(.look) .look-rows > .control-group {
     margin-bottom: 0.5rem;
 }
 
-.alfa-look-sides .form-control {
+:where(.look) .look-sides .form-control {
     min-width: 3.25rem;
 }
 
 /* A size: its number, then its unit. */
-.alfa-look .alfa-look-size > .form-select {
+:where(.look) .look-size > .form-select {
     flex: 0 0 6.5rem;
     width: 6.5rem;
 }
 
 /* A device that has settings of its own. */
-.alfa-look-dot {
+:where(.look) .look-dot {
     width: 0.4rem;
     height: 0.4rem;
     border-radius: 50%;
     background: currentColor;
 }
 
-.alfa-look-fold {
+:where(.look) .look-fold {
     margin: 0;
     padding: 0;
     border: 0;
     background: none;
 }
 
-.alfa-look-fold > summary {
+:where(.look) .look-fold > summary {
     list-style: none;
 }
 
-.alfa-look-fold > summary::-webkit-details-marker {
+:where(.look) .look-fold > summary::-webkit-details-marker {
     display: none;
 }
 
-.alfa-look-fold[open] > summary {
+:where(.look) .look-fold[open] > summary {
     margin-bottom: 0.5rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .alfa-look-group > summary::before {
+    :where(.look) .look-group > summary::before {
         transition: none;
     }
 }

@@ -49,7 +49,6 @@ use Alfa\Component\Alfa\Administrator\Model\InventoryauditModel;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
-use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockRepairJob;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
@@ -160,7 +159,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
     ];
 };
 ?>
-<div class="com-alfa-inventory-audit com-alfa-audit">
+<div class="inventory-audit audit-report">
     <p class="text-muted">
         <?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_SCANNED', (int) $scanned['units'], (int) $scanned['rows']); ?>
     </p>
@@ -225,12 +224,12 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
             $repairAll = array_keys($repairAll);
         }
         ?>
-        <details class="card mb-4 alfa-audit-section" data-audit-category="<?php echo $this->escape(var: $category); ?>">
+        <details class="card mb-4 audit-section" data-audit-category="<?php echo $this->escape(var: $category); ?>">
             <summary class="card-header">
                 <?php // The card header is a flex row; one block inside it keeps the description under the title. ?>
-                <div class="alfa-audit-summary">
+                <div class="audit-summary">
                     <h2 class="h4 mb-1">
-                        <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
+                        <span class="audit-caret icon-chevron-down" aria-hidden="true"></span>
                         <?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span>
                     </h2>
                     <span class="d-block small text-muted"><?php echo Text::_($langKey . '_DESC'); ?></span>
@@ -255,10 +254,8 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
                     <template id="<?php echo $dialogId; ?>">
                         <div class="p-4">
                             <p class="mb-0"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_CONFIRM', \count($repairAll)); ?></p>
-                            <?php // More products than the request itself repairs run in the background, by the same rule. ?>
-                            <?php if (\count($repairAll) > StockRepairJob::INLINE_MAX) : ?>
-                                <p class="mb-0 mt-2"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_BACKGROUND', StockRepairJob::INLINE_MAX); ?></p>
-                            <?php endif; ?>
+                            <?php // The whole section runs in the background, by the same rule: the job walks the products itself. ?>
+                            <p class="mb-0 mt-2"><?php echo Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_BACKGROUND'); ?></p>
                         </div>
 
                         <div class="btn-toolbar p-3 border-top">
@@ -267,9 +264,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
                             </form>
 
                             <form action="<?php echo $reconcileAllUrl; ?>" method="post" class="m-0 ms-auto">
-                                <?php foreach ($repairAll as $repairId) : ?>
-                                    <input type="hidden" name="id[]" value="<?php echo (int) $repairId; ?>">
-                                <?php endforeach; ?>
+                                <input type="hidden" name="section" value="<?php echo $this->escape(var: $category); ?>">
                                 <?php echo HTMLHelper::_('form.token'); ?>
                                 <button type="submit" class="btn btn-primary"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_BTN', \count($repairAll)); ?></button>
                             </form>

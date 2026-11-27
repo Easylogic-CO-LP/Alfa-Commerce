@@ -190,8 +190,8 @@ abstract class ItemFieldsPlugin extends Plugin
      *     $event->addButton('Cancel')                              // close
      *           ->addButton('Done', ['reload' => true])            // close + refresh
      *           ->addButton('Refund', ['action' => 'do_refund', 'class' => 'btn-danger']);
-     *   (A layout can still place its own data-alfa-close / data-alfa-reload /
-     *    data-alfa-run buttons inline if it wants custom positioning.)
+     *   (A layout can still place its own data-action-close / data-action-reload /
+     *    data-action-run buttons inline if it wants custom positioning.)
      *
      *   Report a result - setMessage() (+ setRefresh()):
      *     $event->setMessage('Saved.')->setRefresh(true);

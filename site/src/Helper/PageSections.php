@@ -70,7 +70,7 @@ final class PageSections
 
         // The specifications: the fields placed there, one table row each.
         if (Surface::has($item, ItemSurface::SpecificationsSection)) {
-            $body = '<table class="alfa-spec-table"><tbody>'
+            $body = '<table class="spec-table"><tbody>'
                 . Surface::render($item, ItemSurface::SpecificationsSection, tag: 'tr')
                 . '</tbody></table>';
             self::put($sections, self::SPECIFICATIONS, Text::_('COM_ALFA_ITEM_SPECIFICATIONS'), $body, PHP_INT_MIN + 1, 'core');

@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  *
  * A provider CANNOT know why it was called. The surface always does. So intent travels
  * with the request, exactly as the rest of this subsystem already works:
- *  - `data-alfa-search`: enhancement declared in markup, not inferred from DOM shape.
+ *  - `data-search-enhance`: enhancement declared in markup, not inferred from DOM shape.
  *  - {@see StandardAnalyzer::VOCABULARY_FIELDS}: suggestion eligibility declared, not
  *    inferred from token shape.
  *  - {@see StandardAnalyzer::IDENTIFIER_FIELDS}: code semantics declared by field

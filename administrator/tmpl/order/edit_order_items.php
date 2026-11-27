@@ -72,11 +72,11 @@ $configColspan = $visibleColumns + 1;
 </div>
 
 <?php if (!empty($items)): ?>
-    <?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a
+    <?php // Below 480 px a row folds (fold): its cells wrap, each named by its column, the actions on a
           // line of their own. ?>
     <?php // Wider than the screen (from 480 px up, where it no longer folds), it scrolls in its own box. ?>
     <div class="table-responsive">
-    <table class="table table-striped table-bordered alfa-fold">
+    <table class="table table-striped table-bordered fold">
         <thead>
         <tr>
 			<?php foreach ($itemFields as $field): ?>
@@ -101,7 +101,7 @@ $configColspan = $visibleColumns + 1;
             <tr>
 				<?php foreach ($items_subform->getGroup('') as $field): ?>
 					<?php $fieldName = $field->fieldname; ?>
-                    <td style="<?php echo $field->getAttribute('type') === 'hidden' ? 'display: none;' : ''; ?>" data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
+                    <td style="<?php echo $field->getAttribute('type') === 'hidden' ? 'display: none;' : ''; ?>" data-cell-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
 						<?php
 						$value = $item->{$fieldName} ?? '';
 
@@ -133,7 +133,7 @@ $configColspan = $visibleColumns + 1;
                     </td>
 				<?php endforeach; ?>
 
-                <td class="alfa-fold-line">
+                <td class="fold-line">
                     <?php if ($canEditOrder) : ?>
                     <div class="btn-group me-2" role="group">
                         <a href="#<?php echo $modalId; ?>"
@@ -165,8 +165,8 @@ $configColspan = $visibleColumns + 1;
             </tr>
 
 			<?php if (!empty($item->fields)): ?>
-                <tr class="alfa-order-item-config">
-                    <td colspan="<?php echo (int) $configColspan; ?>" class="small text-muted ps-4 py-1 alfa-fold-line">
+                <tr class="order-item-config">
+                    <td colspan="<?php echo (int) $configColspan; ?>" class="small text-muted ps-4 py-1 fold-line">
 						<?php foreach ($item->fields as $configField): ?>
                             <div class="d-flex justify-content-between align-items-baseline py-1 border-bottom border-light">
                                 <span>

@@ -25,6 +25,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitRetirementException;
 use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockRepairJob;
+use InvalidArgumentException;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -130,10 +131,10 @@ class InventoryauditController extends BaseController
      * Repair the stock figures of every product a section of the audit lists, one product after
      * the other: each repair is the one above, in its own transaction and recorded by itself,
      * so what was done before a refusal stands. The run stops at the first refusal and names
-     * the product it stopped at and how many were done. More products than the request itself
-     * repairs ({@see StockRepairJob::INLINE_MAX}) are repaired by the same rule in the background,
-     * and the operator is sent to the Background screen, which follows the job and shows its
-     * result.
+     * the product it stopped at and how many were done. A whole section, and a listed selection
+     * of more products than the request itself repairs ({@see StockRepairJob::INLINE_MAX}), are
+     * repaired by the same rule in the background, and the operator is sent to the Background
+     * screen, which follows the job and shows its result.
      *
      *
      * @throws NotAllowed Without a POST, the form token or Super User rights.
@@ -143,6 +144,7 @@ class InventoryauditController extends BaseController
     public function reconcileAll(): void
     {
         $operator = $this->operator();
+        $section = (string) RequestScalar::cmd($this->input->post, 'section');
         $itemIds = array_values(array_unique(array_filter(
             array_map('intval', (array) $this->input->post->get('id', [], 'array')),
             static fn (int $id): bool => $id > 0,
@@ -150,22 +152,40 @@ class InventoryauditController extends BaseController
 
         $this->setRedirect(url: Route::_(url: self::AUDIT_PAGE, xhtml: false));
 
+        // A whole section: the job walks the shop's products and repairs the ones the section lists, no list carried.
+        if ($section !== '') {
+            if (!\in_array($section, StockRepairJob::SECTIONS, true)) {
+                $this->setMessage(text: Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_NONE'), type: 'warning');
+
+                return;
+            }
+
+            $queued = StockRepairJob::enqueueSection(section: $section, userId: (int) $operator->id);
+            $this->setRedirect(url: Route::_(url: 'index.php?option=com_alfa&view=tasks&job=' . $queued->id, xhtml: false));
+            $this->setMessage(text: Text::_($queued->joined ? 'COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_JOINED' : 'COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_QUEUED'));
+
+            return;
+        }
+
         if ($itemIds === []) {
             $this->setMessage(text: Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_NONE'), type: 'warning');
 
             return;
         }
 
-        if (\count($itemIds) > StockRepairJob::ITEMS_MAX) {
-            $this->setMessage(text: Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_TOO_MANY', StockRepairJob::ITEMS_MAX), type: 'warning');
-
-            return;
-        }
-
+        // A listed selection beyond what the request itself repairs: the job of that list.
         if (\count($itemIds) > StockRepairJob::INLINE_MAX) {
-            $queued = StockRepairJob::enqueue(itemIds: $itemIds, userId: (int) $operator->id);
+            try {
+                $queued = StockRepairJob::enqueue(itemIds: $itemIds, userId: (int) $operator->id);
+            } catch (InvalidArgumentException) {
+                // More products than a job's data holds: the section itself is the way to ask for all of them.
+                $this->setMessage(text: Text::_('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_TOO_MANY'), type: 'warning');
+
+                return;
+            }
+
             $this->setRedirect(url: Route::_(url: 'index.php?option=com_alfa&view=tasks&job=' . $queued->id, xhtml: false));
-            $this->setMessage(text: Text::sprintf($queued->joined ? 'COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_JOINED' : 'COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_QUEUED', \count($itemIds)));
+            $this->setMessage(text: Text::_($queued->joined ? 'COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_JOINED' : 'COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_QUEUED'));
 
             return;
         }

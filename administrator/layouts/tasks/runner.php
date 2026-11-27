@@ -62,8 +62,8 @@ $trigger  = static function (string $code) use ($e): string {
         <p class="small text-muted mb-1"><?php echo Text::_('COM_ALFA_TASKS_CRON_DESC'); ?></p>
         <?php if ($newKey !== '') : ?>
             <div class="alert alert-warning">
-                <label class="form-label" for="alfa-cron-address"><?php echo Text::_('COM_ALFA_TASKS_CRON_NEW'); ?></label>
-                <input type="text" class="form-control mb-2" id="alfa-cron-address" readonly
+                <label class="form-label" for="cron-address"><?php echo Text::_('COM_ALFA_TASKS_CRON_NEW'); ?></label>
+                <input type="text" class="form-control mb-2" id="cron-address" readonly
                     value="<?php echo $e(($displayData['cron'] ?? '') . $newKey); ?>">
                 <span class="small"><?php echo Text::_('COM_ALFA_TASKS_CRON_ONCE'); ?></span>
             </div>
@@ -74,7 +74,7 @@ $trigger  = static function (string $code) use ($e): string {
         <?php endif; ?>
         <?php // A new address stops the one a web-cron service may be calling: asked first when one exists. ?>
         <form method="post" action="<?php echo Route::_('index.php?option=com_alfa&task=tasks.generateKey'); ?>"<?php
-            echo empty($displayData['keyKept']) ? '' : ' data-alfa-confirm="' . $e(Text::_('COM_ALFA_TASKS_CRON_GENERATE_CONFIRM')) . '"'; ?>>
+            echo empty($displayData['keyKept']) ? '' : ' data-confirm-before="' . $e(Text::_('COM_ALFA_TASKS_CRON_GENERATE_CONFIRM')) . '"'; ?>>
             <button type="submit" class="btn btn-secondary" title="<?php echo $e(Text::_('COM_ALFA_TASKS_CRON_GENERATE_DESC')); ?>">
                 <?php echo Text::_('COM_ALFA_TASKS_CRON_GENERATE'); ?></button>
             <?php echo HTMLHelper::_('form.token'); ?>

@@ -178,11 +178,11 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 };
 ?>
 
-<div class="card shadow-sm mt-4" id="alfa-reconciliation-panel">
+<div class="card shadow-sm mt-4" id="reconciliation-panel">
 	<!-- Native <details>: collapsed when healthy, open when there is something
 	     to act on, and no JavaScript or stored UI state either way. -->
 	<details<?php echo $attention ? ' open' : ''; ?>
-	         data-alfa-recon-open="<?php echo $attention ? 'true' : 'false'; ?>">
+	         data-recon-open="<?php echo $attention ? 'true' : 'false'; ?>">
 		<summary class="card-header bg-body-tertiary py-2 d-flex justify-content-between align-items-center"
 		         style="cursor:pointer; list-style:revert">
 			<h5 class="card-title mb-0 d-inline">
@@ -190,11 +190,11 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 				<?php echo Text::_('COM_ALFA_RECON_HEADING'); ?>
 			</h5>
 
-			<span data-alfa-recon-verdict="<?php echo $rf->needs_reconciliation ? 'true' : 'false'; ?>">
+			<span data-recon-verdict="<?php echo $rf->needs_reconciliation ? 'true' : 'false'; ?>">
 				<!-- The verdict, always stated, so green is readable and not
 				     merely the absence of red. -->
 				<span class="badge <?php echo $headline[1]; ?>"
-				      data-alfa-recon-headline="<?php echo $headline[2]; ?>">
+				      data-recon-headline="<?php echo $headline[2]; ?>">
 					<?php echo Text::_($headline[0]); ?>
 				</span>
 				<?php // The verdict badge only where the headline is a different
@@ -219,7 +219,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 			      // service and the layout, never by hiding a button. ?>
 			<div class="card-body border-bottom py-2">
 				<a class="btn btn-sm btn-primary"
-				   data-alfa-recon-correct="<?php echo (int) $order->id; ?>"
+				   data-recon-correct="<?php echo (int) $order->id; ?>"
 				   href="#correctionModal" data-bs-toggle="modal">
 					<span class="icon-wrench" aria-hidden="true"></span>
 					<?php echo Text::_('COM_ALFA_CORRECTION_ACTION_REVIEW'); ?>
@@ -257,7 +257,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 		     both when nothing has been invoiced and when nothing exists to
 		     invoice, so the difference is said in words. -->
 		<?php if ($undocumented) : ?>
-			<p class="text-muted" data-alfa-recon-undocumented>
+			<p class="text-muted" data-recon-undocumented>
 				<span class="icon-info-circle me-1" aria-hidden="true"></span>
 				<?php echo Text::_('COM_ALFA_RECON_UNDOCUMENTED_HINT'); ?>
 			</p>
@@ -265,9 +265,9 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 
 		<!-- Why, when there is a why. Never a bare verdict. -->
 		<?php if ($rf->reconciliation_reasons !== []) : ?>
-			<ul class="list-unstyled mb-3" data-alfa-recon-reasons>
+			<ul class="list-unstyled mb-3" data-recon-reasons>
 				<?php foreach ($rf->reconciliation_reasons as $reason) : ?>
-					<li class="text-danger" data-alfa-recon-reason="<?php echo htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'); ?>">
+					<li class="text-danger" data-recon-reason="<?php echo htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'); ?>">
 						<span class="icon-warning me-1" aria-hidden="true"></span>
 						<?php echo htmlspecialchars($reasonLabel($reason), ENT_QUOTES, 'UTF-8'); ?>
 					</li>
@@ -281,13 +281,13 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 			<h6 class="mt-2 mb-1">
 				<?php echo $label; ?>
 				<span class="badge <?php echo $stateClass($semantic->state); ?> ms-1"
-				      data-alfa-recon-semantic="<?php echo $key; ?>"
-				      data-alfa-recon-state="<?php echo htmlspecialchars($semantic->state, ENT_QUOTES, 'UTF-8'); ?>">
+				      data-recon-semantic="<?php echo $key; ?>"
+				      data-recon-state="<?php echo htmlspecialchars($semantic->state, ENT_QUOTES, 'UTF-8'); ?>">
 					<?php echo htmlspecialchars($stateLabel($semantic->state), ENT_QUOTES, 'UTF-8'); ?>
 				</span>
 			</h6>
-			<?php // Below 480 px a row folds (alfa-fold): its figures wrap under the pool, each named. ?>
-			<table class="table table-sm mb-3 alfa-fold">
+			<?php // Below 480 px a row folds (fold): its figures wrap under the pool, each named. ?>
+			<table class="table table-sm mb-3 fold">
 				<thead>
 					<tr>
 						<th><?php echo Text::_('COM_ALFA_RECON_POOL'); ?></th>
@@ -300,19 +300,19 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 				<tbody>
 				<?php foreach (ReconciliationFacts::POOLS as $poolName) : ?>
 					<?php $pool = $semantic->pools->{$poolName}; ?>
-					<tr data-alfa-recon-pool="<?php echo $key . '.' . $poolName; ?>">
-						<td data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_POOL'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_RECON_POOL_' . strtoupper($poolName)); ?></td>
-						<td class="text-end" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CAPACITY'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($pool->capacity); ?></td>
-						<td class="text-end" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CONSUMED'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($pool->consumed); ?></td>
+					<tr data-recon-pool="<?php echo $key . '.' . $poolName; ?>">
+						<td data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_POOL'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo Text::_('COM_ALFA_RECON_POOL_' . strtoupper($poolName)); ?></td>
+						<td class="text-end" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CAPACITY'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($pool->capacity); ?></td>
+						<td class="text-end" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CONSUMED'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($pool->consumed); ?></td>
 						<!-- SIGNED, never floored: an over-claim must stay visible
 						     as the negative it is. -->
 						<td class="text-end <?php echo (float) $pool->remaining < 0 ? 'text-danger fw-bold' : ''; ?>"
-						    data-alfa-recon-remaining="<?php echo $key . '.' . $poolName; ?>" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_REMAINING'), ENT_QUOTES, 'UTF-8'); ?>">
+						    data-recon-remaining="<?php echo $key . '.' . $poolName; ?>" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_REMAINING'), ENT_QUOTES, 'UTF-8'); ?>">
 							<?php echo $money($pool->remaining); ?>
 						</td>
-						<td data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_STATE'), ENT_QUOTES, 'UTF-8'); ?>">
+						<td data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_STATE'), ENT_QUOTES, 'UTF-8'); ?>">
 							<span class="badge <?php echo $stateClass($pool->state); ?>"
-							      data-alfa-recon-state="<?php echo htmlspecialchars($pool->state, ENT_QUOTES, 'UTF-8'); ?>">
+							      data-recon-state="<?php echo htmlspecialchars($pool->state, ENT_QUOTES, 'UTF-8'); ?>">
 								<?php echo htmlspecialchars($stateLabel($pool->state), ENT_QUOTES, 'UTF-8'); ?>
 							</span>
 						</td>
@@ -320,18 +320,18 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 					<!-- The members that over-claim, each on its own row: the
 					     pool total above can balance while one of them does not. -->
 					<?php foreach ($pool->anomalies ?? [] as $member) : ?>
-						<tr class="small" data-alfa-recon-member="<?php echo $key . '.' . $poolName . ':' . (int) $member->source; ?>">
-							<td class="ps-4" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_POOL'), ENT_QUOTES, 'UTF-8'); ?>">
+						<tr class="small" data-recon-member="<?php echo $key . '.' . $poolName . ':' . (int) $member->source; ?>">
+							<td class="ps-4" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_POOL'), ENT_QUOTES, 'UTF-8'); ?>">
 								&#8627; <?php echo htmlspecialchars($member->label !== ''
 									? $member->label
 									: Text::_('COM_ALFA_RECON_MEMBER_' . strtoupper($poolName)), ENT_QUOTES, 'UTF-8'); ?>
 							</td>
-							<td class="text-end" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CAPACITY'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($member->capacity); ?></td>
-							<td class="text-end" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CONSUMED'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($member->consumed); ?></td>
-							<td class="text-end text-danger fw-bold" data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_REMAINING'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($member->remaining); ?></td>
-							<td data-alfa-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_STATE'), ENT_QUOTES, 'UTF-8'); ?>">
+							<td class="text-end" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CAPACITY'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($member->capacity); ?></td>
+							<td class="text-end" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_CONSUMED'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($member->consumed); ?></td>
+							<td class="text-end text-danger fw-bold" data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_REMAINING'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $money($member->remaining); ?></td>
+							<td data-cell-label="<?php echo htmlspecialchars(Text::_('COM_ALFA_RECON_STATE'), ENT_QUOTES, 'UTF-8'); ?>">
 								<span class="badge <?php echo $stateClass($member->state); ?>"
-								      data-alfa-recon-state="<?php echo htmlspecialchars($member->state, ENT_QUOTES, 'UTF-8'); ?>">
+								      data-recon-state="<?php echo htmlspecialchars($member->state, ENT_QUOTES, 'UTF-8'); ?>">
 									<?php echo htmlspecialchars($stateLabel($member->state), ENT_QUOTES, 'UTF-8'); ?>
 								</span>
 							</td>
@@ -343,7 +343,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 		<?php endforeach; ?>
 
 		<?php if ($memberAnomalies !== [] && $rf->coverage->sales->state !== ReconciliationFacts::STATE_OVER) : ?>
-			<p class="text-danger small mb-3" data-alfa-recon-member-hint>
+			<p class="text-danger small mb-3" data-recon-member-hint>
 				<span class="icon-warning me-1" aria-hidden="true"></span>
 				<?php echo Text::_('COM_ALFA_RECON_MEMBER_HINT'); ?>
 			</p>
@@ -360,7 +360,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 			<p class="mb-3">
 				<?php foreach ($rf->coverage->independent->aliases as $alias => $entry) : ?>
 					<span class="badge <?php echo $stateClass($entry->state); ?> me-1"
-					      data-alfa-recon-independent="<?php echo htmlspecialchars($alias, ENT_QUOTES, 'UTF-8'); ?>">
+					      data-recon-independent="<?php echo htmlspecialchars($alias, ENT_QUOTES, 'UTF-8'); ?>">
 						<?php echo htmlspecialchars(DocumentHelper::typeLabel($alias), ENT_QUOTES, 'UTF-8'); ?>:
 						<?php echo $entry->state === ReconciliationFacts::STATE_NONE
 							? Text::_('COM_ALFA_RECON_NOTHING_ISSUED')
@@ -372,7 +372,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 
 		<!-- Uncounted: named, so its absence is not read as a gap -->
 		<?php if ($rf->coverage->uncounted->aliases !== []) : ?>
-			<p class="text-muted small mb-3" data-alfa-recon-uncounted>
+			<p class="text-muted small mb-3" data-recon-uncounted>
 				<?php echo Text::_('COM_ALFA_RECON_UNCOUNTED'); ?>
 				<?php echo htmlspecialchars(implode(', ', array_map(
 					static fn (string $alias): string => DocumentHelper::typeLabel($alias),
@@ -388,14 +388,14 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 				? AlfaHelper::percentDisplay(value: $value)
 				: (string) $value; ?>
 			<h6 class="mt-2 mb-1 text-danger"><?php echo Text::_('COM_ALFA_RECON_MISMATCHES'); ?></h6>
-			<ul class="list-unstyled mb-3" data-alfa-recon-mismatches>
+			<ul class="list-unstyled mb-3" data-recon-mismatches>
 				<?php foreach ($rf->mismatches as $mismatch) : ?>
 					<?php // A charge names no order line: it is named by its pool
 					      // and the label its document printed. ?>
 					<?php $charge = $mismatch->line_type === DocumentHelper::LINE_SHIPPING
 						|| $mismatch->line_type === DocumentHelper::LINE_FEE; ?>
-					<li<?php if ($charge) : ?> data-alfa-recon-mismatch-charge="<?php echo htmlspecialchars($mismatch->line_type . ':' . (int) $mismatch->id_source, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
-						<span data-alfa-recon-mismatch-kind="<?php echo htmlspecialchars($mismatch->kind, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($kindLabel($mismatch->kind), ENT_QUOTES, 'UTF-8'); ?></span>
+					<li<?php if ($charge) : ?> data-recon-mismatch-charge="<?php echo htmlspecialchars($mismatch->line_type . ':' . (int) $mismatch->id_source, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+						<span data-recon-mismatch-kind="<?php echo htmlspecialchars($mismatch->kind, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($kindLabel($mismatch->kind), ENT_QUOTES, 'UTF-8'); ?></span>
 						<?php if ($charge) : ?>
 							- <?php echo Text::_($mismatch->line_type === DocumentHelper::LINE_FEE
 								? 'COM_ALFA_RECON_POOL_FEES'
@@ -416,7 +416,7 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 			<div class="col-md-6">
 				<h6 class="mb-1"><?php echo Text::_('COM_ALFA_RECON_OVERPAYMENT'); ?></h6>
 				<?php if ($rf->overpaid) : ?>
-					<p class="mb-0" data-alfa-recon-overpaid="true">
+					<p class="mb-0" data-recon-overpaid="true">
 						<span class="badge bg-warning text-dark"><?php echo Text::_('COM_ALFA_OVERPAID'); ?></span>
 						<strong class="ms-1"><?php echo $money($rf->excess); ?></strong>
 					</p>
@@ -425,12 +425,12 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 					     has paid is also "not overpaid", and saying the shop
 					     holds exactly what it asks for would be a plain untruth
 					     on the commonest order there is. -->
-					<p class="text-muted mb-0" data-alfa-recon-overpaid="false" data-alfa-recon-due>
+					<p class="text-muted mb-0" data-recon-overpaid="false" data-recon-due>
 						<?php echo Text::_('COM_ALFA_RECON_STILL_DUE'); ?>
 						<strong><?php echo $money($rf->balance); ?></strong>
 					</p>
 				<?php else : ?>
-					<p class="text-muted mb-0" data-alfa-recon-overpaid="false" data-alfa-recon-settled>
+					<p class="text-muted mb-0" data-recon-overpaid="false" data-recon-settled>
 						<?php echo Text::_('COM_ALFA_RECON_NO_OVERPAYMENT'); ?>
 					</p>
 				<?php endif; ?>
@@ -439,11 +439,11 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 			<div class="col-md-6">
 				<h6 class="mb-1"><?php echo Text::_('COM_ALFA_RECON_SETTLEMENT'); ?></h6>
 				<?php if ($rf->credit_settlement->state === ReconciliationFacts::STATE_NOT_APPLICABLE) : ?>
-					<p class="text-muted mb-0" data-alfa-recon-settlement="NOT_APPLICABLE">
+					<p class="text-muted mb-0" data-recon-settlement="NOT_APPLICABLE">
 						<?php echo Text::_('COM_ALFA_RECON_NO_CREDIT_NOTES'); ?>
 					</p>
 				<?php else : ?>
-					<p class="mb-1" data-alfa-recon-settlement="<?php echo $rf->credit_settlement->state; ?>">
+					<p class="mb-1" data-recon-settlement="<?php echo $rf->credit_settlement->state; ?>">
 						<span class="badge <?php echo $rf->credit_settlement->state === ReconciliationFacts::STATE_FULL
 							? 'bg-success' : 'bg-warning text-dark'; ?>">
 							<?php echo htmlspecialchars($stateLabel($rf->credit_settlement->state), ENT_QUOTES, 'UTF-8'); ?>
@@ -455,13 +455,13 @@ $reasonLabel = static function (string $reason) use ($semantics, $kindLabel): st
 					</p>
 					<ul class="list-unstyled small mb-0">
 					<?php foreach ($rf->credit_settlement->documents as $documentId => $note) : ?>
-						<li data-alfa-recon-note="<?php echo (int) $documentId; ?>">
+						<li data-recon-note="<?php echo (int) $documentId; ?>">
 							#<?php echo (int) $documentId; ?>:
 							<?php echo $money($note->credit_amount); ?>
 							(<?php echo Text::_('COM_ALFA_RECON_REFUNDED'); ?> <?php echo $money($note->refunded); ?>,
 							<?php echo Text::_('COM_ALFA_RECON_WALLET'); ?> <?php echo $money($note->wallet); ?>)
 							<span class="badge bg-light text-dark"
-							      data-alfa-recon-state="<?php echo htmlspecialchars($note->state, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($stateLabel($note->state), ENT_QUOTES, 'UTF-8'); ?></span>
+							      data-recon-state="<?php echo htmlspecialchars($note->state, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($stateLabel($note->state), ENT_QUOTES, 'UTF-8'); ?></span>
 						</li>
 					<?php endforeach; ?>
 					</ul>

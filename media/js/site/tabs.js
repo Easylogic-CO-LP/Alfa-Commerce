@@ -6,7 +6,7 @@
  *
  * Tabs, on markup that works without them.
  *
- * A container marked data-alfa-tabs holds a nav.alfa-tabs of links, one per panel (href="#<panel id>"), and the
+ * A container marked data-sections-tabs holds a nav.tabs of links, one per panel (href="#<panel id>"), and the
  * panels those ids name. Without this file the links jump to their panels and every panel is visible. With it the
  * nav becomes a tab list (W3C ARIA tabs pattern): one tab selected and in the tab order, the others reached with
  * Left, Right, Home and End, each panel hidden except the selected one, a click selecting without changing the
@@ -19,11 +19,11 @@
     const MOVES = { ArrowLeft: -1, ArrowRight: 1, Home: 'first', End: 'last' };
 
     const enhance = (group) => {
-        if (group.hasAttribute('data-alfa-tabs-ready')) {
+        if (group.hasAttribute('data-sections-tabs-ready')) {
             return;
         }
 
-        const nav = group.querySelector('.alfa-tabs');
+        const nav = group.querySelector('.tabs');
         const tabs = [];
         const panels = [];
 
@@ -120,10 +120,10 @@
         const initial = fromHash();
 
         select(initial >= 0 ? initial : 0, false);
-        group.setAttribute('data-alfa-tabs-ready', '');
+        group.setAttribute('data-sections-tabs-ready', '');
     };
 
-    const init = () => document.querySelectorAll('[data-alfa-tabs]').forEach(enhance);
+    const init = () => document.querySelectorAll('[data-sections-tabs]').forEach(enhance);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

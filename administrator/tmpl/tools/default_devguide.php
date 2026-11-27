@@ -243,7 +243,7 @@ HTML;
 ?>
 <style>
 /* Command blocks: wrap long lines so they never force the card wider than the viewport (Atum's flex layout otherwise grows to the longest line). */
-.com-alfa-tools pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.tools-page pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 </style>
 <div class="card mb-3">
     <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_PACKAGE_TITLE'); ?></div>

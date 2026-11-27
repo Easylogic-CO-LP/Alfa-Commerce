@@ -1,7 +1,7 @@
 /* Alfa's own tables (the cart lines), scoped to the component root: a template's
    tables on a page that loads this stylesheet keep the template's look. Below
    600 px each row stacks and each cell names its column from its data-label. */
-.com-alfa table {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table {
   border: 1px solid var(--alfa-hairline);
   border-collapse: collapse;
   margin: 0;
@@ -10,43 +10,43 @@
   table-layout: fixed;
 }
 
-.com-alfa table caption {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table caption {
   font-size: 1.5em;
   margin: 0.5em 0 0.75em;
 }
 
-.com-alfa table thead tr,
-.com-alfa table tfoot tr{
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table thead tr,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table tfoot tr{
   background-color: var(--alfa-surface);
 }
 
-.com-alfa table tr {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table tr {
   border: 1px solid var(--alfa-hairline);
   padding: 0.35em;
 }
 
-.com-alfa table th,
-.com-alfa table td {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table th,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table td {
   padding: 0.625em;
   text-align: center;
 }
 
-.com-alfa table th {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table th {
   font-size: 0.85em;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 @media screen and (max-width: 600px) {
-  .com-alfa table {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table {
     border: 0;
   }
 
-  .com-alfa table caption {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table caption {
     font-size: 1.3em;
   }
 
-  .com-alfa table thead {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table thead {
     border: none;
     clip: rect(0 0 0 0);
     height: 1px;
@@ -57,20 +57,20 @@
     width: 1px;
   }
 
-  .com-alfa table tr {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table tr {
     border-bottom: 3px solid var(--alfa-hairline);
     display: block;
     margin-bottom: 0.625em;
   }
 
-  .com-alfa table td {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table td {
     border-bottom: 1px solid var(--alfa-hairline);
     display: block;
     font-size: 0.8em;
     text-align: right;
   }
 
-  .com-alfa table td::before {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table td::before {
     /*
     * aria-label has no advantage, it won't be read inside a table
     content: attr(aria-label);
@@ -81,7 +81,7 @@
     text-transform: uppercase;
   }
 
-  .com-alfa table td:last-child {
+  :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) table td:last-child {
     border-bottom: 0;
   }
 }
@@ -94,7 +94,7 @@
 /* User actions: `action` means an interactive command, variants state
    visual priority, data-action carries behavior.
    Scoped to the component root: templates override freely, tokens theme it. */
-.com-alfa .action {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action {
     display: inline-block;
     border: none;
     border-radius: var(--alfa-radius);
@@ -107,67 +107,67 @@
     transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.com-alfa .action:disabled,
-.com-alfa .action.disabled {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action:disabled,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
 }
 
-.com-alfa .action.loading {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.loading {
     opacity: 0.6;
     cursor: progress;
     pointer-events: none;
 }
 
-.com-alfa .action.block {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.block {
     display: block;
     width: 100%;
 }
 
-.com-alfa .action.small {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.small {
     padding: 4px 10px;
     font-size: 0.85rem;
 }
 
-.com-alfa .action.primary {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.primary {
     background-color: var(--alfa-action-primary-bg);
     color: var(--alfa-action-primary-color);
 }
 
-.com-alfa .action.primary:hover {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.primary:hover {
     background-color: var(--alfa-action-primary-bg-hover);
     color: var(--alfa-action-primary-color);
 }
 
-.com-alfa .action.secondary {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.secondary {
     background-color: var(--alfa-action-secondary-bg);
     color: var(--alfa-action-secondary-color);
 }
 
-.com-alfa .action.secondary:hover {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.secondary:hover {
     background-color: var(--alfa-action-secondary-bg-hover);
     color: var(--alfa-action-secondary-color);
 }
 
-.com-alfa .action.danger {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.danger {
     background-color: var(--alfa-action-danger-bg);
     color: var(--alfa-action-danger-color);
 }
 
-.com-alfa .action.danger:hover {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .action.danger:hover {
     background-color: var(--alfa-action-danger-bg-hover);
     color: var(--alfa-action-danger-color);
 }
 
 /* Validation feedback inside component markup: the storefront's own error
    look; validate.css carries the template-agnostic fallback. */
-.com-alfa .field-error {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .field-error {
     color: var(--alfa-error-color);
 }
 
-.com-alfa .form-control.invalid,
-.com-alfa .form-select.invalid {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .form-control.invalid,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .form-select.invalid {
     border-color: var(--alfa-error-color);
 }
 
@@ -175,9 +175,10 @@
    through the asset registry: the cart module needs it without the rest of this file. */
 
 /* THE SLIDER ARROW: one look for every slider of the shop, the listing card's images (card-slider.js) and the
-   product's gallery (item.js): a round button on the picture's edge, a chevron on the surface colour, absolute in the
-   slider, which is its positioning context. At the end of the track it stays in the tab order, dimmed. */
-.alfa-slider-arrow {
+   product's gallery (item.js): a plain chevron button, rectangular, its corners the storefront's radius token, no
+   circle and no shadow, on the surface colour, absolute in the slider, which is its positioning context. At the end
+   of the track it stays in the tab order, dimmed. The lightbox's arrows take the same look below. */
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow {
     position: absolute;
     top: 50%;
     z-index: 2;
@@ -187,36 +188,72 @@
     height: 2.25rem;
     padding: 0;
     border: 1px solid var(--alfa-hairline);
-    border-radius: 50%;
+    border-radius: var(--alfa-radius);
     background: var(--alfa-surface);
     color: var(--alfa-surface-color, inherit);
     translate: 0 -50%;
     cursor: pointer;
 }
 
-.alfa-slider-arrow-prev {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow-prev {
     inset-inline-start: 0.25rem;
 }
 
-.alfa-slider-arrow-next {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow-next {
     inset-inline-end: 0.25rem;
 }
 
-.alfa-slider-arrow svg {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow svg {
     width: 1.25rem;
     height: 1.25rem;
 }
 
-.alfa-slider-arrow svg:dir(rtl) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow svg:dir(rtl) {
     scale: -1 1;
 }
 
-.alfa-slider-arrow[aria-disabled="true"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow[aria-disabled="true"] {
     opacity: 0.4;
     cursor: default;
 }
 
-.alfa-slider-arrow:focus-visible {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .slider-arrow:focus-visible {
     outline: 2px solid var(--alfa-selected);
     outline-offset: 2px;
+}
+
+/* THE LIGHTBOX ARROWS: item.js opens GLightbox with the skin storefront, so its container carries
+   glightbox-storefront and none of the library's clean skin; the arrows and the close button take the slider
+   arrow's look from here, at the clean skin's places. The lightbox is appended to the body, outside the wrapper. */
+:where(.glightbox-storefront) .gprev,
+:where(.glightbox-storefront) .gnext {
+    position: absolute;
+    top: -100%;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--alfa-hairline);
+    border-radius: var(--alfa-radius);
+    background: var(--alfa-surface);
+}
+
+:where(.glightbox-storefront) .gprev {
+    left: 30px;
+}
+
+:where(.glightbox-storefront) .gnext {
+    right: 30px;
+}
+
+:where(.glightbox-storefront) .gprev .garrow,
+:where(.glightbox-storefront) .gnext .garrow {
+    stroke: var(--alfa-surface-color, #333);
+}
+
+:where(.glightbox-storefront) .gclose {
+    background: var(--alfa-surface);
+    border-radius: var(--alfa-radius);
+}
+
+:where(.glightbox-storefront) .gclose path {
+    fill: var(--alfa-surface-color, #333);
 }

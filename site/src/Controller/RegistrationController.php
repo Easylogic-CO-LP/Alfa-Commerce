@@ -24,7 +24,7 @@ use Joomla\CMS\Router\Route;
  * Registration controller for com_alfa.
  *
  * Wraps the core com_users registration flow (token check, form validation,
- * user creation, activation emails) while rendering alfa-fields through the
+ * user creation, activation emails) while rendering Alfa fields through the
  * alfa pipeline (showon, custom layouts).
  *
  * @since  1.0.1

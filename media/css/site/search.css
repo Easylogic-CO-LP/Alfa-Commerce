@@ -5,12 +5,12 @@
  *
  * Storefront search enhancement panel.
  *
- * Namespaced on the ROOT only (`alfa-search-enhance`); descendants are plain names scoped
+ * Namespaced on the ROOT only (`search-enhance`); descendants are plain names scoped
  * under it, so the panel cannot leak styles into a template and a template cannot reach in.
  * No framework classes: the storefront must not require Bootstrap.
  */
 
-.alfa-search-enhance {
+:where(.search-enhance) {
     position: absolute;
     z-index: 1000;
     top: 100%;
@@ -26,17 +26,17 @@
     text-align: start;
 }
 
-.alfa-search-enhance[hidden] {
+:where(.search-enhance)[hidden] {
     display: none;
 }
 
-.alfa-search-enhance .search-empty {
+:where(.search-enhance) .search-empty {
     margin: 0;
     padding: 0.75rem 0.9rem;
     opacity: 0.7;
 }
 
-.alfa-search-enhance .search-suggestions {
+:where(.search-enhance) .search-suggestions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
@@ -44,7 +44,7 @@
     border-bottom: 1px solid var(--alfa-hairline);
 }
 
-.alfa-search-enhance .search-suggestion {
+:where(.search-enhance) .search-suggestion {
     font: inherit;
     cursor: pointer;
     padding: 0.2rem 0.6rem;
@@ -55,12 +55,12 @@
 
 /* Keyboard highlight is a STATE the script stamps as a data-attribute; the script
    owns no classes, so state selectors are attribute selectors. */
-.alfa-search-enhance .search-suggestion:hover,
-.alfa-search-enhance .search-suggestion[data-active] {
+:where(.search-enhance) .search-suggestion:hover,
+:where(.search-enhance) .search-suggestion[data-active] {
     background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
-.alfa-search-enhance .search-section-title {
+:where(.search-enhance) .search-section-title {
     margin: 0;
     padding: 0.5rem 0.9rem 0.25rem;
     font-size: 0.75rem;
@@ -70,7 +70,7 @@
     opacity: 0.6;
 }
 
-.alfa-search-enhance .search-row {
+:where(.search-enhance) .search-row {
     display: block;
     padding: 0.45rem 0.9rem;
     color: inherit;
@@ -79,20 +79,20 @@
 
 /* Only navigable rows advertise interactivity: an unrouted row keeps the template's
    anchor but loses its href (and carries data-unrouted), so the hook is [href]. */
-.alfa-search-enhance .search-row[href] {
+:where(.search-enhance) .search-row[href] {
     cursor: pointer;
 }
 
-.alfa-search-enhance .search-row:hover,
-.alfa-search-enhance .search-row[data-active] {
+:where(.search-enhance) .search-row:hover,
+:where(.search-enhance) .search-row[data-active] {
     background: color-mix(in srgb, currentColor 7%, transparent);
 }
 
-.alfa-search-enhance .search-row-title {
+:where(.search-enhance) .search-row-title {
     display: block;
 }
 
-.alfa-search-enhance .search-row-desc {
+:where(.search-enhance) .search-row-desc {
     display: block;
     font-size: 0.8125rem;
     opacity: 0.65;

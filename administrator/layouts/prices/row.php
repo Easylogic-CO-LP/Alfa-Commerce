@@ -21,7 +21,7 @@ use Joomla\CMS\Language\Text;
  *            one per line); corner: Enabled switch + delete, top right
  *
  * Class names are plain (price-row, price-cluster, ...) because all styling
- * and behavior is scoped under the .alfa-prices root. Both modes share the
+ * and behavior is scoped under the .prices root. Both modes share the
  * FULL dimension set; only the sale-price cell is price-mode-only. Input
  * names are the exact ItemModel::setPrices() contract.
  *

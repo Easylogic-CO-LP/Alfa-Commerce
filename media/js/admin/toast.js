@@ -56,11 +56,11 @@
      * Auto-creates on first call; no PHP template changes needed.
      */
     function getNotificationElement() {
-        var el = document.getElementById('alfa-notification');
+        var el = document.getElementById('notification-toasts');
 
         if (!el) {
             el = document.createElement('div');
-            el.id = 'alfa-notification';
+            el.id = 'notification-toasts';
             el.setAttribute('role', 'alert');
             el.setAttribute('aria-live', 'polite');
             document.body.appendChild(el);
@@ -145,7 +145,7 @@
      * Alfa.dismissNotify()
      */
     window.Alfa.dismissNotify = function() {
-        var el = document.getElementById('alfa-notification');
+        var el = document.getElementById('notification-toasts');
         if (el) {
             dismissNotification(el);
         }

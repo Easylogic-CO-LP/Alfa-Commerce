@@ -136,14 +136,14 @@ foreach ($rows as $paymentId => $list) {
 ?>
 <?php if ($pluginOnly) : ?>
     <?php foreach ($unavailable as $paymentId => $plugin) : ?>
-<div class="alert alert-warning" role="alert" data-alfa-unbooked-refunds data-alfa-refunds-plugin>
+<div class="alert alert-warning" role="alert" data-unbooked-refunds data-refunds-plugin>
     <h4 class="alert-heading h6 mb-2"><?php echo $escape(Text::sprintf('COM_ALFA_UNBOOKED_REFUNDS_PLUGIN_TITLE', (string) $plugin)); ?></h4>
     <p class="mb-0"><?php echo $escape(Text::sprintf('COM_ALFA_UNBOOKED_REFUNDS_PLUGIN_INTRO', (string) $plugin, (int) $paymentId)); ?></p>
 </div>
     <?php endforeach; ?>
 <?php endif; ?>
 <?php if ($lines !== []) : ?>
-<div class="alert alert-warning" role="alert" data-alfa-unbooked-refunds>
+<div class="alert alert-warning" role="alert" data-unbooked-refunds>
     <h4 class="alert-heading h6 mb-2"><?php echo $escape(Text::_('COM_ALFA_UNBOOKED_REFUNDS_TITLE')); ?></h4>
     <p class="mb-2"><?php echo $escape(Text::_('COM_ALFA_UNBOOKED_REFUNDS_INTRO')); ?></p>
     <ul class="mb-0">
@@ -154,7 +154,7 @@ foreach ($rows as $paymentId => $list) {
 </div>
 <?php endif; ?>
 <?php if ($reservations !== []) : ?>
-<div class="alert alert-info" role="status" data-alfa-refund-reservations>
+<div class="alert alert-info" role="status" data-refund-reservations>
     <h4 class="alert-heading h6 mb-2"><?php echo $escape(Text::_('COM_ALFA_REFUND_RESERVATIONS_TITLE')); ?></h4>
     <p class="mb-2"><?php echo $escape(Text::_('COM_ALFA_REFUND_RESERVATIONS_INTRO')); ?></p>
     <ul class="mb-0">
