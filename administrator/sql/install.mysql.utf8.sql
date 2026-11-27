@@ -1172,6 +1172,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `weight` decimal(24,8) NOT NULL DEFAULT 0.00000000,
   `is_virtual` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Needs no shipping. Explicit flag, never inferred from weight/dimensions.',
   `discount_rules` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the discount rules apply; 0 = excluded from every discount rule, whatever the rules say',
+  `label_settings` text DEFAULT NULL COMMENT 'JSON: the product''s own label (own: its name by language, colours, class, where it shows, its period) and its choice for the automatic New label (new: shown 0 or 1, corner); NULL = no own label and the New label as the shop shows it',
   `meta_data` text NOT NULL DEFAULT ('{}'),
   `layouts` text NOT NULL DEFAULT ('{}') COMMENT 'Layout overrides JSON {layout,card,images,manufacturers,categories}; empty key = inherit category/menu/global',
   `state` tinyint(1) DEFAULT 1 COMMENT 'Catalogue state: 1 published, 0 unpublished, 2 archived (removed from current commerce and kept as the stock identity of order history), -2 trashed',
@@ -1293,39 +1294,57 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_link_values` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The values a link preselects on the linked product''s card, one per field';
 
 --
+-- Table structure for table `#__alfa_labels`
+--
+-- The shop's labels (Labels, the Labels screen): a badge a product ticks on its Labels tab, with its name per language in
+-- the language tables, its colours, an extra class, where it shows on a card and on the product page, its corner of the
+-- image, and whether the storefront filters offer it. The order of the rows is the order the labels stand in on a
+-- product. The automatic New label is set in the Options; a product's own label is kept on the product (label_settings).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_labels` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  -- Translatable field (name) lives ONLY in the per-language tables #__alfa_labels_<langtag>. No main-table copy.
+  `bg` varchar(30) NOT NULL DEFAULT '' COMMENT 'Background colour (CSS colour); empty = the storefront''s label token',
+  `color` varchar(30) NOT NULL DEFAULT '' COMMENT 'Text colour (CSS colour); empty = the storefront''s label token',
+  `class` varchar(190) NOT NULL DEFAULT '' COMMENT 'Extra CSS class(es) on the badge',
+  `list_show` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on catalogue cards',
+  `list_slot` varchar(50) NOT NULL DEFAULT 'image' COMMENT 'ItemListSurface slot on the card',
+  `item_show` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on the product page',
+  `item_slot` varchar(50) NOT NULL DEFAULT 'image' COMMENT 'ItemSurface slot on the product page',
+  `corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the label sits in when its slot is the image: top-left, top-right, bottom-left or bottom-right',
+  `filterable` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the storefront filters offer it (the filters module, a menu item''s preset filters, the REST API''s filter[label])',
+  `state` tinyint(1) DEFAULT 1,
+  `publish_up` datetime DEFAULT NULL,
+  `publish_down` datetime DEFAULT NULL,
+  `checked_out` int(11) UNSIGNED DEFAULT NULL,
+  `checked_out_time` datetime DEFAULT NULL,
+  `created_by` int(11) DEFAULT 0,
+  `modified` datetime NOT NULL,
+  `modified_by` int(11) DEFAULT 0,
+  `ordering` int(11) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_state` (`state`),
+  KEY `idx_checked_out` (`checked_out`),
+  KEY `idx_created_by` (`created_by`),
+  KEY `idx_modified_by` (`modified_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The shop''s labels: a badge a product ticks, its look, where it shows and whether the filters offer it';
+
+--
 -- Table structure for table `#__alfa_item_labels`
 --
--- The labels a product shows (ItemLabels, Labels): a row per predefined label (Options > Labels) the product ticks on
--- its Labels tab, with a corner of its own when one was chosen; one row for the automatic New label only when the
--- product hides it or moves it to a corner of its own; one row for the product's own label, its settings as JSON. A
--- product with no row shows the New label as the shop does and no other label. The item delete removes a deleted
--- product's rows (ItemModel::delete()).
+-- The labels a product ticks (ItemLabels): a row per label, with a corner of its own when one was chosen. The item
+-- delete removes a deleted product's rows (ItemModel::delete()); the label delete removes a deleted label's rows
+-- (LabelModel::delete()).
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
   `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
-  `label_key` varchar(64) NOT NULL COMMENT 'new for the automatic New label, a predefined label''s key (Options > Labels), or custom for the product''s own label',
-  `shown` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on this product; 0 = not shown although the shop would show it (the New label of a new product)',
+  `label_id` int(11) UNSIGNED NOT NULL COMMENT 'The label (#__alfa_labels) the product ticks',
   `corner` varchar(12) DEFAULT NULL COMMENT 'The corner of the image this product shows the label in: top-left, top-right, bottom-left or bottom-right; NULL = the label''s own corner',
-  `custom` mediumtext DEFAULT NULL COMMENT 'JSON of the product''s own label (label_key custom): its name by language, colours, class, where it shows and its period; NULL on every other row',
-  PRIMARY KEY (`item_id`, `label_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product shows: the ones it ticks with their corners, and its own label';
-
---
--- Table structure for table `#__alfa_item_sections`
---
--- A product's own sections of its page (the Sections tab): each replaces the general section of Options whose key it
--- names, or is a section of its own. Title and body live in #__alfa_item_sections_<langtag>.
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_item_sections` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'FK #__alfa_items.id',
-  `section_key` varchar(64) NOT NULL DEFAULT '' COMMENT 'The key of the general section (Options) this one replaces on the product page; empty for a section of its own',
-  `position` int(11) NOT NULL DEFAULT 0 COMMENT 'Its place among the page sections, with the general sections and the fields shown as sections, ascending',
-  PRIMARY KEY (`id`),
-  KEY `idx_item_position` (`item_id`, `position`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='A product page''s own sections; title and body in #__alfa_item_sections_<langtag>';
+  PRIMARY KEY (`item_id`, `label_id`),
+  KEY `idx_label_id` (`label_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product ticks, each in a corner of its own when one was chosen';
 
 --
 -- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,

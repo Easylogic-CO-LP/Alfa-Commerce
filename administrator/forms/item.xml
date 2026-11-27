@@ -437,7 +437,7 @@
                label="COM_ALFA_FORM_LBL_ITEM_LABELS" description="COM_ALFA_FORM_DESC_ITEM_LABELS"/>
 
         <field name="custom_label" type="subform" multiple="false"
-               formsource="administrator/components/com_alfa/forms/label.xml"
+               formsource="administrator/components/com_alfa/forms/label_look.xml"
                label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL"/>
 
         <field name="custom_label_from" type="calendar" translateformat="true" showtime="true" filter="user_utc"

@@ -39,6 +39,12 @@
 		<action name="alfa.manufacturers.edit.state" title="COM_ALFA_ACCESS_MANUFACTURERS_EDIT_STATE" description="COM_ALFA_ACCESS_MANUFACTURERS_EDIT_STATE_DESC" />
 		<action name="alfa.manufacturers.delete" title="COM_ALFA_ACCESS_MANUFACTURERS_DELETE" description="COM_ALFA_ACCESS_MANUFACTURERS_DELETE_DESC" />
 
+		<action name="alfa.labels.view" title="COM_ALFA_ACCESS_LABELS_VIEW" description="COM_ALFA_ACCESS_LABELS_VIEW_DESC" />
+		<action name="alfa.labels.create" title="COM_ALFA_ACCESS_LABELS_CREATE" description="COM_ALFA_ACCESS_LABELS_CREATE_DESC" />
+		<action name="alfa.labels.edit" title="COM_ALFA_ACCESS_LABELS_EDIT" description="COM_ALFA_ACCESS_LABELS_EDIT_DESC" />
+		<action name="alfa.labels.edit.state" title="COM_ALFA_ACCESS_LABELS_EDIT_STATE" description="COM_ALFA_ACCESS_LABELS_EDIT_STATE_DESC" />
+		<action name="alfa.labels.delete" title="COM_ALFA_ACCESS_LABELS_DELETE" description="COM_ALFA_ACCESS_LABELS_DELETE_DESC" />
+
 		<action name="alfa.itemfields.view" title="COM_ALFA_ACCESS_ITEMFIELDS_VIEW" description="COM_ALFA_ACCESS_ITEMFIELDS_VIEW_DESC" />
 		<action name="alfa.itemfields.create" title="COM_ALFA_ACCESS_ITEMFIELDS_CREATE" description="COM_ALFA_ACCESS_ITEMFIELDS_CREATE_DESC" />
 		<action name="alfa.itemfields.edit" title="COM_ALFA_ACCESS_ITEMFIELDS_EDIT" description="COM_ALFA_ACCESS_ITEMFIELDS_EDIT_DESC" />

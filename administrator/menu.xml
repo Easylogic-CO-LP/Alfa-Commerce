@@ -48,6 +48,7 @@
     <item id="items"             section=""                        view="items"             title="COM_ALFA_TITLE_ITEMS"             icon="media/com_alfa/images/admin/menu/items.svg"         ordering="100"/>
     <item id="categories"        section=""                        view="categories"        title="COM_ALFA_TITLE_CATEGORIES"        icon="media/com_alfa/images/admin/menu/categories.svg"    ordering="200"/>
     <item id="manufacturers"     section=""                        view="manufacturers"     title="COM_ALFA_TITLE_MANUFACTURERS"     icon="media/com_alfa/images/admin/menu/manufacturers.svg" ordering="300"/>
+    <item id="labels"            section=""                        view="labels"            title="COM_ALFA_TITLE_LABELS"            icon="media/com_alfa/images/admin/menu/tags.svg"          ordering="350"/>
     <item id="itemfields"        section=""                        view="itemfields"        title="COM_ALFA_TITLE_ITEMFIELDS"        icon="media/com_alfa/images/admin/menu/itemfields.svg"    ordering="400"/>
 
     <item id="orders"            section="COM_ALFA_MENU_SALES"     view="orders"            title="COM_ALFA_TITLE_ORDERS"            icon="media/com_alfa/images/admin/menu/orders.svg"        ordering="100"/>
