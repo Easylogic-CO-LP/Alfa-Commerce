@@ -312,6 +312,7 @@ final class TaskStaff
                 str_starts_with($scope, $search) => Text::sprintf('COM_ALFA_TASKS_COVERS_SEARCH', Job\SearchRebuildJob::engineName(key: substr($scope, \strlen($search)))),
                 $scope === Job\ThumbnailsRecreateJob::NAME => Text::_((($row['report']['mode'] ?? ThumbnailRecreation::mode()) === ThumbnailRecreation::MODE_ALL)
                     ? 'COM_ALFA_TASKS_COVERS_THUMBNAILS_ALL' : 'COM_ALFA_TASKS_COVERS_THUMBNAILS_MISSING'),
+                str_starts_with($scope, Job\StockRepairJob::NAME . ':') => Text::_('COM_ALFA_TASKS_COVERS_STOCK_REPAIR'),
                 default => Text::_('COM_ALFA_TASKS_COVERS_SHOP'),
             };
         }
@@ -368,7 +369,7 @@ final class TaskStaff
      *
      * @since  2.3.0
      */
-    public const CHECKPOINT_HANDLERS = [Job\ThumbnailsRecreateJob::NAME];
+    public const CHECKPOINT_HANDLERS = [Job\ThumbnailsRecreateJob::NAME, Job\StockRepairJob::NAME];
 
     /**
      * SQL that reads the checkpoint of the handlers that keep their report in it, and NULL for every other row, so a
@@ -426,8 +427,8 @@ final class TaskStaff
     }
 
     /**
-     * What a job of core reports, read from its checkpoint or its result: the thumbnails job's report; null for a
-     * row with none.
+     * What a job of core reports, read from its checkpoint or its result: the thumbnails job's report, the stock
+     * repair's counts and the product it stopped at; null for a row with none.
      *
      * @param array<string, mixed> $row The row.
      *
@@ -443,13 +444,15 @@ final class TaskStaff
 
         return match ((string) $row['handler']) {
             Job\ThumbnailsRecreateJob::NAME => ThumbnailRecreation::reportOf(checkpoint: $row['checkpoint'] ?? null),
+            Job\StockRepairJob::NAME => Job\StockRepairJob::reportOf(row: $row),
             default => null,
         };
     }
 
     /**
      * A job's report as plain sentences for staff: the thumbnails job's counts, the image files missing and the
-     * thumbnails not made with their reason, named by their media row.
+     * thumbnails not made with their reason, named by their media row; the stock repair's products repaired, figures
+     * corrected and units offered for sale again, and the product it stopped at with why.
      *
      * @param array<string, mixed> $row The row, its report read ({@see self::report()}).
      *
@@ -461,7 +464,25 @@ final class TaskStaff
     {
         $report = $row['report'] ?? null;
 
-        if (!\is_array($report) || (string) $row['handler'] !== Job\ThumbnailsRecreateJob::NAME) {
+        if (!\is_array($report)) {
+            return [];
+        }
+
+        if ((string) $row['handler'] === Job\StockRepairJob::NAME) {
+            $lines = [Text::sprintf('COM_ALFA_TASKS_STOCK_REPAIR_REPORT', (int) $report['repaired'], (int) $report['total'], (int) $report['corrected'], (int) $report['released'])];
+
+            if (\is_array($report['refused'])) {
+                $lines[] = Text::sprintf(
+                    'COM_ALFA_TASKS_STOCK_REPAIR_STOPPED',
+                    (int) $report['refused']['item'],
+                    $report['refused']['gone'] ? Text::_('COM_ALFA_INVENTORY_AUDIT_REASON_ITEM_GONE') : (string) $report['refused']['reason'],
+                );
+            }
+
+            return $lines;
+        }
+
+        if ((string) $row['handler'] !== Job\ThumbnailsRecreateJob::NAME) {
             return [];
         }
 

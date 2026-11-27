@@ -730,6 +730,8 @@ final class Runner
         return [
             Job\PriceSetPrepareJob::NAME => Job\PriceSetPrepareJob::class,
             Job\StockEffectsDrainJob::NAME => Job\StockEffectsDrainJob::class,
+            // The stock figures of the products a section of the inventory audit lists, repaired one after the other.
+            Job\StockRepairJob::NAME => Job\StockRepairJob::class,
             Job\SearchRebuildJob::NAME => Job\SearchRebuildJob::class,
             Job\CatalogueRebuildJob::NAME => Job\CatalogueRebuildJob::class,
             Job\TasksPruneJob::NAME => Job\TasksPruneJob::class,

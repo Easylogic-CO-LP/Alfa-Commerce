@@ -48,6 +48,7 @@ use Alfa\Component\Alfa\Administrator\Model\InventoryauditModel;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
+use Alfa\Component\Alfa\Administrator\Service\Task\Job\StockRepairJob;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
@@ -253,6 +254,10 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
                     <template id="<?php echo $dialogId; ?>">
                         <div class="p-4">
                             <p class="mb-0"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_CONFIRM', \count($repairAll)); ?></p>
+                            <?php // More products than the request itself repairs run in the background, by the same rule. ?>
+                            <?php if (\count($repairAll) > StockRepairJob::INLINE_MAX) : ?>
+                                <p class="mb-0 mt-2"><?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_REPAIR_ALL_BACKGROUND', StockRepairJob::INLINE_MAX); ?></p>
+                            <?php endif; ?>
                         </div>
 
                         <div class="btn-toolbar p-3 border-top">
