@@ -13,14 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // mount), immune to id-mangling conventions ("][" -> "__") changing.
     const identity = document.querySelector('select[name="jform[request][category_id]"]');
     const presetCats = document.querySelector('select[name="jform[params][presets][filter][category][]"]');
-    const note = document.getElementById('alfa-preset-cats-note');
-    const hint = document.getElementById('alfa-preset-single-hint');
+    const note = document.getElementById('preset-cats-note');
+    const hint = document.getElementById('preset-single-hint');
 
     if (!identity || !presetCats) {
         return;
     }
 
-    const catsWrap = document.getElementById('alfa-preset-cats-wrap');
+    const catsWrap = document.getElementById('preset-cats-wrap');
 
     // Spec: choosing an identity EMPTIES the categories preset. Native select
     // only; the WHOLE field container hides, so whatever UI enhancement wraps

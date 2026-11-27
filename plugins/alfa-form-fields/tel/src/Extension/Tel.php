@@ -94,7 +94,7 @@ final class Tel extends FormFieldsPlugin
         }
 
         $node->setAttribute('data-default-region', $defaultRegion);
-        $node->setAttribute('data-alfa-tel', 'true');
+        $node->setAttribute('data-tel-input', 'true');
         $node->setAttribute('data-allowed-regions', $allowedRegions);
         $node->setAttribute('data-require-mobile', $require_mobile);
         $node->setAttribute('data-display-format', $display_format);

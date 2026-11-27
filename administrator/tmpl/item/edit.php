@@ -49,7 +49,7 @@
                 <?php // Identity leads, like the combination Studio. The columns are
                       // CSS, so a fourth code added to the fieldset needs no change
                       // here. ?>
-                <div class="alfa-identity-grid">
+                <div class="identity-grid">
                     <?php echo $this->form->renderFieldset('identity'); ?>
                 </div>
 
@@ -107,7 +107,7 @@
                 <button type="button" class="btn btn-sm btn-outline-secondary"
                         data-bs-toggle="modal" data-bs-target="#<?php echo $alfaPanel['id']; ?>"
                         title="<?php echo $this->escape(Text::_($alfaPanel['desc'])); ?>">
-                    <span class="alfa-icon" aria-hidden="true"
+                    <span class="icon" aria-hidden="true"
                           style="--alfa-icon:url('<?php echo $alfaRoot; ?>/media/com_alfa/images/admin/menu/<?php echo $alfaPanel['icon']; ?>')"></span>
                     <?php echo Text::_($alfaPanel['text']); ?>
                 </button>

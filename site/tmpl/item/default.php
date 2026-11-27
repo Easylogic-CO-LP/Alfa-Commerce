@@ -68,7 +68,7 @@
     $medias = $this->item->medias;
 ?>
 
-<div class="com-alfa item-container" data-item-id="<?php echo $this->item->id; ?>">
+<div class="item-container" data-item-id="<?php echo $this->item->id; ?>">
     <?php if (!empty($medias)): ?>
         <div class="item-images-wrapper">
             <?php echo $this->loadTemplate($this->imagesTpl); ?>

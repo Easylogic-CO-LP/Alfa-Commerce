@@ -14,7 +14,7 @@
  *   tabs        a tab bar before the sections, enhanced by the tabs script (common/tabs.php)
  *   accordion   native details and summary, the first open; no script (common/accordion.php)
  *
- * Every section's element id is alfa-section-<key>, so a link to a section is the same in every mode. Overridable
+ * Every section's element id is section-<key>, so a link to a section is the same in every mode. Overridable
  * as html/layouts/com_alfa/common/sections.php, tabs.php and accordion.php.
  *
  * @var array $displayData ['sections' => list<array{key, title, body}>, 'mode' => string, 'label' => string]
@@ -39,11 +39,11 @@ if ($mode === 'tabs' || $mode === 'accordion') {
 
 $esc = static fn (mixed $text): string => htmlspecialchars((string) $text, ENT_QUOTES, 'UTF-8');
 ?>
-<div class="alfa-sections">
+<div class="sections">
     <?php foreach ($sections as $section) : ?>
-    <section class="alfa-section" id="alfa-section-<?php echo $esc($section['key']); ?>" data-alfa-section="<?php echo $esc($section['key']); ?>">
-        <h2 class="alfa-section-title"><?php echo $esc($section['title']); ?></h2>
-        <div class="alfa-section-body"><?php echo $section['body']; ?></div>
+    <section class="section" id="section-<?php echo $esc($section['key']); ?>" data-section-key="<?php echo $esc($section['key']); ?>">
+        <h2 class="section-title"><?php echo $esc($section['title']); ?></h2>
+        <div class="section-body"><?php echo $section['body']; ?></div>
     </section>
     <?php endforeach; ?>
 </div>

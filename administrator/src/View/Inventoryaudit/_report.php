@@ -160,7 +160,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
     ];
 };
 ?>
-<div class="com-alfa-inventory-audit com-alfa-audit">
+<div class="inventory-audit audit-report">
     <p class="text-muted">
         <?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_SCANNED', (int) $scanned['units'], (int) $scanned['rows']); ?>
     </p>
@@ -225,12 +225,12 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
             $repairAll = array_keys($repairAll);
         }
         ?>
-        <details class="card mb-4 alfa-audit-section" data-audit-category="<?php echo $this->escape(var: $category); ?>">
+        <details class="card mb-4 audit-section" data-audit-category="<?php echo $this->escape(var: $category); ?>">
             <summary class="card-header">
                 <?php // The card header is a flex row; one block inside it keeps the description under the title. ?>
-                <div class="alfa-audit-summary">
+                <div class="audit-summary">
                     <h2 class="h4 mb-1">
-                        <span class="alfa-audit-caret icon-chevron-down" aria-hidden="true"></span>
+                        <span class="audit-caret icon-chevron-down" aria-hidden="true"></span>
                         <?php echo Text::_($langKey); ?> <span class="badge <?php echo $group === 'classifications' ? 'text-bg-info' : 'bg-danger'; ?>"><?php echo \count($rows); ?></span>
                     </h2>
                     <span class="d-block small text-muted"><?php echo Text::_($langKey . '_DESC'); ?></span>

@@ -57,7 +57,7 @@ $button = match ($kind) {
 };
 ?>
 
-<form class="alfa-refund-report" method="post" action="index.php">
+<form class="refund-report" method="post" action="index.php">
 
     <p class="mb-3"><?php echo $escape($intro); ?></p>
 
@@ -76,9 +76,9 @@ $button = match ($kind) {
 
     <?php if ($kind === 'typed') : ?>
         <div class="mb-3">
-            <label class="form-label" for="alfa-refund-report-amount"><?php echo $escape(Text::sprintf('COM_ALFA_REPORT_FORM_AMOUNT', $currency->getCode())); ?></label>
+            <label class="form-label" for="refund-report-amount"><?php echo $escape(Text::sprintf('COM_ALFA_REPORT_FORM_AMOUNT', $currency->getCode())); ?></label>
             <?php // No default value: the operator states the amount to book; only a refused submission gives back what was typed. ?>
-            <input type="number" class="form-control" id="alfa-refund-report-amount" name="amount" required
+            <input type="number" class="form-control" id="refund-report-amount" name="amount" required
                    step="<?php echo $escape($minorUnit); ?>" min="<?php echo $escape($minorUnit); ?>"
                    <?php if ($typedOf('amount') !== '') : ?>value="<?php echo $escape($typedOf('amount')); ?>"<?php endif; ?>>
         </div>
@@ -92,9 +92,9 @@ $button = match ($kind) {
                 <?php foreach ($candidates as $candidate) : ?>
                     <?php $rowId = (int) $candidate->id; ?>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="refund" id="alfa-refund-report-row-<?php echo $rowId; ?>"
+                        <input class="form-check-input" type="radio" name="refund" id="refund-report-row-<?php echo $rowId; ?>"
                                value="<?php echo $rowId; ?>" required<?php echo $typedOf('refund') === (string) $rowId ? ' checked' : ''; ?>>
-                        <label class="form-check-label" for="alfa-refund-report-row-<?php echo $rowId; ?>">
+                        <label class="form-check-label" for="refund-report-row-<?php echo $rowId; ?>">
                             <?php echo $escape(Text::sprintf(
                                 'COM_ALFA_REPORT_RECONCILE_ROW',
                                 $rowId,
@@ -111,8 +111,8 @@ $button = match ($kind) {
 
     <?php if ($kind !== 'reconcile' || $candidates !== []) : ?>
         <div class="mb-3">
-            <label class="form-label" for="alfa-refund-report-reason"><?php echo $escape(Text::_('COM_ALFA_REPORT_FORM_REASON')); ?></label>
-            <textarea class="form-control" id="alfa-refund-report-reason" name="reason" required maxlength="1000" rows="3"><?php echo $escape($typedOf('reason')); ?></textarea>
+            <label class="form-label" for="refund-report-reason"><?php echo $escape(Text::_('COM_ALFA_REPORT_FORM_REASON')); ?></label>
+            <textarea class="form-control" id="refund-report-reason" name="reason" required maxlength="1000" rows="3"><?php echo $escape($typedOf('reason')); ?></textarea>
         </div>
 
         <input type="hidden" name="option" value="com_alfa">

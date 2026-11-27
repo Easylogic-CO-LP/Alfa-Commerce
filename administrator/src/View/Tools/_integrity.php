@@ -100,21 +100,21 @@ $files = function (array $paths): void {
             <?php endif; ?>
 
             <?php if ($hasInjected) : ?>
-                <div class="alert alfa-integrity-block <?php echo $alarm ? 'alert-danger' : 'alert-info'; ?>" role="alert">
+                <div class="alert integrity-block <?php echo $alarm ? 'alert-danger' : 'alert-info'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_ADDED'); ?></strong>
                     <?php $files($this->official['injected']); ?>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($this->official['modified'])) : ?>
-                <div class="alert alfa-integrity-block <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
+                <div class="alert integrity-block <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_MODIFIED'); ?></strong>
                     <?php $files($this->official['modified']); ?>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($this->official['missing'])) : ?>
-                <div class="alert alfa-integrity-block <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
+                <div class="alert integrity-block <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_MISSING'); ?></strong>
                     <?php $files($this->official['missing']); ?>
                 </div>

@@ -125,7 +125,7 @@ final class ComponentOptions
         // Documents
         'documents_issuer' => 'com_alfa',
 
-        // Downloads: the store's folder ('' = alfa-downloads inside the site, which the installation
+        // Downloads: the store's folder ('' = downloads inside the site, which the installation
         // provisions and records) and its direct-download protection check, on.
         'downloads_storage_path' => '',
         'downloads_protection_check' => 1,

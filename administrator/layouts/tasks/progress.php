@@ -58,29 +58,29 @@ $ends = [
 $ended = $ends[$job['state']] ?? null;
 $report = implode(' ', (array) ($job['reportLines'] ?? []));
 ?>
-<div class="card mb-3" id="alfa-job-progress" data-alfa-job-progress data-id="<?php echo (int) $job['id']; ?>" data-token="<?php echo Session::getFormToken(); ?>"
+<div class="card mb-3" id="job-progress" data-job-progress data-id="<?php echo (int) $job['id']; ?>" data-token="<?php echo Session::getFormToken(); ?>"
     data-url="<?php echo $e(Route::_('index.php?option=com_alfa&task=tasks.process', false)); ?>">
     <div class="card-header">
         <?php echo Text::sprintf('COM_ALFA_TASKS_PROGRESS_TITLE', (int) $job['id'], $job['label'] !== '' ? Text::_($job['label']) : ''); ?>
     </div>
     <div class="card-body">
         <div class="progress mb-2" style="height: 1.25rem;">
-            <div class="progress-bar<?php echo $ended === null ? ' progress-bar-striped progress-bar-animated' : ' ' . $ended[2]; ?>" data-alfa-job-bar role="progressbar"
+            <div class="progress-bar<?php echo $ended === null ? ' progress-bar-striped progress-bar-animated' : ' ' . $ended[2]; ?>" data-job-bar role="progressbar"
                 style="width: <?php echo (int) $job['percent']; ?>%" aria-valuemin="0" aria-valuemax="100"
                 aria-valuenow="<?php echo (int) $job['percent']; ?>" aria-label="<?php echo $e(Text::_('COM_ALFA_TASKS_COL_PROGRESS')); ?>"></div>
         </div>
         <p class="mb-1">
             <?php // The state alone when the total is 0, else the state and how far the job is. ?>
             <?php $units = TaskStaff::unitsText(done: (int) $job['done'], total: (int) $job['total'], percent: (int) $job['percent']); ?>
-            <strong data-alfa-job-state><?php echo Text::_($key) === $key ? $e($job['state']) : Text::_($key); ?></strong><span data-alfa-job-units-line<?php echo $units === '' ? ' hidden' : ''; ?>>,
-            <span data-alfa-job-units><?php echo $e($units); ?></span></span>
+            <strong data-job-state><?php echo Text::_($key) === $key ? $e($job['state']) : Text::_($key); ?></strong><span data-job-units-line<?php echo $units === '' ? ' hidden' : ''; ?>>,
+            <span data-job-units><?php echo $e($units); ?></span></span>
         </p>
-        <p class="text-danger mb-1" data-alfa-job-error<?php echo $job['error'] === '' ? ' hidden' : ''; ?>><?php echo $e(Tasks::errorText($job['error'])); ?></p>
-        <p class="text-muted mb-1" data-alfa-job-wait hidden></p>
+        <p class="text-danger mb-1" data-job-error<?php echo $job['error'] === '' ? ' hidden' : ''; ?>><?php echo $e(Tasks::errorText($job['error'])); ?></p>
+        <p class="text-muted mb-1" data-job-wait hidden></p>
         <?php foreach ($ends as $endState => [$endKey, $endClass]) : ?>
-            <p class="<?php echo $endClass; ?> mb-1" data-alfa-job-end="<?php echo $e($endState); ?>"<?php echo $job['state'] === $endState ? '' : ' hidden'; ?>><?php echo Text::_($endKey); ?></p>
+            <p class="<?php echo $endClass; ?> mb-1" data-job-end="<?php echo $e($endState); ?>"<?php echo $job['state'] === $endState ? '' : ' hidden'; ?>><?php echo Text::_($endKey); ?></p>
         <?php endforeach; ?>
-        <p class="mb-1" data-alfa-job-report<?php echo $report === '' ? ' hidden' : ''; ?>><?php echo $e($report); ?></p>
+        <p class="mb-1" data-job-report<?php echo $report === '' ? ' hidden' : ''; ?>><?php echo $e($report); ?></p>
         <p class="small text-muted mb-2"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_DESC'); ?></p>
         <a class="btn btn-sm btn-secondary" href="<?php echo $list; ?>"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_BACK'); ?></a>
     </div>

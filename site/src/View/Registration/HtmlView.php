@@ -25,6 +25,12 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 class HtmlView extends BaseHtmlView
 {
     /**
+     * @var string The page's class on the wrapper.
+     * @since  2.3.0
+     */
+    protected string $pageClass = 'registration';
+
+    /**
      * @var \Joomla\CMS\Form\Form
      */
     protected $form;
@@ -53,6 +59,10 @@ class HtmlView extends BaseHtmlView
         // layouts (the "complete" redirect target) always win.
         if ($this->getLayout() === 'default' && ($layout = $this->params->get('registration_layout'))) {
             $this->setLayout($layout);
+        }
+
+        if ($this->getLayout() === 'complete') {
+            $this->pageClass = 'registration-complete';
         }
 
         $model = $this->getModel();

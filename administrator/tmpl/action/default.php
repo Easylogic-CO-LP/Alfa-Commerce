@@ -23,7 +23,7 @@ use Joomla\CMS\Layout\LayoutHelper;
  */
 $event = $this->actionEvent;
 ?>
-<div class="alfa-action p-2">
+<div class="action p-2">
     <?php
     if ($event && $event->getLayout()) {
         echo PluginLayoutHelper::pluginLayout($this->group, $this->type, $event->getLayout())

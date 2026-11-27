@@ -29,7 +29,7 @@ $sfx = htmlspecialchars((string) $params->get('moduleclass_sfx', ''), ENT_QUOTES
 $idBase = 'mod-alfa-items-' . $moduleId;
 $tabbed = \count($groups) > 1;
 ?>
-<div class="com-alfa mod-alfa-items mod-alfa-items-<?php echo $moduleId; ?><?php echo $sfx !== '' ? ' ' . $sfx : ''; ?>"
+<div class="mod-alfa-items mod-alfa-items-<?php echo $moduleId; ?><?php echo $sfx !== '' ? ' ' . $sfx : ''; ?>"
      data-mod-alfa-items
      data-module-id="<?php echo $moduleId; ?>"
      data-arrangement="<?php echo $tabbed ? 'tabs' : 'single'; ?>"<?php echo $tabbed ? ' data-lazy-url="' . htmlspecialchars($lazyUrl, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>

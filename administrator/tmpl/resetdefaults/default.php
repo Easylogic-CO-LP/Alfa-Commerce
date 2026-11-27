@@ -72,7 +72,7 @@ $display = static function (array $values, array $keys) use ($escape, $fields): 
 $options = $this->preview['options'];
 $groups = $this->preview['groups'];
 ?>
-<div class="com-alfa-resetdefaults p-3">
+<div class="resetdefaults-page p-3">
     <div class="alert alert-info">
         <h2 class="h4"><?php echo Text::_('COM_ALFA_RESET_INTRO_TITLE'); ?></h2>
         <p class="mb-0"><?php echo Text::_('COM_ALFA_RESET_INTRO_DESC'); ?></p>
@@ -141,8 +141,8 @@ $groups = $this->preview['groups'];
 
         <form action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post" class="card card-body">
             <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" name="confirm" value="1" id="alfa-reset-confirm" required>
-                <label class="form-check-label" for="alfa-reset-confirm"><?php echo Text::_('COM_ALFA_RESET_CONFIRM'); ?></label>
+                <input class="form-check-input" type="checkbox" name="confirm" value="1" id="reset-confirm" required>
+                <label class="form-check-label" for="reset-confirm"><?php echo Text::_('COM_ALFA_RESET_CONFIRM'); ?></label>
             </div>
             <div>
                 <button type="submit" class="btn btn-warning">

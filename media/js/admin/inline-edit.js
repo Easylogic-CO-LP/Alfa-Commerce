@@ -10,7 +10,7 @@
  * Generic inline quick-edit for admin list cells.
  *
  * HTML only marks a cell (layout inline/field.php):
- *   <span class="alfa-editable" data-view="item" data-element="name" data-id="10" data-type="multilang">...</span>
+ *   <span class="editable" data-view="item" data-element="name" data-id="10" data-type="multilang">...</span>
  *
  * This script finds each marker, INJECTS the pencil trigger, and fetches the
  * editor ON DEMAND when clicked (task=<view>.inlineLoad returns server-rendered
@@ -71,14 +71,14 @@
 
     /** Inject the pencil trigger into a marked cell (idempotent). */
     function decorate(wrap) {
-        if (wrap.querySelector('.alfa-edit-trigger')) {
+        if (wrap.querySelector('.edit-trigger')) {
             return;
         }
 
         var label = text('COM_ALFA_INLINE_EDIT', 'Quick edit');
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'alfa-edit-trigger';
+        btn.className = 'edit-trigger';
         btn.title = label;
         btn.setAttribute('aria-label', label);
         btn.innerHTML = PENCIL;
@@ -86,7 +86,7 @@
     }
 
     function decorateAll(root) {
-        (root || document).querySelectorAll('.alfa-editable').forEach(decorate);
+        (root || document).querySelectorAll('.editable').forEach(decorate);
     }
 
     /** Fetch the on-demand editor markup for a field. */
@@ -111,8 +111,8 @@
      */
     function openEditor(wrap, html) {
         return new Promise(function (resolve) {
-            var display = wrap.querySelector('.alfa-editable-display');
-            var trigger = wrap.querySelector('.alfa-edit-trigger');
+            var display = wrap.querySelector('.editable-display');
+            var trigger = wrap.querySelector('.edit-trigger');
 
             var holder = document.createElement('div');
             holder.innerHTML = html;                 // server-rendered editor chrome
@@ -124,7 +124,7 @@
             if (trigger) { trigger.hidden = true; }
             wrap.appendChild(editor);
 
-            var inputs = editor.querySelectorAll('.alfa-inline-input');
+            var inputs = editor.querySelectorAll('.inline-input');
             if (inputs.length) { inputs[0].focus(); inputs[0].select(); }
 
             function close() {
@@ -135,7 +135,7 @@
 
             function collect() {
                 var out = {};
-                editor.querySelectorAll('.alfa-inline-input').forEach(function (i) {
+                editor.querySelectorAll('.inline-input').forEach(function (i) {
                     out[i.dataset.name] = i.value;
                 });
                 return out;
@@ -144,7 +144,7 @@
             // The figure each input was rendered with, keyed like collect().
             function collectBaselines() {
                 var out = null;
-                editor.querySelectorAll('.alfa-inline-input[data-baseline]').forEach(function (i) {
+                editor.querySelectorAll('.inline-input[data-baseline]').forEach(function (i) {
                     out = out || {};
                     out[i.dataset.name] = i.dataset.baseline;
                 });
@@ -190,7 +190,7 @@
     }
 
     function setDisplay(wrap, value) {
-        var display = wrap.querySelector('.alfa-editable-display');
+        var display = wrap.querySelector('.editable-display');
         if (display) {
             display.textContent = (value == null || value === '') ? '-' : value;
         }
@@ -199,7 +199,7 @@
     /**
      * Repaint the sibling cells a save invalidated (Available follows Stock).
      * The server sends `data.refresh = { <cell name>: '<html>' }` and each entry
-     * replaces the matching `[data-alfa-cell][data-id]` in the SAME row; the
+     * replaces the matching `[data-inline-cell][data-id]` in the SAME row; the
      * markup is rendered by the same PHP layout the list uses, so no cell is
      * ever assembled twice in two languages.
      */
@@ -208,7 +208,7 @@
 
         Object.keys(refresh).forEach(function (name) {
             var target = document.querySelector(
-                '[data-alfa-cell="' + name + '"][data-id="' + id + '"]'
+                '[data-inline-cell="' + name + '"][data-id="' + id + '"]'
             );
 
             if (target) {
@@ -284,10 +284,10 @@
     }
 
     document.addEventListener('click', function (e) {
-        var trigger = e.target.closest('.alfa-edit-trigger');
+        var trigger = e.target.closest('.edit-trigger');
         if (!trigger) { return; }
 
-        var wrap = trigger.closest('.alfa-editable');
+        var wrap = trigger.closest('.editable');
         if (!wrap || wrap.classList.contains('is-editing')) { return; }
 
         e.preventDefault();

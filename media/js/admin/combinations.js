@@ -121,7 +121,7 @@
         document.addEventListener(type, (event) => {
             if (itemForm() && itemForm().contains(event.target)) {
                 formTouched = true;
-                event.target.dataset.alfaTouched = '1';
+                event.target.dataset.touched = '1';
             }
         }, true);
     });
@@ -136,7 +136,7 @@
             return waiting;
         }
         for (const element of form.elements) {
-            if (element.tagName !== 'TEXTAREA' || !element.closest(EDITOR_WRAP) || element.dataset.alfaEditorBaseline) {
+            if (element.tagName !== 'TEXTAREA' || !element.closest(EDITOR_WRAP) || element.dataset.editorBaseline) {
                 continue;
             }
             const instance = window.Joomla && Joomla.editors && Joomla.editors.instances
@@ -145,8 +145,8 @@
                 waiting = true;
                 continue;
             }
-            element.dataset.alfaEditorBaseline = '1';
-            if (!element.dataset.alfaTouched && formBaseline.has(element.name)) {
+            element.dataset.editorBaseline = '1';
+            if (!element.dataset.touched && formBaseline.has(element.name)) {
                 formBaseline.set(element.name, [String(instance.getValue())]);
             }
         }
@@ -244,7 +244,7 @@
     const reopenKey = () => 'alfaStudioReopen:' + itemId();
 
     const guard = (reopen) => {
-        const dialog = openDialog('alfa-dialog-save-first', Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_TITLE'), [
+        const dialog = openDialog('dialog-save-first', Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_TITLE'), [
             {
                 label: Joomla.Text._('COM_ALFA_COMBINATION_DIRTY_SAVE_NOW'),
                 primary: true,
@@ -274,7 +274,7 @@
     // (data.markup: the names escaped, the order lines linked), as text otherwise. The second script of this
     // file reaches it as Alfa.refused.
     const refusedDialog = (message, markup) => {
-        const dialog = openDialog('alfa-dialog-refused', Joomla.Text._('COM_ALFA_COMBI_REFUSED_TITLE'), [
+        const dialog = openDialog('dialog-refused', Joomla.Text._('COM_ALFA_COMBI_REFUSED_TITLE'), [
             { label: Joomla.Text._('JCLOSE'), primary: true },
         ], '640px');
         const body = dialog ? dialog.querySelector('[data-refusal-text]') : null;
@@ -819,8 +819,8 @@
     });
 
     // Generator / filter / bulk tools
-    const tools = () => document.querySelector('.alfa-combi-tools');
-    const gridRows = () => [...document.querySelectorAll('.alfa-combinations tbody tr')];
+    const tools = () => document.querySelector('.combi-tools');
+    const gridRows = () => [...document.querySelectorAll('.combinations tbody tr')];
 
     // The generator lives in its own modal; the Generate button sits in the
     // modal FOOTER, outside [data-generator]; resolve both document-wide.

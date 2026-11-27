@@ -216,11 +216,11 @@ if ($linkedUser) {
 <?php if ($linkedUser) : ?>
     <?php // SIBLING form for the credit actions. It cannot live inside
           // adminForm (nested forms are invalid HTML), so the Credit tab's
-          // fields point at it with form="alfa-credit-form": valid HTML5.
+          // fields point at it with form="credit-form": valid HTML5.
           // It deliberately carries NO hidden `task`: the buttons set the
           // task through formaction, and a POSTed empty task would override
           // the query string and drop the request on the default view. ?>
-    <form id="alfa-credit-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
+    <form id="credit-form" action="<?php echo Route::_('index.php?option=com_alfa'); ?>" method="post">
         <input type="hidden" name="id" value="<?php echo (int) $this->item->id; ?>"/>
         <?php echo HTMLHelper::_('form.token'); ?>
     </form>

@@ -58,7 +58,7 @@ $semantics = [
                     ));
                     $provider = (int) $item->is_core === 1 ? Text::_('COM_ALFA_DOCUMENTTYPE_BADGE_CORE') : (string) $item->provider;
                     ?>
-                    <div class="control-group" data-alfa-corrects-declared>
+                    <div class="control-group" data-corrects-declared>
                         <div class="control-label"><?php echo Text::_('COM_ALFA_DOCUMENTTYPE_FIELD_CORRECTS'); ?></div>
                         <div class="controls">
                             <p class="mb-1"><?php echo $this->escape($corrected !== '' ? $corrected : Text::_('COM_ALFA_DOCUMENTTYPE_CORRECTS_NONE')); ?></p>

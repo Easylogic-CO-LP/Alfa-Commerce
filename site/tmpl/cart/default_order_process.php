@@ -36,7 +36,7 @@ use Joomla\CMS\Uri\Uri;
 
 if ($this->providerUnavailable) :
     $this->getDocument()->getWebAssetManager()->useStyle('com_alfa.order-completed'); ?>
-    <div class="com-alfa cart-wrapper order-completed order-process-unavailable">
+    <div class="cart-wrapper order-completed order-process-unavailable">
         <p class="order-number"><?php echo Text::sprintf('COM_ALFA_ORDER_COMPLETED_NUMBER', $this->escape($this->orderNumber)); ?></p>
         <p class="order-provider-unavailable"><?php echo Text::_('COM_ALFA_ORDER_PROVIDER_UNAVAILABLE'); ?></p>
         <div class="order-completed-actions">

@@ -11,7 +11,7 @@
  * so the charting library is replaceable by rewriting exactly this file. ECharts is
  * vendored in com_alfa's own media (Apache-2.0); nothing loads from a CDN, ever.
  *
- * One container per chart: `<div data-alfa-chart="<key>">`. A DTO without a container,
+ * One container per chart: `<div data-chart-key="<key>">`. A DTO without a container,
  * or a container without a DTO, is silently skipped: charts are additive presentation
  * and must never break the screen that hosts them.
  *
@@ -568,7 +568,7 @@
 
         Object.keys(declared).forEach(function (key) {
             var chart = declared[key];
-            var host = document.querySelector('[data-alfa-chart="' + (chart.key || key) + '"]');
+            var host = document.querySelector('[data-chart-key="' + (chart.key || key) + '"]');
 
             if (!host) {
                 return;                                 // no container: nothing to draw into
@@ -620,7 +620,7 @@
                 return;
             }
 
-            var host = document.querySelector('[data-alfa-chart="' + chart.key + '"]');
+            var host = document.querySelector('[data-chart-key="' + chart.key + '"]');
 
             if (!host) {
                 return;

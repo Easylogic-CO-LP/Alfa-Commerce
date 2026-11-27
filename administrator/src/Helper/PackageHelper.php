@@ -47,7 +47,7 @@ use ZipArchive;
  * The signed integrity catalog does cover them: {@see self::enumerateLibraryFiles()}
  * adds each bundled library's files to the two hashing walks, and to nothing else.
  *
- * The reverse path -> repo mapping mirrors the standalone `alfa-diffs` tool, run
+ * The reverse path -> repo mapping mirrors the standalone `diffs` tool, run
  * one-way (install -> repo) instead of as a diff.
  *
  * What never ships is one roster, {@see self::EXCLUDED_PATTERNS}, applied to every

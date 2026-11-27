@@ -29,12 +29,12 @@ $severity = $count > 0 ? ($summary['severity'] ?? 'info') : 'none';
 // Notifications list counts dismissed ones too unless its scope is Not dismissed.
 $scope = htmlspecialchars(Text::sprintf('COM_ALFA_NOTIFY_BADGE_LABEL', $count), ENT_QUOTES, 'UTF-8');
 ?>
-<div class="alfa-notify" data-region="component" data-return="<?php echo htmlspecialchars((string) ($displayData['return'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-    <button type="button" class="btn btn-action alfa-notify-btn" data-region="badge" data-severity="<?php echo $severity; ?>"
+<div class="notify" data-region="component" data-return="<?php echo htmlspecialchars((string) ($displayData['return'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+    <button type="button" class="btn btn-action notify-btn" data-region="badge" data-severity="<?php echo $severity; ?>"
             aria-label="<?php echo $scope; ?>">
         <span class="icon-bell" aria-hidden="true"></span>
-        <span class="alfa-notify-label"><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
-        <span class="alfa-notify-count" title="<?php echo $scope; ?>"<?php echo $count > 0 ? '' : ' style="display:none"'; ?>><?php echo $count > 99 ? '99+' : $count; ?></span>
+        <span class="notify-label"><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
+        <span class="notify-count" title="<?php echo $scope; ?>"<?php echo $count > 0 ? '' : ' style="display:none"'; ?>><?php echo $count > 99 ? '99+' : $count; ?></span>
     </button>
     <?php echo $displayData['panel']; ?>
 </div>

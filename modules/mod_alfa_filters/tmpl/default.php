@@ -73,12 +73,12 @@ $moduleId = $module->id;
 
 ?>
 <?php // The group opener's icon and whether it turns while open: the stylesheet reads both here. ?>
-<div class="mod-alfa-filters-wrapper mod-alfa-filters-<?= $moduleId ?> <?= $fixed ? 'alfa-filters-fixed ' . $fixed_pos :
+<div class="mod-alfa-filters-wrapper mod-alfa-filters-<?= $moduleId ?> <?= $fixed ? 'filters-fixed ' . $fixed_pos :
  '' ?>" data-module-id="<?= $moduleId ?>" data-af-icon="<?= htmlspecialchars($groupSettings['icon'], ENT_QUOTES, 'UTF-8') ?>"<?= $groupSettings['turn'] ? ' data-af-icon-turn' : '' ?>>
-    <button class="alfa-filters-offcanvas-toggler"
-            id="alfa-filters-toggler-<?=$moduleId?>"
+    <button class="filters-offcanvas-toggler"
+            id="filters-toggler-<?=$moduleId?>"
             aria-haspopup="dialog"
-            aria-controls="alfa-filters-offcanvas-<?=$moduleId?>"
+            aria-controls="filters-offcanvas-<?=$moduleId?>"
             aria-expanded="false">
 		<?= Text::_('MOD_ALFAFILTERS_TOGGLE_BUTTON_TXT') ?>
     </button>
@@ -88,15 +88,15 @@ $moduleId = $module->id;
           // slides away with a transform cannot carry it off the screen, and the page behind it is inert.
           // Where it can be a column it is printed open, so the column holds its place from the first
           // paint; the script closes it where the screen is narrower than the breakpoint. ?>
-    <dialog class="alfa-filters-offcanvas-wrapper alfa-filters-offcanvas <?= $animation ?>"
-            id="alfa-filters-offcanvas-<?=$moduleId?>"
-            aria-labelledby="alfa-filters-toggler-<?=$moduleId?>"<?= $fixed ? '' : ' open' ?>>
-        <div class="alfa-filters-wrapper-inner">
-            <div class="alfa-filters-header">
+    <dialog class="filters-offcanvas-wrapper filters-offcanvas <?= $animation ?>"
+            id="filters-offcanvas-<?=$moduleId?>"
+            aria-labelledby="filters-toggler-<?=$moduleId?>"<?= $fixed ? '' : ' open' ?>>
+        <div class="filters-wrapper-inner">
+            <div class="filters-header">
                 <?php if ($headerTxt !== '') : ?>
-                    <h2 class="alfa-filters-header-title"><?= $headerTxt ?></h2>
+                    <h2 class="filters-header-title"><?= $headerTxt ?></h2>
                 <?php endif; ?>
-                <button type="button" class="alfa-filters-close-btn" aria-label="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_LABEL') ?>">
+                <button type="button" class="filters-close-btn" aria-label="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_LABEL') ?>">
 					<?php if ($imageType === 'image'):?>
                         <img src="<?=htmlspecialchars($imageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_ALT') ?>">
 					<?php elseif ($imageType === 'svg' && !empty($svg_close_button)):?>
@@ -109,7 +109,7 @@ $moduleId = $module->id;
             </div>
             <!-- The column's Clear all. Over the page the panel's foot carries it, beside
                  the results button; in the column the breakpoint CSS shows this bar. -->
-            <div class="alfa-filters-actions">
+            <div class="filters-actions">
                 <button type="button" class="af-reset-all">
                     <?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_ALL_BTN') ?>
                 </button>
@@ -119,7 +119,7 @@ $moduleId = $module->id;
                     action="<?= $formAction; ?>"
                     data-action="<?= $ajaxAction; ?>"
                     data-filters-action="<?= $updateFiltersAction; ?>"
-                    id="alfa-filters-form-<?= $moduleId ?>"
+                    id="filters-form-<?= $moduleId ?>"
                     name="alfaFilterForm"
                     class="mod-alfa-filters"
                     data-showon-scope
@@ -137,7 +137,7 @@ $moduleId = $module->id;
             <p class="af-results-status" role="status" data-af-results-status></p>
         <?php endif; ?>
         <?php // Inside the dialog, so it shows over the panel in the top layer too. ?>
-        <div class="alfa-filters-loading-overlay" aria-hidden="true">
+        <div class="filters-loading-overlay" aria-hidden="true">
             <?php if ($loadingImg === 'image'): ?>
                 <div class="af-loading-anim">
                     <img src="<?=htmlspecialchars($loadingImageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_LOADING_ICON_ALT') ?>">

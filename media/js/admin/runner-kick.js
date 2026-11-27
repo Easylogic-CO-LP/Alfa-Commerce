@@ -41,7 +41,7 @@
 
     // The background-work card, drawn again by its own layout on the server; left as it was when that fails.
     const refreshCard = () => {
-        const node = options.cardUrl ? document.querySelector('[data-alfa-background-card]') : null;
+        const node = options.cardUrl ? document.querySelector('[data-background-card]') : null;
 
         if (!node) {
             return Promise.resolve();
@@ -61,12 +61,12 @@
 
                 const drawn = document.createElement('template');
                 drawn.innerHTML = reply.data.html.trim();
-                const fresh = drawn.content.querySelector('[data-alfa-background-card]');
+                const fresh = drawn.content.querySelector('[data-background-card]');
 
                 if (fresh) {
                     node.replaceWith(fresh);
                 } else {
-                    (node.closest('.alfa-card') || node).remove();
+                    (node.closest('.dash-card') || node).remove();
                 }
             })
             .catch(() => {});

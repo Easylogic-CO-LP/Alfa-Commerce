@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\View\FormView;
 
 /**
  * The base for a com_alfa admin EDIT view on the extension contract: Joomla's {@see FormView}
- * (which the 15 record screens already use, and which emits no alfa-app wrapper) plus the toolbar
+ * (which the record screens already use) plus the toolbar
  * and render-slot plumbing.
  *
  *     final class HtmlView extends AlfaFormView
@@ -42,6 +42,26 @@ use Joomla\CMS\MVC\View\FormView;
 abstract class AlfaFormView extends FormView
 {
     use HasAdminEvents;
+
+    /**
+     * Render the edit screen wrapped in the shared <div id="alfa-app"> container, as every other screen of the
+     * component is: the one element that carries the component's name, the root every administrator rule is scoped
+     * under (:where(#alfa-app)), tagged with the lower-cased view name.
+     *
+     * @param string|null $tpl The name of the template file to parse
+     *
+     * @return void
+     *
+     * @since  2.3.0
+     */
+    public function display($tpl = null)
+    {
+        echo '<div id="alfa-app" data-view="' . htmlspecialchars(strtolower($this->getName())) . '">';
+
+        parent::display($tpl);
+
+        echo '</div>';
+    }
 
     /**
      * This base is only ever an edit screen.

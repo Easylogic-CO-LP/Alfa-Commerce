@@ -2,14 +2,14 @@
  * Alfa Commerce - Tools view: AJAX maintenance actions with per-card progress.
  *
  * Every card is registry-contributed (core and plugins alike) and every button
- * (.alfa-tool-btn, on a Tools card or on the Background screen's toolbar) drives the progress element it names
- * (data-alfa-progress, an id):
+ * (.tool-btn, on a Tools card or on the Background screen's toolbar) drives the progress element it names
+ * (data-progress-target, an id):
  *   - data-action="single"   -> one request (task=toolaction.run).
  *   - data-action="backfill" -> chunked plan -> chunk loop (task=toolaction.plan/.chunk).
  *
  * Optional per-button behaviour, all declared as data attributes by the layout:
  *   - data-confirm-message -> native confirm() before anything runs.
- *   - a form with data-alfa-confirm (a new web-cron address) asks it first; declining sends nothing.
+ *   - a form with data-confirm-before (a new web-cron address) asks it first; declining sends nothing.
  *   - data-mutating -> every request is a POST carrying a fresh one-time key
  *     (`once`), which the endpoint demands of a state-changing action; a
  *     read-only action is fetched. The session token rides in the URL either way.
@@ -30,14 +30,14 @@
     'use strict';
 
     function init() {
-        document.querySelectorAll('.alfa-tool-btn').forEach(function (btn) {
+        document.querySelectorAll('.tool-btn').forEach(function (btn) {
             btn.addEventListener('click', function () { run(btn); });
         });
 
         // A form whose submission cannot be taken back asks first (the web-cron address that stops the old one).
-        document.querySelectorAll('form[data-alfa-confirm]').forEach(function (form) {
+        document.querySelectorAll('form[data-confirm-before]').forEach(function (form) {
             form.addEventListener('submit', function (event) {
-                if (!window.confirm(form.getAttribute('data-alfa-confirm'))) {
+                if (!window.confirm(form.getAttribute('data-confirm-before'))) {
                     event.preventDefault();
                 }
             });
@@ -58,7 +58,7 @@
             return;
         }
 
-        const wrap = document.getElementById(btn.getAttribute('data-alfa-progress'));
+        const wrap = document.getElementById(btn.getAttribute('data-progress-target'));
 
         if (!wrap) {
             return;

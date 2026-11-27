@@ -18,7 +18,7 @@
  *   fetch(window.location.href)         - same URL, same filters/pagination
  *   -> DOMParser                         - parse full HTML response
  *   -> surface its Joomla messages       - the fetch drains the session queue
- *   -> extract [data-alfa-list]          - just the table, not the chrome
+ *   -> extract [data-records-list]          - just the table, not the chrome
  *   -> replace the live table            - seamless, no navigation
  *   -> dispatch joomla:updated           - searchtools / list-view re-bind
  *   -> re-init tooltips + clear cache    - ready for next interaction
@@ -50,7 +50,7 @@
     //
     //  Joomla 5 loads Bootstrap as an ES module; it may not be
     //  available when DOMContentLoaded fires. We use data-tip /
-    //  alfa-tip (not data-bs-toggle="tooltip") and retry at 500ms
+    //  tip (not data-bs-toggle="tooltip") and retry at 500ms
     //  and 1500ms as fallback. Each element is only initialized once.
 
     /**
@@ -62,7 +62,7 @@
      * Each element is only initialized once (tracked via _tipInit flag).
      */
     function initTooltips() {
-        document.querySelectorAll('.alfa-tip[data-tip]').forEach(function (el) {
+        document.querySelectorAll('.tip[data-tip]').forEach(function (el) {
             if (el._tipInit) return;
             el._tipInit = true;
 
@@ -212,7 +212,7 @@
      *
      * @type {string}
      */
-    var LIST_SELECTOR = '[data-alfa-list="orders"]';
+    var LIST_SELECTOR = '[data-records-list="orders"]';
 
     /**
      * Whether a refresh fetch is already in progress.
@@ -665,7 +665,7 @@
 
         if (appContainer) {
             appContainer.addEventListener('change', function (event) {
-                if (event.target.classList.contains('alfa-status-select')) {
+                if (event.target.classList.contains('status-select')) {
                     handleStatusChange(event);
                 }
             });

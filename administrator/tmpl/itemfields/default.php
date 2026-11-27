@@ -169,7 +169,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                                        href="<?php echo Route::_('index.php?option=com_alfa&view=items'
                                            . '&filter[fields][' . (int) $item->id . ']=&filter[state]=*', false); ?>"
                                        title="<?php echo $this->escape(Text::_('COM_ALFA_ITEMFIELDS_SHOW_ITEMS_DESC')); ?>">
-                                        <span class="alfa-icon" aria-hidden="true"
+                                        <span class="icon" aria-hidden="true"
                                               style="--alfa-icon:url('<?php echo Uri::root(true); ?>/media/com_alfa/images/admin/menu/items.svg')"></span>
                                         <?php echo Text::_('COM_ALFA_ITEMFIELDS_SHOW_ITEMS'); ?>
                                     </a>

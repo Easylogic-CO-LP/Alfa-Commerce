@@ -20,7 +20,7 @@ use Joomla\CMS\Language\Text;
 
 extract($displayData);
 ?>
-<fieldset id="<?php echo $id; ?>" class="<?php echo trim($class . ' checkboxes alfa-topics'); ?>"
+<fieldset id="<?php echo $id; ?>" class="<?php echo trim($class . ' checkboxes topics'); ?>"
     <?php echo $required ? 'required' : ''; ?>
     <?php echo $autofocus ? 'autofocus' : ''; ?>
     <?php echo $dataAttribute; ?>>

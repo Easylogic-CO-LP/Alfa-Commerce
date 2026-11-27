@@ -14,7 +14,7 @@
  * height; a chart in a `height: auto` box renders 0px tall and looks like a bug.
  */
 
-.alfa-card-chart {
+:where(#alfa-app) .dash-card-chart {
     min-height: 190px;
     width: 100%;
 }
@@ -25,30 +25,30 @@
    They are stacked in that order so the card is readable at a glance and rewarding
    when looked at properly. */
 
-.alfa-chart-hero {
+:where(#alfa-app) .chart-hero {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.alfa-chart-hero .alfa-card-chart {
+:where(#alfa-app) .chart-hero .dash-card-chart {
     min-height: 240px;
 }
 
-.alfa-chart-lede {
+:where(#alfa-app) .chart-lede {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0.35rem 1.5rem;
 }
 
-.alfa-chart-figure {
+:where(#alfa-app) .chart-figure {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
 }
 
-.alfa-chart-figure .alfa-chart-amount {
+:where(#alfa-app) .chart-figure .chart-amount {
     font-size: 2.1rem;
     font-weight: 600;
     line-height: 1.05;
@@ -56,13 +56,13 @@
     font-variant-numeric: tabular-nums;
 }
 
-.alfa-chart-figure--minor .alfa-chart-amount {
+:where(#alfa-app) .chart-figure--minor .chart-amount {
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--secondary-color, #6c757d);
 }
 
-.alfa-chart-figure .alfa-chart-label {
+:where(#alfa-app) .chart-figure .chart-label {
     font-size: 0.78rem;
     color: var(--secondary-color, #6c757d);
 }
@@ -70,7 +70,7 @@
 /* The movement against the previous period of the same length. Colour alone never
    carries it; the arrow does, so it survives a monochrome print and a colour-blind
    reader. */
-.alfa-chart-delta {
+:where(#alfa-app) .chart-delta {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
@@ -83,17 +83,17 @@
     color: var(--secondary-color, #6c757d);
 }
 
-.alfa-chart-delta[data-trend="up"] {
+:where(#alfa-app) .chart-delta[data-trend="up"] {
     background: var(--success-bg-subtle, #d5e8dc);
     color: var(--success-text-emphasis, #286c3c);
 }
 
-.alfa-chart-delta[data-trend="down"] {
+:where(#alfa-app) .chart-delta[data-trend="down"] {
     background: var(--danger-bg-subtle, #f7d9dc);
     color: var(--danger-text-emphasis, #a52834);
 }
 
-.alfa-chart-delta svg {
+:where(#alfa-app) .chart-delta svg {
     width: 0.7em;
     height: 0.7em;
 }
@@ -103,7 +103,7 @@
    A donut with a legend, or a heatmap, next to the rows it summarises. Below the
    breakpoint the two stack rather than shrinking into illegibility. */
 
-.alfa-chart-pair {
+:where(#alfa-app) .chart-pair {
     display: grid;
     grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
     gap: 1.25rem;
@@ -111,7 +111,7 @@
 }
 
 @media (max-width: 1100px) {
-    .alfa-chart-pair {
+    :where(#alfa-app) .chart-pair {
         grid-template-columns: 1fr;
     }
 }
@@ -121,7 +121,7 @@
    An empty chart frame is worse than no chart: it reads as broken. A card with no
    data says so in the space the chart would have taken. */
 
-.alfa-chart-empty {
+:where(#alfa-app) .chart-empty {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -136,17 +136,17 @@
 
 /* A ranked table under a chart
 
-   Same rhythm as `.alfa-card-rank`, but for rows that carry two figures instead of
+   Same rhythm as `.dash-card-rank`, but for rows that carry two figures instead of
    one: the name grows, the numbers stay on their own tabular columns so the eye can
    run down them. */
 
-.alfa-chart-table {
+:where(#alfa-app) .chart-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.86rem;
 }
 
-.alfa-chart-table th {
+:where(#alfa-app) .chart-table th {
     padding: 0 0.5rem 0.35rem;
     color: var(--secondary-color, #6c757d);
     font-size: 0.72rem;
@@ -156,17 +156,17 @@
     text-align: left;
 }
 
-.alfa-chart-table td {
+:where(#alfa-app) .chart-table td {
     padding: 0.32rem 0.5rem;
     border-top: 1px solid var(--border-color-translucent, #f1f3f5);
     vertical-align: baseline;
 }
 
-.alfa-chart-table tbody tr:first-child td {
+:where(#alfa-app) .chart-table tbody tr:first-child td {
     border-top: 0;
 }
 
-.alfa-chart-table .is-numeric {
+:where(#alfa-app) .chart-table .is-numeric {
     text-align: right;
     font-variant-numeric: tabular-nums;
     /* A money column must never wrap: "4.532,02 €" broken across two lines stops
@@ -174,7 +174,7 @@
     white-space: nowrap;
 }
 
-.alfa-chart-table .is-name {
+:where(#alfa-app) .chart-table .is-name {
     max-width: 0;
     width: 60%;
     overflow: hidden;
@@ -182,18 +182,18 @@
     white-space: nowrap;
 }
 
-.alfa-chart-table a {
+:where(#alfa-app) .chart-table a {
     color: inherit;
     text-decoration: none;
 }
 
-.alfa-chart-table a:hover,
-.alfa-chart-table a:focus-visible {
+:where(#alfa-app) .chart-table a:hover,
+:where(#alfa-app) .chart-table a:focus-visible {
     text-decoration: underline;
 }
 
 /* A dot that carries a row's own colour: the status legend beside the donut. */
-.alfa-chart-swatch {
+:where(#alfa-app) .chart-swatch {
     display: inline-block;
     width: 0.55em;
     height: 0.55em;
@@ -208,7 +208,7 @@
    Money that did not land, and orders that have waited too long, are not decoration:
    at zero they stay quiet, above zero they are meant to be noticed. */
 
-.alfa-chart-alert {
+:where(#alfa-app) .chart-alert {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
@@ -222,23 +222,23 @@
 /* Severity is a judgement about the finding, not about the shop: danger is money the
    shop already holds and has not delivered against, warning is money still in play.
    The tint carries it, the wording carries it too; colour is never the only signal. */
-.alfa-chart-alert[data-severity="danger"] {
+:where(#alfa-app) .chart-alert[data-severity="danger"] {
     background: var(--danger-bg-subtle, #f7d9dc);
     color: var(--danger-text-emphasis, #a52834);
 }
 
-.alfa-chart-alert[data-severity="info"],
-.alfa-chart-alert[data-severity="none"] {
+:where(#alfa-app) .chart-alert[data-severity="info"],
+:where(#alfa-app) .chart-alert[data-severity="none"] {
     background: var(--secondary-bg, #e9ecef);
     color: var(--secondary-color, #6c757d);
 }
 
 /* The sentence beside the figure. It wraps; the figure never does. */
-.alfa-chart-alert-text {
+:where(#alfa-app) .chart-alert-text {
     min-width: 0;
 }
 
-.alfa-chart-alert-value {
+:where(#alfa-app) .chart-alert-value {
     font-size: 1.15rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
@@ -256,7 +256,7 @@
    play, blue for housekeeping), from Atum's own subtle palette, so the dark scheme
    needs nothing of its own and the row still reads as a page, not a warning wall. */
 
-.alfa-card:has(> .alfa-attention) {
+:where(#alfa-app) .dash-card:has(> .attention) {
     gap: 0.6rem;
     padding: 0;
     background: transparent;
@@ -264,18 +264,18 @@
     border-radius: 0;
 }
 
-.alfa-card:has(> .alfa-attention) .alfa-card-title {
+:where(#alfa-app) .dash-card:has(> .attention) .dash-card-title {
     color: var(--body-color, #212529);
     font-weight: 600;
 }
 
-.alfa-attention {
+:where(#alfa-app) .attention {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     gap: var(--alfa-cards-gap, 0.75rem);
 }
 
-.alfa-attention-tile {
+:where(#alfa-app) .attention-tile {
     --alfa-attention-bg: var(--warning-bg-subtle, #fcefdc);
     --alfa-attention-line: var(--warning-border-subtle, #f9deb8);
     --alfa-attention-ink: var(--warning-text-emphasis, #60451f);
@@ -293,15 +293,15 @@
     transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
 }
 
-.alfa-attention-tile[data-severity="danger"] {
+:where(#alfa-app) .attention-tile[data-severity="danger"] {
     --alfa-attention-bg: var(--danger-bg-subtle, #f3d4d4);
     --alfa-attention-line: var(--danger-border-subtle, #e8a9a9);
     --alfa-attention-ink: var(--danger-text-emphasis, #4f1010);
     --alfa-attention-edge: var(--danger, #c52827);
 }
 
-.alfa-attention-tile[data-severity="info"],
-.alfa-attention-tile[data-severity="none"] {
+:where(#alfa-app) .attention-tile[data-severity="info"],
+:where(#alfa-app) .attention-tile[data-severity="none"] {
     --alfa-attention-bg: var(--info-bg-subtle, #d4e1f1);
     --alfa-attention-line: var(--info-border-subtle, #aac3e3);
     --alfa-attention-ink: var(--info-text-emphasis, #112a4a);
@@ -310,8 +310,8 @@
 
 /* Only a tile that leads somewhere lifts: a finding the viewer may not open renders
    as a plain block, and must not look clickable. */
-a.alfa-attention-tile:hover,
-a.alfa-attention-tile:focus-visible {
+:where(#alfa-app) a.attention-tile:hover,
+:where(#alfa-app) a.attention-tile:focus-visible {
     border-color: var(--alfa-attention-edge);
     box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.3);
     transform: translateY(-1px);
@@ -319,12 +319,12 @@ a.alfa-attention-tile:focus-visible {
     text-decoration: none;
 }
 
-.alfa-attention-tile:focus-visible {
+:where(#alfa-app) .attention-tile:focus-visible {
     outline: 2px solid var(--focus-ring-color, #2a69b740);
     outline-offset: 2px;
 }
 
-.alfa-attention-kind {
+:where(#alfa-app) .attention-kind {
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -332,7 +332,7 @@ a.alfa-attention-tile:focus-visible {
     color: var(--alfa-attention-ink);
 }
 
-.alfa-attention-figure {
+:where(#alfa-app) .attention-figure {
     font-size: 1.85rem;
     font-weight: 600;
     line-height: 1.05;
@@ -344,7 +344,7 @@ a.alfa-attention-tile:focus-visible {
    same baseline whatever the tile above it had to say. */
 /* Ink on a tint: the severity's own emphasis colour, which Atum keeps readable on
    the matching subtle background in both schemes. */
-.alfa-attention-text {
+:where(#alfa-app) .attention-text {
     flex: 1;
     font-size: 0.83rem;
     line-height: 1.4;
@@ -354,11 +354,11 @@ a.alfa-attention-tile:focus-visible {
 
 /* A tile with one fact a line (the kinds of a finding, each its own link): the lines take the sentence's place, and
    with more than two of them the tile spans the row, so the links never crowd one column. */
-.alfa-attention-tile-wide {
+:where(#alfa-app) .attention-tile-wide {
     grid-column: 1 / -1;
 }
 
-.alfa-attention-lines {
+:where(#alfa-app) .attention-lines {
     flex: 1;
     display: grid;
     gap: 0.25rem;
@@ -369,20 +369,20 @@ a.alfa-attention-tile:focus-visible {
     line-height: 1.4;
 }
 
-.alfa-attention-lines a {
+:where(#alfa-app) .attention-lines a {
     color: var(--alfa-attention-ink);
     text-decoration: underline;
     text-decoration-color: var(--alfa-attention-line);
     text-underline-offset: 0.15em;
 }
 
-.alfa-attention-lines a:hover,
-.alfa-attention-lines a:focus-visible {
+:where(#alfa-app) .attention-lines a:hover,
+:where(#alfa-app) .attention-lines a:focus-visible {
     color: var(--alfa-attention-ink);
     text-decoration-color: var(--alfa-attention-edge);
 }
 
-.alfa-attention-go {
+:where(#alfa-app) .attention-go {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
@@ -392,22 +392,22 @@ a.alfa-attention-tile:focus-visible {
     color: var(--alfa-attention-ink);
 }
 
-.alfa-attention-go::after {
+:where(#alfa-app) .attention-go::after {
     content: "\2192";
     transition: transform 0.15s ease-out;
 }
 
-.alfa-attention-tile:hover .alfa-attention-go::after {
+:where(#alfa-app) .attention-tile:hover .attention-go::after {
     transform: translateX(3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .alfa-attention-tile,
-    .alfa-attention-go::after {
+    :where(#alfa-app) .attention-tile,
+    :where(#alfa-app) .attention-go::after {
         transition: none;
     }
 
-    a.alfa-attention-tile:hover {
+    :where(#alfa-app) a.attention-tile:hover {
         transform: none;
     }
 }

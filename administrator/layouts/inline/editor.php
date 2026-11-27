@@ -26,9 +26,9 @@ use Joomla\CMS\Language\Text;
 
 $inner = (string) ($displayData['inner'] ?? '');
 ?>
-<div class="alfa-inline-editor">
+<div class="inline-editor">
     <?php echo $inner; ?>
-    <div class="alfa-inline-actions">
+    <div class="inline-actions">
         <button type="button" class="btn btn-sm btn-success" data-inline-save>
             <?php echo Text::_('COM_ALFA_INLINE_SAVE'); ?>
         </button>

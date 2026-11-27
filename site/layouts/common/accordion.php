@@ -27,11 +27,11 @@ if ($sections === []) {
 $esc = static fn (mixed $text): string => htmlspecialchars((string) $text, ENT_QUOTES, 'UTF-8');
 $first = true;
 ?>
-<div class="alfa-sections alfa-sections-accordion">
+<div class="sections sections-accordion">
     <?php foreach ($sections as $section) : ?>
-    <details class="alfa-section" id="alfa-section-<?php echo $esc($section['key']); ?>" data-alfa-section="<?php echo $esc($section['key']); ?>"<?php echo $first ? ' open' : ''; ?>>
-        <summary class="alfa-section-summary"><h2 class="alfa-section-title"><?php echo $esc($section['title']); ?></h2></summary>
-        <div class="alfa-section-body"><?php echo $section['body']; ?></div>
+    <details class="section" id="section-<?php echo $esc($section['key']); ?>" data-section-key="<?php echo $esc($section['key']); ?>"<?php echo $first ? ' open' : ''; ?>>
+        <summary class="section-summary"><h2 class="section-title"><?php echo $esc($section['title']); ?></h2></summary>
+        <div class="section-body"><?php echo $section['body']; ?></div>
     </details>
     <?php $first = false; ?>
     <?php endforeach; ?>

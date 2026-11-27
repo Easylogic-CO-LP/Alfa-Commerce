@@ -90,7 +90,7 @@ $actionColors = [
 				<?php echo Text::_('COM_ALFA_NO_HISTORY'); ?>
             </div>
 		<?php else : ?>
-            <div class="alfa-tl">
+            <div class="tl">
 				<?php foreach ($log as $entry) :
 					// Parse "entity.action" from event column
 					$parts  = explode('.', $entry->event, 2);
@@ -107,15 +107,15 @@ $actionColors = [
 					// read as a table, never as raw JSON.
 					$isCreditCharges = $entry->event === 'document.credit_charges' && \is_array($context);
 					?>
-                    <div class="alfa-tl-row" data-entity="<?php echo $this->escape($entity); ?>">
+                    <div class="tl-row" data-entity="<?php echo $this->escape($entity); ?>">
 
                         <!-- Marker -->
-                        <div class="alfa-tl-marker bg-<?php echo $meta['color']; ?>">
+                        <div class="tl-marker bg-<?php echo $meta['color']; ?>">
                             <span class="<?php echo $meta['icon']; ?>"></span>
                         </div>
 
                         <!-- Card -->
-                        <div class="alfa-tl-card">
+                        <div class="tl-card">
                             <!-- Top: badges + status pill + timestamp -->
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -140,7 +140,7 @@ $actionColors = [
                             </div>
 
                             <!-- Summary -->
-                            <div class="alfa-tl-summary mt-1">
+                            <div class="tl-summary mt-1">
 								<?php if ($isCreditCharges) : ?>
 									<?php echo Text::sprintf(
 										'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_SUMMARY',
@@ -162,7 +162,7 @@ $actionColors = [
                                 </small>
 								<?php if ($hasContext) : ?>
                                     <button type="button"
-                                            class="btn btn-sm btn-link p-0 text-muted alfa-tl-toggle"
+                                            class="btn btn-sm btn-link p-0 text-muted tl-toggle"
                                             data-target="ctx-<?php echo (int) $entry->id; ?>">
 										<?php echo Text::_('COM_ALFA_VIEW_DETAILS'); ?>
                                         <span class="icon-chevron-down"></span>
@@ -172,7 +172,7 @@ $actionColors = [
 
                             <!-- Expandable context -->
 							<?php if ($hasContext) : ?>
-                                <div class="alfa-tl-ctx" id="ctx-<?php echo (int) $entry->id; ?>" style="display:none;">
+                                <div class="tl-ctx" id="ctx-<?php echo (int) $entry->id; ?>" style="display:none;">
 									<?php
 									// Diff events (edited) have {field: {from, to}} structure
 									// Snapshot events (added, deleted, created) have flat key-value
@@ -180,7 +180,7 @@ $actionColors = [
 									?>
 									<?php if ($isDiff) : ?>
                                         <!-- Changes diff table -->
-                                        <table class="table table-sm table-bordered mb-0 mt-2 alfa-fold" style="font-size:.85em;">
+                                        <table class="table table-sm table-bordered mb-0 mt-2 fold" style="font-size:.85em;">
                                             <thead>
                                             <tr><th><?php echo Text::_('COM_ALFA_FIELD'); ?></th><th><?php echo Text::_('COM_ALFA_BEFORE'); ?></th><th><?php echo Text::_('COM_ALFA_AFTER'); ?></th></tr>
                                             </thead>
@@ -194,8 +194,8 @@ $actionColors = [
 												?>
                                                 <tr>
                                                     <td class="fw-bold"><?php echo $this->escape(OrderHistoryHelper::fieldLabel(name: (string) $field)); ?></td>
-                                                    <td class="text-danger" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_BEFORE')); ?>"><?php echo $this->escape($fromDisplay); ?></td>
-                                                    <td class="text-success" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_AFTER')); ?>"><?php echo $this->escape($toDisplay); ?></td>
+                                                    <td class="text-danger" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_BEFORE')); ?>"><?php echo $this->escape($fromDisplay); ?></td>
+                                                    <td class="text-success" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_AFTER')); ?>"><?php echo $this->escape($toDisplay); ?></td>
                                                 </tr>
 											<?php endforeach; ?>
                                             </tbody>
@@ -206,7 +206,7 @@ $actionColors = [
 										$money = DocumentMoney::formatter((object) ['currency_scale' => (int) $context['scale']]);
 										?>
                                         <!-- A credit's shipping and fee choices -->
-                                        <table class="table table-sm table-bordered mb-0 mt-2 alfa-credit-charges alfa-fold" style="font-size:.85em;">
+                                        <table class="table table-sm table-bordered mb-0 mt-2 credit-charges fold" style="font-size:.85em;">
                                             <caption class="caption-top pb-1">
 												<?php echo Text::sprintf('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CURRENCY', $this->escape((string) ($context['currency'] ?? ''))); ?>
                                             </caption>
@@ -239,12 +239,12 @@ $actionColors = [
                                                             </div>
 														<?php endforeach; ?>
                                                     </td>
-                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_ORIGINAL')); ?>"><?php echo $this->escape($money((float) ($row['original'] ?? 0))); ?></td>
-                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CREDITED_BEFORE')); ?>"><?php echo $this->escape($money((float) ($row['credited_before'] ?? 0))); ?></td>
-                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_AVAILABLE_BEFORE')); ?>"><?php echo $this->escape($money((float) ($row['remaining_before'] ?? 0))); ?></td>
-                                                    <td data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_DECISION')); ?>"><?php echo $this->escape(Text::_($chosen ? 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_SELECTED' : 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_EXCLUDED')); ?></td>
-                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CREDITED_NOW')); ?>"><?php echo $this->escape($money((float) ($row['credited_now'] ?? 0))); ?></td>
-                                                    <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_REMAINING_AFTER')); ?>"><?php echo $this->escape($money((float) ($row['remaining_after'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_ORIGINAL')); ?>"><?php echo $this->escape($money((float) ($row['original'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CREDITED_BEFORE')); ?>"><?php echo $this->escape($money((float) ($row['credited_before'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_AVAILABLE_BEFORE')); ?>"><?php echo $this->escape($money((float) ($row['remaining_before'] ?? 0))); ?></td>
+                                                    <td data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_DECISION')); ?>"><?php echo $this->escape(Text::_($chosen ? 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_SELECTED' : 'COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_EXCLUDED')); ?></td>
+                                                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_CREDITED_NOW')); ?>"><?php echo $this->escape($money((float) ($row['credited_now'] ?? 0))); ?></td>
+                                                    <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_ORDER_HISTORY_CREDIT_CHARGES_REMAINING_AFTER')); ?>"><?php echo $this->escape($money((float) ($row['remaining_after'] ?? 0))); ?></td>
                                                 </tr>
 											<?php endforeach; ?>
                                             </tbody>
@@ -283,22 +283,22 @@ $actionColors = [
 
 <!-- Styles -->
 <style>
-    .alfa-tl { position: relative; padding-left: 40px; }
-    .alfa-tl::before { content:''; position:absolute; left:15px; top:0; bottom:0; width:2px; background:var(--border-color, #dee2e6); }
-    .alfa-tl-row { position: relative; padding-bottom: 20px; }
-    .alfa-tl-row:last-child { padding-bottom: 0; }
-    .alfa-tl-row[data-hidden="true"] { display: none; }
-    .alfa-tl-marker {
+    .tl { position: relative; padding-left: 40px; }
+    .tl::before { content:''; position:absolute; left:15px; top:0; bottom:0; width:2px; background:var(--border-color, #dee2e6); }
+    .tl-row { position: relative; padding-bottom: 20px; }
+    .tl-row:last-child { padding-bottom: 0; }
+    .tl-row[data-hidden="true"] { display: none; }
+    .tl-marker {
         position:absolute; left:-40px; top:0; width:30px; height:30px; border-radius:50%;
         display:flex; align-items:center; justify-content:center;
         color:#fff; font-size:12px; z-index:1; border:3px solid var(--body-bg, #fff); box-shadow:0 0 0 2px var(--border-color, #dee2e6);
     }
-    .alfa-tl-card {
+    .tl-card {
         background:var(--card-bg, #fff); border:1px solid var(--border-color, #e9ecef); border-radius:6px; padding:12px 16px;
         transition: border-color .15s, box-shadow .15s;
     }
-    .alfa-tl-card:hover { border-color:var(--secondary-color, #ced4da); box-shadow:0 1px 4px rgba(0,0,0,.06); }
-    .alfa-tl-summary { font-size:.925em; color:var(--body-color, #212529); }
+    .tl-card:hover { border-color:var(--secondary-color, #ced4da); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+    .tl-summary { font-size:.925em; color:var(--body-color, #212529); }
 </style>
 
 <!-- JS: Filter + Expand -->
@@ -313,7 +313,7 @@ $actionColors = [
                 document.querySelectorAll('#tl-filter .btn').forEach(function(b) { b.classList.remove('active'); });
                 this.classList.add('active');
 
-                document.querySelectorAll('.alfa-tl-row').forEach(function(row) {
+                document.querySelectorAll('.tl-row').forEach(function(row) {
                     var entity = row.getAttribute('data-entity');
                     row.setAttribute('data-hidden', filter !== 'all' && entity !== filter ? 'true' : 'false');
                 });
@@ -321,7 +321,7 @@ $actionColors = [
         });
 
         // Expand/collapse
-        document.querySelectorAll('.alfa-tl-toggle').forEach(function(btn) {
+        document.querySelectorAll('.tl-toggle').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var el = document.getElementById(this.getAttribute('data-target'));
                 if (el) {

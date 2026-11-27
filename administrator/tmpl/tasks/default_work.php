@@ -27,7 +27,7 @@ $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn = $this->escape($this->state->get('list.direction'));
 $users = $this->historyUsers;
 // A date on one line at every width; on a phone the row folds, so the note around it wraps instead.
-$date = fn (?string $at): string => (string) $at === '' ? '' : '<span class="alfa-nowrap">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
+$date = fn (?string $at): string => (string) $at === '' ? '' : '<span class="nowrap">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
 // Words for the codes a history records; a code this version does not know is shown as it is.
 $word = fn (string $prefix, string $code): string => Text::_($prefix . strtoupper(str_replace(' ', '_', $code))) === $prefix . strtoupper(str_replace(' ', '_', $code))
     ? $this->escape($code) : Text::_($prefix . strtoupper(str_replace(' ', '_', $code)));
@@ -69,10 +69,10 @@ $reasonInput = fn (string $form, int $id): string => '<label class="form-label s
     </div>
 <?php else : ?>
 <div class="table-responsive">
-<table class="table table-striped align-top alfa-fold" id="tasksList">
+<table class="table table-striped align-top fold" id="tasksList">
     <thead>
     <tr>
-        <th class="w-1 text-center alfa-fold-keep"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
+        <th class="w-1 text-center fold-keep"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
         <th scope="col"><?php echo Text::_('COM_ALFA_TASKS_COL_KIND'); ?></th>
         <th scope="col" class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_TASKS_COL_SUBJECT'); ?></th>
         <th scope="col"><?php echo Text::_('COM_ALFA_TASKS_COL_STATE'); ?></th>
@@ -209,10 +209,10 @@ $reasonInput = fn (string $form, int $id): string => '<label class="form-label s
                 <?php endif; ?>
             </td>
             <td class="d-none d-lg-table-cell small"><?php echo $date((string) $item->created_at); ?></td>
-            <td class="alfa-fold-line">
+            <td class="fold-line">
                 <?php if ($isJob && $active && $id === $this->jobId) : ?>
                     <?php // This page is the job's progress page: a link to the card above, which works it while the page is open. ?>
-                    <a class="small" href="#alfa-job-progress"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_SEE_ABOVE'); ?></a>
+                    <a class="small" href="#job-progress"><?php echo Text::_('COM_ALFA_TASKS_PROGRESS_SEE_ABOVE'); ?></a>
                 <?php elseif ($isJob && $active && $item->driven) : ?>
                     <?php // Something drives it already: its progress page follows it. ?>
                     <a class="btn btn-sm btn-secondary" href="<?php echo Route::_('index.php?option=com_alfa&view=tasks&job=' . $id); ?>"><?php echo Text::_('COM_ALFA_TASKS_FOLLOW'); ?></a>
@@ -220,26 +220,26 @@ $reasonInput = fn (string $form, int $id): string => '<label class="form-label s
                     <a class="btn btn-sm btn-primary" href="<?php echo Route::_('index.php?option=com_alfa&view=tasks&job=' . $id); ?>"
                         title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_PROCESS_NOW_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_PROCESS_NOW'); ?></a>
                 <?php elseif ($isJob && $item->state === Tasks::STATE_FAILED) : ?>
-                    <button type="submit" form="alfa-task-retry-<?php echo $id; ?>" class="btn btn-sm btn-primary mb-2" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_RETRY_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_RETRY'); ?></button>
+                    <button type="submit" form="task-retry-<?php echo $id; ?>" class="btn btn-sm btn-primary mb-2" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_RETRY_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_RETRY'); ?></button>
                     <div class="mb-2">
-                        <?php echo $reasonInput('alfa-task-resolve-' . $id, $id); ?>
-                        <button type="submit" form="alfa-task-resolve-<?php echo $id; ?>" class="btn btn-sm btn-secondary"><?php echo Text::_('COM_ALFA_TASKS_RESOLVE'); ?></button>
+                        <?php echo $reasonInput('task-resolve-' . $id, $id); ?>
+                        <button type="submit" form="task-resolve-<?php echo $id; ?>" class="btn btn-sm btn-secondary"><?php echo Text::_('COM_ALFA_TASKS_RESOLVE'); ?></button>
                     </div>
                 <?php elseif (!$isJob && $item->work === TaskStaff::WORK_ATTENTION) : ?>
                     <?php if ($item->action === TaskPolicy::ACTION_RESEND) : ?>
-                        <button type="submit" form="alfa-task-resend-<?php echo $id; ?>" class="btn btn-sm btn-primary mb-2" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_RESEND_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_RESEND'); ?></button>
+                        <button type="submit" form="task-resend-<?php echo $id; ?>" class="btn btn-sm btn-primary mb-2" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_RESEND_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_RESEND'); ?></button>
                     <?php elseif ($item->action === TaskPolicy::ACTION_RERUN) : ?>
-                        <button type="submit" form="alfa-task-runAgain-<?php echo $id; ?>" class="btn btn-sm btn-primary mb-2" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_RUN_AGAIN_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_RUN_AGAIN_BTN'); ?></button>
+                        <button type="submit" form="task-runAgain-<?php echo $id; ?>" class="btn btn-sm btn-primary mb-2" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_RUN_AGAIN_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_RUN_AGAIN_BTN'); ?></button>
                     <?php endif; ?>
                     <div class="mb-2">
-                        <?php echo $reasonInput('alfa-task-resolve-' . $id, $id); ?>
-                        <button type="submit" form="alfa-task-resolve-<?php echo $id; ?>" class="btn btn-sm btn-secondary"><?php echo Text::_('COM_ALFA_TASKS_RESOLVE'); ?></button>
+                        <?php echo $reasonInput('task-resolve-' . $id, $id); ?>
+                        <button type="submit" form="task-resolve-<?php echo $id; ?>" class="btn btn-sm btn-secondary"><?php echo Text::_('COM_ALFA_TASKS_RESOLVE'); ?></button>
                     </div>
                 <?php endif; ?>
                 <?php if ($item->cancellable) : ?>
                     <div class="mb-2">
-                        <?php echo $reasonInput('alfa-task-cancel-' . $id, $id); ?>
-                        <button type="submit" form="alfa-task-cancel-<?php echo $id; ?>" class="btn btn-sm btn-outline-danger" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_CANCEL_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_CANCEL'); ?></button>
+                        <?php echo $reasonInput('task-cancel-' . $id, $id); ?>
+                        <button type="submit" form="task-cancel-<?php echo $id; ?>" class="btn btn-sm btn-outline-danger" title="<?php echo $this->escape(Text::_('COM_ALFA_TASKS_CANCEL_DESC')); ?>"><?php echo Text::_('COM_ALFA_TASKS_CANCEL'); ?></button>
                     </div>
                 <?php endif; ?>
             </td>

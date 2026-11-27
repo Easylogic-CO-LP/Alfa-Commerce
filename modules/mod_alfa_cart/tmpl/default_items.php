@@ -139,11 +139,11 @@ $itemsCount = count($items);
 							<?php if ($unavailable && !$requantify): ?>
                                 <span class="cart-item-quantity-static"><?php echo (int) $cartItem->quantity; ?></span>
 							<?php else: ?>
-                            <div class="alfa-stepper">
-                                <button class="alfa-stepper-btn decrement" data-action="cart-item-decrement">-
+                            <div class="stepper">
+                                <button class="stepper-btn decrement" data-action="cart-item-decrement">-
                                 </button>
 
-                                <input class="alfa-stepper-input"
+                                <input class="stepper-input"
                                        type="number"
                                        name="quantity"
                                        data-action="cart-item-quantity"
@@ -158,7 +158,7 @@ $itemsCount = count($items);
                                        data-step="<?php echo $cartItem->sale_increment ?? 1; ?>"
                                        value="<?php echo $cartItem->quantity; ?>"<?php echo ($cartItem->quantity_limit ?? null) === 0 ? ' readonly' : ''; ?>>
 
-                                <button class="alfa-stepper-btn increment" data-action="cart-item-increment"<?php echo isset($cartItem->quantity_limit) && (int) $cartItem->quantity >= $cartItem->quantity_limit ? ' disabled' : ''; ?>>+
+                                <button class="stepper-btn increment" data-action="cart-item-increment"<?php echo isset($cartItem->quantity_limit) && (int) $cartItem->quantity >= $cartItem->quantity_limit ? ' disabled' : ''; ?>>+
                                 </button>
                             </div>
 							<?php endif; ?>

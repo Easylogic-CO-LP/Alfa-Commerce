@@ -96,7 +96,7 @@ $closeIcon  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" vi
 // failure. The notice is the card's one sentence; any other message the add queued follows it.
 $others = array_filter($messages, static fn (array $message): bool => ($message['message'] ?? '') !== $notice);
 ?>
-<div class="com-alfa cart-added" data-cart-added data-outcome="held" data-notice data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
+<div class="cart-added" data-cart-added data-outcome="held" data-notice data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
     <div class="cart-added-card">
         <div class="cart-added-header">
             <span class="cart-added-title"><?php echo $notice; ?></span>
@@ -120,7 +120,7 @@ $others = array_filter($messages, static fn (array $message): bool => ($message[
 
 <?php elseif ($line === null || $grandTotal === null): ?>
 
-<div class="com-alfa cart-added" data-cart-added data-outcome="rejected" data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="0" style="<?php echo $offsets; ?>" role="alert" tabindex="-1">
+<div class="cart-added" data-cart-added data-outcome="rejected" data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="0" style="<?php echo $offsets; ?>" role="alert" tabindex="-1">
     <div class="cart-added-card">
         <div class="cart-added-header">
             <span class="cart-added-title"><?php echo Text::_('COM_ALFA_CART_ADD_FAILED'); ?></span>
@@ -149,7 +149,7 @@ $name      = htmlspecialchars((string) ($item->name ?? ''), ENT_QUOTES, 'UTF-8')
 $thumbnail = (string) ($item->medias[0]->thumbnail_url ?? '');
 $surfaces  = $line->surfaces[CartSurface::Main->value] ?? [];
 ?>
-<div class="com-alfa cart-added" data-cart-added data-outcome="added"<?php echo $notice !== '' ? ' data-notice' : ''; ?> data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
+<div class="cart-added" data-cart-added data-outcome="added"<?php echo $notice !== '' ? ' data-notice' : ''; ?> data-placement="<?php echo $placement; ?>" data-effect="<?php echo $effect; ?>" data-timeout="<?php echo $timeout; ?>" style="<?php echo $offsets; ?>" role="status" aria-live="polite" tabindex="-1">
     <div class="cart-added-card">
         <div class="cart-added-header">
             <span class="cart-added-title"><?php echo Text::_($edited ? 'COM_ALFA_CART_UPDATED_TITLE' : 'COM_ALFA_CART_ADDED_TITLE'); ?></span>

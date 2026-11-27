@@ -6,11 +6,11 @@
  * --white or a fixed grey.
  */
 
-.afx-sections {
+:where(.afx-sections) {
     max-width: 34rem;
 }
 
-.afx-sections-list {
+:where(.afx-sections) .afx-sections-list {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -20,7 +20,7 @@
     background: var(--card-bg, #fff);
 }
 
-.afx-section {
+:where(.afx-sections) .afx-section {
     display: flex;
     align-items: center;
     gap: .6rem;
@@ -31,27 +31,27 @@
     cursor: grab;
 }
 
-.afx-section:last-child {
+:where(.afx-sections) .afx-section:last-child {
     border-bottom: 0;
 }
 
-.afx-section.is-dragging {
+:where(.afx-sections) .afx-section.is-dragging {
     opacity: .45;
     cursor: grabbing;
 }
 
-.afx-section.is-hidden .afx-section-name,
-.afx-section.is-hidden .afx-section-kind {
+:where(.afx-sections) .afx-section.is-hidden .afx-section-name,
+:where(.afx-sections) .afx-section.is-hidden .afx-section-kind {
     opacity: .45;
     text-decoration: line-through;
 }
 
-.afx-section-grip {
+:where(.afx-sections) .afx-section-grip {
     color: var(--secondary-color, #6c757d);
     cursor: grab;
 }
 
-.afx-section-name {
+:where(.afx-sections) .afx-section-name {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -59,7 +59,7 @@
     white-space: nowrap;
 }
 
-.afx-section-kind {
+:where(.afx-sections) .afx-section-kind {
     flex: 0 0 auto;
     font-size: .72rem;
     text-transform: uppercase;
@@ -67,7 +67,7 @@
     color: var(--secondary-color, #6c757d);
 }
 
-.afx-section-eye {
+:where(.afx-sections) .afx-section-eye {
     flex: 0 0 auto;
     padding: .15rem .35rem;
     border: 0;
@@ -77,25 +77,25 @@
     cursor: pointer;
 }
 
-.afx-section-eye:hover,
-.afx-section-eye:focus-visible {
+:where(.afx-sections) .afx-section-eye:hover,
+:where(.afx-sections) .afx-section-eye:focus-visible {
     color: var(--body-color, #212529);
     background: var(--secondary-bg-subtle, rgba(0, 0, 0, .06));
 }
 
-.afx-sections-foot {
+:where(.afx-sections) .afx-sections-foot {
     display: flex;
     align-items: center;
     gap: .75rem;
     margin-top: .5rem;
 }
 
-.afx-sections-state {
+:where(.afx-sections) .afx-sections-state {
     font-size: .8rem;
     color: var(--secondary-color, #6c757d);
 }
 
-.afx-sections-empty {
+:where(.afx-sections) .afx-sections-empty {
     margin: 0;
     color: var(--secondary-color, #6c757d);
 }

@@ -35,6 +35,6 @@ foreach ($decoded as $v) {
     $labels[] = $lookup[(string) $v] ?? (string) $v;
 }
 
-echo '<span class="alfa-choice__display">'
+echo '<span class="choice__display">'
     . htmlspecialchars(implode(', ', $labels), ENT_QUOTES, 'UTF-8')
     . '</span>';

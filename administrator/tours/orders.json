@@ -58,7 +58,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_6_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_6_DESC",
             "position": "left",
-            "target": "#orderList tbody select.alfa-status-select, #orderList, #adminForm",
+            "target": "#orderList tbody select.status-select, #orderList, #adminForm",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=orders"

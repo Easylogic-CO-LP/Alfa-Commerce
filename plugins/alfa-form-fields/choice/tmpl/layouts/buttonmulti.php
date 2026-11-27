@@ -42,7 +42,7 @@ $layoutMode ??= 'vertical';
 $minSelections ??= 0;
 $maxSelections ??= 0;
 
-$wrapClass = trim('alfa-choice alfa-choice--button alfa-choice--' . $variant . ' alfa-choice--' . $layoutMode . ' ' . $class);
+$wrapClass = trim('choice choice--button choice--' . $variant . ' choice--' . $layoutMode . ' ' . $class);
 
 $attribs = ['id="' . $id . '"'];
 if (!empty($disabled)) {
@@ -70,9 +70,9 @@ if (!str_ends_with($inputName, '[]')) {
     $inputName .= '[]';
 }
 ?>
-<div class="alfa-choice-wrap">
+<div class="choice-wrap">
     <fieldset <?php echo implode(' ', $attribs); ?> class="<?php echo $wrapClass; ?>" role="group">
-        <legend class="alfa-choice__legend"><?php echo $label; ?></legend>
+        <legend class="choice__legend"><?php echo $label; ?></legend>
         <?php foreach ($options as $i => $option) :
             $optDisabled = !empty($option->disable) ? 'disabled' : '';
             $checked = in_array((string) $option->value, array_map('strval', (array) $checkedOptions), true) ? 'checked="checked"' : '';
@@ -85,15 +85,15 @@ if (!str_ends_with($inputName, '[]')) {
                 $attributes[] = 'required';
             }
             ?>
-            <input class="alfa-choice__input" type="checkbox"
+            <input class="choice__input" type="checkbox"
                    id="<?php echo $oid; ?>"
                    name="<?php echo $inputName; ?>"
                    value="<?php echo $ovalue; ?>"
                    <?php echo implode(' ', $attributes); ?>>
-            <label for="<?php echo $oid; ?>" class="alfa-choice__label <?php echo trim($optionClass); ?>">
-                <span class="alfa-choice__text"><?php echo $option->text; ?></span>
+            <label for="<?php echo $oid; ?>" class="choice__label <?php echo trim($optionClass); ?>">
+                <span class="choice__text"><?php echo $option->text; ?></span>
             </label>
         <?php endforeach; ?>
     </fieldset>
-    <small class="alfa-choice__hint" aria-live="polite"></small>
+    <small class="choice__hint" aria-live="polite"></small>
 </div>

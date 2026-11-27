@@ -3,7 +3,7 @@
  *
  * Loaded by tmpl/action_refund_partial.php through the Web Asset Manager.
  * Reads the typed amount and navigates to the mutating 'refund_partial_do'
- * arm via AlfaAction.run(): the declarative data-alfa-run attribute can
+ * arm via AlfaAction.run(): the declarative data-action-run attribute can
  * only carry values known at render time, hence this file.
  *
  * @package     Alfa.Plugin

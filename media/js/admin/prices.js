@@ -1,7 +1,7 @@
 /**
  * Compact price-matrix editor: delegated row add/remove and the
  * price/adjust mode switch. Behavior binds to data-price-* attributes
- * (classes are styling-only); every handler requires an .alfa-prices
+ * (classes are styling-only); every handler requires an .prices
  * ancestor so the document-level delegation never reacts to foreign
  * markup. One listener serves every editor on the page (item prices +
  * each combination's editor).
@@ -390,7 +390,7 @@
         const field = event.target;
         const row = field.closest('.price-row');
 
-        if (!row || !row.closest('.alfa-prices')) {
+        if (!row || !row.closest('.prices')) {
             return;
         }
 
@@ -682,14 +682,14 @@
     // Every row of the price editors in the scope that follow their item form's
     // context, with its editor: a product not saved yet's, and a saved product's
     // item editor (it carries the stored memberships it compares the form with).
-    const contextRows = (scope) => [...scope.querySelectorAll('.alfa-prices')]
+    const contextRows = (scope) => [...scope.querySelectorAll('.prices')]
         .filter((root) => !itemIdOf(root) || root.dataset.itemCategories !== undefined)
         .flatMap((root) => [...root.querySelectorAll('[data-price-rows] > .price-row')].map((row) => [row, root]));
 
     document.addEventListener('change', (event) => {
         const mode = event.target.closest('[data-price-mode]');
 
-        if (mode && mode.closest('.alfa-prices')) {
+        if (mode && mode.closest('.prices')) {
             const row = mode.closest('.price-row');
             row.dataset.mode = mode.value;
             syncModeState(row);
@@ -700,7 +700,7 @@
         // Adjust net/gross target changed: refresh the derived final + after.
         const adjustTarget = event.target.closest('[name$="[adjust_target]"]');
 
-        if (adjustTarget && adjustTarget.closest('.alfa-prices')) {
+        if (adjustTarget && adjustTarget.closest('.prices')) {
             refreshAdjustFigures(adjustTarget.closest('.price-row'));
 
             return;
@@ -710,7 +710,7 @@
         // active override mutes the bypassed Price/Final pair via data-override.
         const overrideType = event.target.closest('[data-price-override-type]');
 
-        if (overrideType && overrideType.closest('.alfa-prices')) {
+        if (overrideType && overrideType.closest('.prices')) {
             const valueInput = overrideType.closest('.price-cell').querySelector('[data-price-override]');
             valueInput.disabled = overrideType.value === '';
 
@@ -739,7 +739,7 @@
         }
 
         const row = event.target.closest('.price-row');
-        const root = event.target.closest('.alfa-prices');
+        const root = event.target.closest('.prices');
         const name = event.target.getAttribute('name') || '';
 
         // The item form's own pricing context changed (the fancy selects announce it
@@ -847,7 +847,7 @@
         // hidden value/label, then let the change handler apply the consequences.
         const modeCycle = event.target.closest('[data-price-mode-cycle]');
 
-        if (modeCycle && modeCycle.closest('.alfa-prices')) {
+        if (modeCycle && modeCycle.closest('.prices')) {
             const hidden = modeCycle.closest('.mode-cycle').querySelector('[data-price-mode]');
             const next = hidden.value === 'adjust' ? 'price' : 'adjust';
             const label = modeCycle.dataset[next === 'adjust' ? 'labelAdjust' : 'labelPrice'] || next;
@@ -863,7 +863,7 @@
         // Sale cycler (amount <-> percent): which input of the sale the merchant types in; the other follows.
         const saleCycle = event.target.closest('[data-price-sale-by-cycle]');
 
-        if (saleCycle && saleCycle.closest('.alfa-prices')) {
+        if (saleCycle && saleCycle.closest('.prices')) {
             const saleRow = saleCycle.closest('.price-row');
 
             saleRow.dataset.saleBy = saleBy(saleRow) === 'percent' ? 'amount' : 'percent';
@@ -876,7 +876,7 @@
         // Apply-on cycler (net <-> gross): clickable like the grid quick edit.
         const targetCycle = event.target.closest('[data-price-target-cycle]');
 
-        if (targetCycle && targetCycle.closest('.alfa-prices')) {
+        if (targetCycle && targetCycle.closest('.prices')) {
             const hidden = targetCycle.closest('.op-cycle').querySelector('[data-price-target]');
             const next = hidden.value === 'final' ? 'start' : 'final';
             const label = targetCycle.dataset[next === 'final' ? 'labelFinal' : 'labelStart'] || next;
@@ -891,8 +891,8 @@
 
         const add = event.target.closest('[data-price-add]');
 
-        if (add && add.closest('.alfa-prices')) {
-            const root = add.closest('.alfa-prices');
+        if (add && add.closest('.prices')) {
+            const root = add.closest('.prices');
             const row = insertRow(root);
 
             // The template's figures are the stored context's (a new product's are
@@ -906,15 +906,15 @@
 
         const copy = event.target.closest('[data-price-copy]');
 
-        if (copy && copy.closest('.alfa-prices')) {
-            copyRow(copy.closest('.price-row'), copy.closest('.alfa-prices'));
+        if (copy && copy.closest('.prices')) {
+            copyRow(copy.closest('.price-row'), copy.closest('.prices'));
 
             return;
         }
 
         const remove = event.target.closest('[data-price-remove]');
 
-        if (remove && remove.closest('.alfa-prices')) {
+        if (remove && remove.closest('.prices')) {
             remove.closest('.price-row').remove();
         }
     });
@@ -925,7 +925,7 @@
     // a product not saved yet, and a saved product's when its form, shown again
     // after a refused save or a reload, holds other memberships than it has stored.
     const initRows = () => {
-        document.querySelectorAll('.alfa-prices .price-row[data-mode="adjust"]').forEach(refreshAdjustFigures);
+        document.querySelectorAll('.prices .price-row[data-mode="adjust"]').forEach(refreshAdjustFigures);
         contextRows(document).forEach(([row, root]) => {
             if (sendsContext(root)) {
                 refreshPreview(row, root);

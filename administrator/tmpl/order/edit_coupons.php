@@ -5,7 +5,7 @@
  *
  * The codes on the order, each with what it takes off and a Remove button, and a code field that adds a code or puts
  * it in place of one the order holds. Drawn beside the totals, which follow at once. The buttons post the sibling form
- * alfa-order-coupon-form (edit.php): the order form cannot hold a nested form, and its empty task would beat the
+ * order-coupon-form (edit.php): the order form cannot hold a nested form, and its empty task would beat the
  * buttons' own.
  *
  * An order holding a discount frozen before shares were kept shows its codes and says why they stay as they are.
@@ -40,7 +40,7 @@ $canChange = $held->changeable && AlfaHelper::can(section: 'orders', action: 'ed
 $action    = static fn (string $task): string => Route::_('index.php?option=com_alfa', false) . '&id_order=' . (int) $order->id . '&task=' . $task;
 ?>
 
-<div class="col-lg-6 col-md-12 mb-3 mb-lg-0" id="alfa-order-coupons">
+<div class="col-lg-6 col-md-12 mb-3 mb-lg-0" id="order-coupons">
     <div class="card shadow-sm">
         <div class="card-header bg-body-tertiary py-2">
             <h5 class="card-title mb-0">
@@ -53,7 +53,7 @@ $action    = static fn (string $task): string => Route::_('index.php?option=com_
             <?php if ($held->coupons === []) : ?>
                 <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_ORDER_COUPONS_NONE'); ?></p>
             <?php else : ?>
-                <table class="table table-sm mb-3 alfa-fold">
+                <table class="table table-sm mb-3 fold">
                     <tbody>
                     <?php foreach ($held->coupons as $coupon) : ?>
                         <tr>
@@ -69,8 +69,8 @@ $action    = static fn (string $task): string => Route::_('index.php?option=com_
                                 <?php endif; ?>
                             </td>
                             <?php if ($canChange) : ?>
-                                <td class="text-end pe-0 alfa-fold-line">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" form="alfa-order-coupon-form" formnovalidate
+                                <td class="text-end pe-0 fold-line">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" form="order-coupon-form" formnovalidate
                                             formaction="<?php echo $this->escape($action('order.removeCoupon') . '&id_order_cart_rule=' . (int) $coupon->id_order_cart_rule); ?>">
                                         <?php echo Text::_('COM_ALFA_ORDER_COUPON_REMOVE'); ?>
                                     </button>
@@ -85,15 +85,15 @@ $action    = static fn (string $task): string => Route::_('index.php?option=com_
             <?php if ($canChange) : ?>
                 <div class="row g-2 align-items-end">
                     <div class="col-auto">
-                        <label class="form-label" for="alfa-order-coupon-code"><?php echo Text::_('COM_ALFA_CART_COUPON_LABEL'); ?></label>
-                        <input type="text" class="form-control form-control-sm" id="alfa-order-coupon-code" name="code"
-                               form="alfa-order-coupon-form" autocomplete="off"
+                        <label class="form-label" for="order-coupon-code"><?php echo Text::_('COM_ALFA_CART_COUPON_LABEL'); ?></label>
+                        <input type="text" class="form-control form-control-sm" id="order-coupon-code" name="code"
+                               form="order-coupon-form" autocomplete="off"
                                placeholder="<?php echo Text::_('COM_ALFA_CART_COUPON_PLACEHOLDER'); ?>">
                     </div>
                     <?php if ($held->coupons !== []) : ?>
                         <div class="col-auto">
-                            <label class="form-label" for="alfa-order-coupon-replaces"><?php echo Text::_('COM_ALFA_ORDER_COUPON_REPLACES'); ?></label>
-                            <select class="form-select form-select-sm" id="alfa-order-coupon-replaces" name="replaces" form="alfa-order-coupon-form">
+                            <label class="form-label" for="order-coupon-replaces"><?php echo Text::_('COM_ALFA_ORDER_COUPON_REPLACES'); ?></label>
+                            <select class="form-select form-select-sm" id="order-coupon-replaces" name="replaces" form="order-coupon-form">
                                 <option value="0"><?php echo Text::_('COM_ALFA_ORDER_COUPON_REPLACES_NONE'); ?></option>
                                 <?php foreach ($held->coupons as $coupon) : ?>
                                     <option value="<?php echo (int) $coupon->id_order_cart_rule; ?>"><?php echo $this->escape($coupon->code); ?></option>
@@ -102,7 +102,7 @@ $action    = static fn (string $task): string => Route::_('index.php?option=com_
                         </div>
                     <?php endif; ?>
                     <div class="col-auto">
-                        <button type="submit" class="btn btn-sm btn-secondary" form="alfa-order-coupon-form" formaction="<?php echo $this->escape($action('order.addCoupon')); ?>">
+                        <button type="submit" class="btn btn-sm btn-secondary" form="order-coupon-form" formaction="<?php echo $this->escape($action('order.addCoupon')); ?>">
                             <?php echo Text::_('COM_ALFA_CART_COUPON_APPLY'); ?>
                         </button>
                     </div>

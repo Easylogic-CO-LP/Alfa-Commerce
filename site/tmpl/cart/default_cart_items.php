@@ -152,11 +152,11 @@ $columnLabels = array_map(
                               // it is taking it out of the cart. ?>
                         <span class="cart-item-quantity-static"><?php echo (int) $cartItem->quantity; ?></span>
 					<?php else: ?>
-                    <div class="cart-item-quantity-wrapper alfa-stepper">
-                        <button class="cart-item-quantity-controls alfa-stepper-btn decrement"
+                    <div class="cart-item-quantity-wrapper stepper">
+                        <button class="cart-item-quantity-controls stepper-btn decrement"
                                 data-action="cart-item-decrement">-</button>
 
-                        <input class="cart-item-quantity alfa-stepper-input"
+                        <input class="cart-item-quantity stepper-input"
                                type="number"
                                name="quantity"
                                data-action="cart-item-quantity"
@@ -172,7 +172,7 @@ $columnLabels = array_map(
                                data-step="<?php echo $cartItem->sale_increment ?? 1; ?>"
                                value="<?php echo $cartItem->quantity; ?>"<?php echo ($cartItem->quantity_limit ?? null) === 0 ? ' readonly' : ''; ?>>
 
-                        <button class="cart-item-quantity-controls alfa-stepper-btn increment"
+                        <button class="cart-item-quantity-controls stepper-btn increment"
                                 data-action="cart-item-increment"<?php echo isset($cartItem->quantity_limit) && (int) $cartItem->quantity >= $cartItem->quantity_limit ? ' disabled' : ''; ?>>+</button>
                     </div>
 					<?php endif; ?>

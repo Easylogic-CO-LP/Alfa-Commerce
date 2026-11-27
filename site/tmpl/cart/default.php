@@ -30,7 +30,7 @@ Text::script('COM_ALFA_CART_CLEAR_CONFIRM');
 
 ?>
 
-<div class="com-alfa cart-wrapper" data-cart-outer>
+<div class="cart-wrapper" data-cart-outer>
 
     <h2 class="cart-heading"><?php echo Text::_('COM_ALFA_CART_HEADING'); ?></h2>
 

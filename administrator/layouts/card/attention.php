@@ -44,12 +44,12 @@ if ($rows === []) {
 
 $e = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 ?>
-<span class="alfa-card-head">
-    <span class="alfa-card-title"><?php echo Text::_($displayData['title']); ?></span>
-    <span class="alfa-card-sub"><?php echo $e(Text::plural('COM_ALFA_DASHCARD_ATTENTION_COUNT', \count($rows))); ?></span>
+<span class="dash-card-head">
+    <span class="dash-card-title"><?php echo Text::_($displayData['title']); ?></span>
+    <span class="dash-card-sub"><?php echo $e(Text::plural('COM_ALFA_DASHCARD_ATTENTION_COUNT', \count($rows))); ?></span>
 </span>
 
-<div class="alfa-attention">
+<div class="attention">
     <?php foreach ($rows as $row) : ?>
         <?php
         $row = (array) $row;
@@ -57,10 +57,10 @@ $e = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
         $lines = array_values(array_filter((array) ($row['lines'] ?? []), static fn ($line): bool => \is_array($line) && (string) ($line['text'] ?? '') !== ''));
         ?>
         <?php if ($lines !== []) : ?>
-            <div class="alfa-attention-tile<?php echo \count($lines) > 2 ? ' alfa-attention-tile-wide' : ''; ?>" data-severity="<?php echo $e((string) ($row['severity'] ?? 'warning')); ?>">
-                <span class="alfa-attention-kind"><?php echo $e((string) ($row['kind'] ?? '')); ?></span>
-                <span class="alfa-attention-figure"><?php echo $e((string) ($row['value'] ?? '')); ?></span>
-                <ul class="alfa-attention-lines">
+            <div class="attention-tile<?php echo \count($lines) > 2 ? ' attention-tile-wide' : ''; ?>" data-severity="<?php echo $e((string) ($row['severity'] ?? 'warning')); ?>">
+                <span class="attention-kind"><?php echo $e((string) ($row['kind'] ?? '')); ?></span>
+                <span class="attention-figure"><?php echo $e((string) ($row['value'] ?? '')); ?></span>
+                <ul class="attention-lines">
                     <?php foreach ($lines as $line) : ?>
                         <li>
                             <?php if ((string) ($line['url'] ?? '') !== '') : ?>
@@ -72,18 +72,18 @@ $e = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                     <?php endforeach; ?>
                 </ul>
                 <?php if ($url !== '') : ?>
-                    <a class="alfa-attention-go" href="<?php echo $e($url); ?>"><?php echo $e((string) ($row['go'] ?? '')); ?></a>
+                    <a class="attention-go" href="<?php echo $e($url); ?>"><?php echo $e((string) ($row['go'] ?? '')); ?></a>
                 <?php endif; ?>
             </div>
             <?php continue; ?>
         <?php endif; ?>
         <?php $tag = $url !== '' ? 'a' : 'div'; ?>
-        <<?php echo $tag; ?> class="alfa-attention-tile" data-severity="<?php echo $e((string) ($row['severity'] ?? 'warning')); ?>"<?php if ($url !== '') : ?> href="<?php echo $e($url); ?>"<?php endif; ?>>
-            <span class="alfa-attention-kind"><?php echo $e((string) ($row['kind'] ?? '')); ?></span>
-            <span class="alfa-attention-figure"><?php echo $e((string) ($row['value'] ?? '')); ?></span>
-            <span class="alfa-attention-text"><?php echo $e((string) ($row['text'] ?? '')); ?></span>
+        <<?php echo $tag; ?> class="attention-tile" data-severity="<?php echo $e((string) ($row['severity'] ?? 'warning')); ?>"<?php if ($url !== '') : ?> href="<?php echo $e($url); ?>"<?php endif; ?>>
+            <span class="attention-kind"><?php echo $e((string) ($row['kind'] ?? '')); ?></span>
+            <span class="attention-figure"><?php echo $e((string) ($row['value'] ?? '')); ?></span>
+            <span class="attention-text"><?php echo $e((string) ($row['text'] ?? '')); ?></span>
             <?php if ($url !== '') : ?>
-                <span class="alfa-attention-go"><?php echo $e((string) ($row['go'] ?? '')); ?></span>
+                <span class="attention-go"><?php echo $e((string) ($row['go'] ?? '')); ?></span>
             <?php endif; ?>
         </<?php echo $tag; ?>>
     <?php endforeach; ?>

@@ -9,7 +9,7 @@
    when the titles are wider than the page, so the page never widens. The selected tab is the one the script marks
    aria-selected; before the script runs the links are jump links and none is marked. Tokens only, lowest specificity:
    a template restyles any of it without !important. */
-:where(.alfa-tabs) {
+:where(#alfa-app) :where(.tabs) {
     display: flex;
     gap: 0.25rem;
     max-width: 100%;
@@ -20,7 +20,7 @@
     border-bottom: 1px solid var(--alfa-hairline);
 }
 
-:where(.alfa-tab) {
+:where(#alfa-app) :where(.tab) {
     flex: 0 0 auto;
     display: inline-block;
     padding: 0.6rem 1rem;
@@ -32,25 +32,25 @@
     cursor: pointer;
 }
 
-:where(.alfa-tab:hover) {
+:where(#alfa-app) :where(.tab:hover) {
     border-bottom-color: var(--alfa-hairline);
     color: inherit;
     text-decoration: none;
 }
 
-:where(.alfa-tab:focus-visible) {
+:where(#alfa-app) :where(.tab:focus-visible) {
     outline: 2px solid var(--alfa-selected);
     outline-offset: -2px;
 }
 
-:where(.alfa-tab[aria-selected="true"]) {
+:where(#alfa-app) :where(.tab[aria-selected="true"]) {
     border-bottom-color: var(--alfa-selected);
     font-weight: 600;
 }
 
 /* Once the script has made the bar a tab list, each panel's heading repeats its tab's label: kept for the heading
    structure a screen reader walks, not shown. Until then every heading shows, over its section. */
-:where([data-alfa-tabs-ready]) .alfa-section-title {
+:where(#alfa-app) :where([data-sections-tabs-ready]) .section-title {
     position: absolute;
     width: 1px;
     height: 1px;

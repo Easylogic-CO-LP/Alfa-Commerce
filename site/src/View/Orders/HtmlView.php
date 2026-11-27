@@ -29,6 +29,12 @@ use Joomla\CMS\Uri\Uri;
 class HtmlView extends BaseHtmlView
 {
     /**
+     * @var string The page's class on the wrapper.
+     * @since  2.3.0
+     */
+    protected string $pageClass = 'orders';
+
+    /**
      * The page's orders (OrdersModel::getItems()).
      *
      * @var object[]

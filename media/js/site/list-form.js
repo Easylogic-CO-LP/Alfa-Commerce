@@ -46,7 +46,7 @@
     'use strict';
 
     var FORM_SELECTOR = 'form#adminForm';
-    var STRIPPED = 'data-alfa-stripped';
+    var STRIPPED = 'data-list-stripped';
     var REGION_SELECTOR = '[data-results]';
     var MARKED_SELECTOR = '[data-results][data-results-reveal]';
 

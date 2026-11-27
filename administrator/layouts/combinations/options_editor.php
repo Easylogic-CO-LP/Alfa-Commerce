@@ -28,7 +28,7 @@ $itemId = (int) $displayData['itemId'];
 
 $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 ?>
-<div class="alfa-combi-tools">
+<div class="combi-tools">
     <div data-options-editor data-item-id="<?php echo $itemId; ?>">
         <p class="tools-lead"><?php echo Text::_('COM_ALFA_COMBI_OPTIONS_LEAD'); ?></p>
         <p class="tools-hint"><?php echo Text::_('COM_ALFA_COMBI_OPTIONS_PICK_HINT'); ?></p>

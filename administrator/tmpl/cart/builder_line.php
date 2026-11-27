@@ -91,7 +91,7 @@ if ($hasItem) {
     <form action="<?php echo Route::_("index.php?option=com_alfa&view=cart&layout=builder_line&tmpl=component&cart_id={$cartId}&line_id={$lineId}"); ?>"
           method="post"
           name="adminForm"
-          id="alfa-builder-line-form"
+          id="builder-line-form"
           class="form-validate"
           data-cart-id="<?php echo $cartId; ?>">
 
@@ -118,7 +118,7 @@ if ($hasItem) {
 
         <?php if ($hasItem) : ?>
             <?php if ($surfaces) : ?>
-                <div class="alfa-builder-line-surfaces card mb-3">
+                <div class="builder-line-surfaces card mb-3">
                     <div class="card-body">
                         <?php foreach ($surfaces as $surface) : ?>
                             <?php if (empty($surface['layout'])) {
@@ -139,10 +139,10 @@ if ($hasItem) {
             <div class="card">
                 <div class="card-body row g-3 align-items-end">
                     <div class="col-auto">
-                        <label class="form-label" for="alfa-builder-quantity">
+                        <label class="form-label" for="builder-quantity">
                             <?php echo Text::_('COM_ALFA_CART_TABLE_QUANTITY'); ?>
                         </label>
-                        <input type="number" class="form-control" id="alfa-builder-quantity"
+                        <input type="number" class="form-control" id="builder-quantity"
                                name="quantity" min="1" step="1" value="<?php echo $quantity; ?>"
                                style="width:8rem;" required>
                     </div>

@@ -24,7 +24,7 @@ use Joomla\CMS\Session\Session;
  * request (toolaction.run); one that changes state is sent as a POST carrying a one-time key, which the endpoint
  * demands of it. The owner travels in the address as a hint only: the server asks that provider whether it really
  * declares the action, enabled, before running it. The button names the element that shows its progress and its
- * outcome (data-alfa-progress, an id), so the script never guesses where that is.
+ * outcome (data-progress-target, an id), so the script never guesses where that is.
  *
  * @since  2.3.0
  */
@@ -55,7 +55,7 @@ final class ToolButton
         $base = self::ajaxBase();
         $owner = ($action->metadata['owner_group'] ?? '') . '/' . ($action->metadata['owner_name'] ?? '');
         $params = '&action=' . rawurlencode($action->id) . '&owner=' . rawurlencode($owner);
-        $attributes = ['type' => 'button', 'data-alfa-progress' => $progress];
+        $attributes = ['type' => 'button', 'data-progress-target' => $progress];
 
         if ((bool) ($action->metadata['chunked'] ?? false)) {
             $attributes['data-action'] = 'backfill';

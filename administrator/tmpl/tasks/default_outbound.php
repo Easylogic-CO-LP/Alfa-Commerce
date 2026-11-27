@@ -23,7 +23,7 @@ use Joomla\CMS\Layout\LayoutHelper;
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn = $this->escape($this->state->get('list.direction'));
-$date = fn (?string $at): string => (string) $at === '' ? '' : '<span class="alfa-nowrap">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
+$date = fn (?string $at): string => (string) $at === '' ? '' : '<span class="nowrap">' . HTMLHelper::_('date', (string) $at, Text::_('DATE_FORMAT_LC6')) . '</span>';
 $said = static fn (string $result): string => str_starts_with($result, 'COM_ALFA_') ? Text::_($result) : $result;
 $badge = [
     TaskStaff::WORK_RUNNING => 'text-bg-info',
@@ -49,10 +49,10 @@ $ended = [
     </div>
 <?php else : ?>
 <div class="table-responsive">
-<table class="table table-striped align-top alfa-fold" id="outboundList">
+<table class="table table-striped align-top fold" id="outboundList">
     <thead>
     <tr>
-        <th class="w-1 text-center alfa-fold-keep"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
+        <th class="w-1 text-center fold-keep"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
         <th scope="col"><?php echo Text::_('COM_ALFA_OUTBOUND_COL_CONSUMER'); ?></th>
         <th scope="col" class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_TASKS_COL_SUBJECT'); ?></th>
         <th scope="col"><?php echo Text::_('COM_ALFA_TASKS_COL_STATE'); ?></th>

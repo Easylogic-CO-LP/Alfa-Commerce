@@ -11,7 +11,7 @@
    NOT reuse Joomla's icon-* classes (they carry a font glyph that would collide); we only
    borrow the native spacing (margin: 0 .85rem) so our titles line up exactly with the
    CMS menu's. */
-.alfa-menu-icon {
+.menu-icon {
     display: inline-flex;
     flex: 0 0 auto;
     width: 1.25rem;
@@ -24,22 +24,22 @@
     transition: opacity 0.12s ease;
 }
 
-#sidebarmenu .alfa-nav .no-dropdown,
-#sidebarmenu .alfa-jump .no-dropdown {
+#sidebarmenu .app-nav .no-dropdown,
+#sidebarmenu .jump .no-dropdown {
     display: flex;
     align-items: center;
 }
 
-#sidebarmenu .alfa-nav .no-dropdown:hover .alfa-menu-icon,
-#sidebarmenu .alfa-nav .no-dropdown:focus .alfa-menu-icon,
-#sidebarmenu .alfa-nav .mm-active .alfa-menu-icon {
+#sidebarmenu .app-nav .no-dropdown:hover .menu-icon,
+#sidebarmenu .app-nav .no-dropdown:focus .menu-icon,
+#sidebarmenu .app-nav .mm-active .menu-icon {
     opacity: 1;
 }
 
 /* Active screen: a crisp accent bar, on top of Joomla's own active highlight. Defaults to
    the item's own colour (currentColor) so it stays theme-adaptive: light on the dark
    sidebar, dark on a light one; a theme can set --alfa-accent for a brand colour. */
-#sidebarmenu .alfa-nav .item.current > .mm-active {
+#sidebarmenu .app-nav .item.current > .mm-active {
     box-shadow: inset 3px 0 0 0 var(--alfa-accent, currentColor);
     font-weight: 600;
 }
@@ -47,7 +47,7 @@
 /* Section header: a small uppercase label with a hairline above it, so the header and the
    separator are one clean element. Aligned to the native item-text indent (3rem) and using
    Joomla's own section-label colour, so it sits exactly like a native menuitem-group. */
-#sidebarmenu .alfa-nav .alfa-menu-header {
+#sidebarmenu .app-nav .menu-header {
     margin: 0;
     padding: 0.75rem 1rem 0.3rem;
     padding-inline-start: 3rem;
@@ -55,7 +55,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.11);
 }
 
-#sidebarmenu .alfa-nav .alfa-menu-header > span {
+#sidebarmenu .app-nav .menu-header > span {
     color: var(--main-nav-item-title);
     font-size: 0.72rem;
     font-weight: 600;
@@ -65,7 +65,7 @@
 
 /* Forward arrow on the "Alfa Commerce" jump entry: mirrors the native has-arrow chevron,
    pushed to the end, as a real SVG. */
-#sidebarmenu .alfa-menu-arrow {
+#sidebarmenu .menu-arrow {
     margin-inline-start: auto;
     flex: 0 0 2rem;
     width: 2rem;
@@ -77,17 +77,17 @@
 }
 
 /* The Back item reads as chrome, a shade quieter than the entries. */
-#sidebarmenu .alfa-nav .alfa-back .no-dropdown {
+#sidebarmenu .app-nav .back .no-dropdown {
     opacity: 0.7;
 }
 
-#sidebarmenu .alfa-nav .alfa-back .no-dropdown:hover {
+#sidebarmenu .app-nav .back .no-dropdown:hover {
     opacity: 1;
 }
 
 /* Light admin themes: soften the header hairline so it stays a hairline, not a gap. */
 :root:not([data-color-scheme="dark"]):not([data-bs-theme="dark"])
-#sidebarmenu .alfa-nav .alfa-menu-header {
+#sidebarmenu .app-nav .menu-header {
     border-top-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -103,12 +103,12 @@
    the ink. The border-top stays and becomes the divider between sections, which
    is the most a 3rem rail can honestly say, and the row keeps its exact height. */
 
-.closed #sidebarmenu .alfa-nav .alfa-menu-header {
+.closed #sidebarmenu .app-nav .menu-header {
     padding-inline: 0;
     max-inline-size: 3rem;
     overflow: hidden;
 }
 
-.closed #sidebarmenu .alfa-nav .alfa-menu-header > span {
+.closed #sidebarmenu .app-nav .menu-header > span {
     visibility: hidden;
 }

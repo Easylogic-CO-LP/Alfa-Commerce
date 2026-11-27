@@ -9,8 +9,8 @@
                 hint="COM_ALFA_SEARCH_FILTER_SUBMIT"
                 label="COM_ALFA_FILTER_SEARCH_LABEL"
                 class="js-stools-search-string"
-                data-alfa-search="true"
-                data-alfa-context="catalogue"
+                data-search-enhance="true"
+                data-search-context="catalogue"
         />
 
         <!-- Category filter -->

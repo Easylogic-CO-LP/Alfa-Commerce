@@ -10,7 +10,7 @@
  * surface rendered inside the MAIN (cart.add). Always emits the data-action /
  * data-step / min / max / name="quantity" the add-to-cart + quantity JS read.
  *
- * The item-quantity-* classes carry the BEHAVIOUR; alfa-stepper-* carry the look,
+ * The item-quantity-* classes carry the BEHAVIOUR; stepper-* carry the look,
  * and are shared with the cart line's own spinner so the two cannot drift.
  *
  * The figures are the cart's own, in whole units, under the displayed unit's
@@ -41,10 +41,10 @@ $minimum = $bounds['minimum'] ?? 1;
 $maximum = $bounds['maximum'] ?? '';
 ?>
 
-<div class="alfa-stepper">
+<div class="stepper">
 
     <button
-            class="alfa-stepper-btn decrement"
+            class="stepper-btn decrement"
             data-action="cart-decrement"
             aria-label="<?php echo Text::_('COM_ALFA_QUANTITY_DECREMENT'); ?>"
     >
@@ -52,7 +52,7 @@ $maximum = $bounds['maximum'] ?? '';
     </button>
 
     <input
-            class="alfa-stepper-input"
+            class="stepper-input"
             type="number"
             name="quantity"
             aria-label="<?php echo Text::_('COM_ALFA_QUANTITY_LABEL'); ?>"
@@ -63,7 +63,7 @@ $maximum = $bounds['maximum'] ?? '';
     />
 
     <button
-            class="alfa-stepper-btn increment"
+            class="stepper-btn increment"
             data-action="cart-increment"
             aria-label="<?php echo Text::_('COM_ALFA_QUANTITY_INCREMENT'); ?>"
     >

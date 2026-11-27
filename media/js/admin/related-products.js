@@ -12,11 +12,11 @@
     document.addEventListener('change', function (event) {
         const input = event.target;
 
-        if (!(input instanceof HTMLInputElement) || !input.matches('.alfa-related-products .js-input-value')) {
+        if (!(input instanceof HTMLInputElement) || !input.matches('.related-products .js-input-value')) {
             return;
         }
 
-        const tab = input.closest('.alfa-related-products');
+        const tab = input.closest('.related-products');
         const row = input.closest('.subform-repeatable-group');
         const cell = row ? row.querySelector('[data-related-variant]') : null;
         const control = input.name.replace(/\[item_id\]$/, '');
