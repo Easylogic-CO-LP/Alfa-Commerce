@@ -89,6 +89,18 @@ $app->createExtensionNamespaceMap();
 \defined('JPATH_COMPONENT_ADMINISTRATOR') || \define('JPATH_COMPONENT_ADMINISTRATOR', JPATH_ADMINISTRATOR . '/components/com_alfa');
 \defined('JPATH_COMPONENT_SITE') || \define('JPATH_COMPONENT_SITE', JPATH_SITE . '/components/com_alfa');
 
+// The e-mail's field tokens render through the field plugins' layouts, which ask an administrator application for
+// its template; a suite runs from the site docroot, where the admin's template is out of reach, so an installed
+// template is pinned, as the other suites that compose e-mails do. The e-mail wrapper itself reads the administrator
+// template from the database (EmailLayouts) and needs nothing here.
+$installedTemplates = array_values(array_filter(glob(JPATH_THEMES . '/*') ?: [], static fn (string $dir): bool => is_file($dir . '/index.php')));
+
+if ($installedTemplates !== []) {
+    (new \ReflectionProperty(\Joomla\CMS\Application\CMSApplication::class, 'template'))
+        ->setValue($app, (object) ['template' => basename($installedTemplates[0]), 'params' => new \Joomla\Registry\Registry(), 'parent' => '']);
+    $app->set('themeInherits', '');
+}
+
 $db = $container->get('DatabaseDriver');
 $p = $db->getPrefix();
 
