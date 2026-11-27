@@ -17,7 +17,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Session\Session;
 
 /** @var \Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $this->getDocument()->getWebAssetManager();
@@ -31,10 +30,6 @@ Text::script('COM_ALFA_SYNC_ERROR_PREFIX');
 Text::script('COM_ALFA_TOOLS_JOB_OPENING');
 Text::script('COM_ALFA_TOOLS_REQUEST_FAILED');
 
-// CSRF token carried in the AJAX URLs (validated server-side via Session::checkToken).
-$token    = Session::getFormToken();
-$ajaxBase = 'index.php?option=com_alfa&' . $token . '=1';
-
 /**
  * EVERY action card renders through one registry loop and one layout. There is no
  * second renderer and no hard-coded card: core's own tools are collected through the
@@ -44,15 +39,11 @@ $ajaxBase = 'index.php?option=com_alfa&' . $token . '=1';
  * tools that priority encodes RUN order, so the tab reads top-to-bottom as
  * "do them in this order".
  */
-$renderActions = static function (array $actions) use ($ajaxBase): string {
+$renderActions = static function (array $actions): string {
     $html = '';
 
     foreach ($actions as $action) {
-        $html .= LayoutHelper::render(
-            'actions.toolcard',
-            ['action' => $action, 'ajaxBase' => $ajaxBase],
-            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
-        );
+        $html .= LayoutHelper::render('actions.toolcard', ['action' => $action], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
     }
 
     return $html;
@@ -219,13 +210,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
             $surface,
             Text::_((string) ($surfaceActions[0]->metadata['surface_label'] ?? $surfaceActions[0]->label)),
         ); ?>
-            <?php foreach ($surfaceActions as $surfaceAction) : ?>
-                <?php echo LayoutHelper::render(
-                    'actions.toolcard',
-                    ['action' => $surfaceAction, 'ajaxBase' => $ajaxBase],
-                    JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
-                ); ?>
-            <?php endforeach; ?>
+            <?php echo $renderActions($surfaceActions); ?>
         <?php echo HTMLHelper::_('uitab.endTab'); ?>
     <?php endforeach; ?>
 
