@@ -73,6 +73,7 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
         $router->createCRUDRoutes('v1/alfa/items', 'items', ['component' => 'com_alfa']);
         $router->createCRUDRoutes('v1/alfa/categories', 'categories', ['component' => 'com_alfa']);
         $router->createCRUDRoutes('v1/alfa/manufacturers', 'manufacturers', ['component' => 'com_alfa']);
+        $router->createCRUDRoutes('v1/alfa/labels', 'labels', ['component' => 'com_alfa']);
         $router->createCRUDRoutes('v1/alfa/itemfields', 'itemfields', ['component' => 'com_alfa']);
 
         // Customers

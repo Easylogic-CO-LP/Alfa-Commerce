@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+namespace Alfa\Component\Alfa\Api\Controller;
+
+\defined('_JEXEC') or die;
+
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Joomla\CMS\MVC\Controller\ApiController;
+
+/**
+ * The Labels controller: the shop's labels (v1/alfa/labels), listed, read, made, changed and deleted with the
+ * permissions of the Labels screen (alfa.labels.view, create, edit, delete).
+ *
+ * @since  2.3.0
+ */
+class LabelsController extends ApiController
+{
+    use HasApiGuards;
+
+    /**
+     * The content type of the item.
+     *
+     * @var string
+     * @since  2.3.0
+     */
+    protected $contentType = 'labels';
+
+    /**
+     * The default view for the display method.
+     *
+     * @var string
+     * @since  2.3.0
+     */
+    protected $default_view = 'labels';
+
+    /**
+     * Labels list view amended to add filtering of data: filter[search], filter[state], filter[filterable].
+     *
+     * @return static A BaseController object to support chaining.
+     *
+     * @since  2.3.0
+     */
+    public function displayList()
+    {
+        $apiFilterInfo = $this->input->get('filter', [], 'array');
+
+        if (\array_key_exists('search', $apiFilterInfo)) {
+            $this->modelState->set('filter.search', RequestScalar::member($apiFilterInfo, 'search', 'STRING', 'filter'));
+        }
+
+        if (\array_key_exists('state', $apiFilterInfo)) {
+            $this->modelState->set('filter.state', RequestScalar::member($apiFilterInfo, 'state', 'INT', 'filter'));
+        }
+
+        if (\array_key_exists('filterable', $apiFilterInfo)) {
+            $this->modelState->set('filter.filterable', RequestScalar::member($apiFilterInfo, 'filterable', 'INT', 'filter'));
+        }
+
+        $apiListInfo = $this->input->get('list', [], 'array');
+
+        if (\array_key_exists('ordering', $apiListInfo)) {
+            $this->modelState->set('list.ordering', RequestScalar::member($apiListInfo, 'ordering', 'STRING', 'list'));
+        }
+
+        if (\array_key_exists('direction', $apiListInfo)) {
+            $this->modelState->set('list.direction', RequestScalar::member($apiListInfo, 'direction', 'STRING', 'list'));
+        }
+
+        return parent::displayList();
+    }
+
+    /**
+     * A label is deleted from the trash only, as the administrator's list of labels deletes it.
+     *
+     * @since  2.3.0
+     */
+    protected function deletesFromTrash(): bool
+    {
+        return true;
+    }
+}
