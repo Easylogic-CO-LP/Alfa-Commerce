@@ -82,13 +82,21 @@ class OutboundController extends BaseController
     }
 
     /**
-     * Put the consumer's changes given up back in the queue.
+     * Put the consumer's changes given up back in the queue, a batch at a time: the message says how many were put
+     * back and whether more remain for the next Retry.
      *
      * @since  2.3.0
      */
     public function retry(): void
     {
-        $this->act(call: static fn (int $id): string => Text::plural('COM_ALFA_OUTBOUND_RETRIED', OutboundConsumers::retryDead(id: $id)));
+        $this->act(call: static function (int $id): string {
+            $result = OutboundConsumers::retryDead(id: $id);
+            $message = Text::plural('COM_ALFA_OUTBOUND_RETRIED', $result['back']);
+
+            return $result['more']
+                ? $message . ' ' . Text::sprintf('COM_ALFA_OUTBOUND_RETRY_MORE', OutboundConsumers::RETRY_BATCH)
+                : $message;
+        });
     }
 
     /**
