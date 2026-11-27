@@ -640,6 +640,34 @@ body:has(.alfa-studio) {
   margin-left: 0;
 }
 
+/* One height for every control of the quick edit, the small Joomla control's (its
+   0.8rem text at line-height 1.5, the padding, the borders): the cycle buttons
+   (mode, operation, target) and the two inputs read as one line. The spans that
+   hold a cycle become flex boxes, so no inline line box adds space under a button;
+   the hidden ones stay hidden. */
+.alfa-combinations .quick-adjust,
+.alfa-combi-tools .quick-adjust {
+  --quick-control: calc(1.7rem + calc(var(--border-width, 1px) * 2));
+}
+
+.alfa-combinations .quick-adjust .adjust-only:not([hidden]),
+.alfa-combi-tools .quick-adjust .adjust-only:not([hidden]) {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.alfa-combinations .quick-adjust .op-cycle button,
+.alfa-combinations .quick-adjust .form-control,
+.alfa-combinations .quick-adjust .form-select,
+.alfa-combi-tools .quick-adjust .op-cycle button,
+.alfa-combi-tools .quick-adjust .form-control,
+.alfa-combi-tools .quick-adjust .form-select {
+  height: var(--quick-control);
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /* Tighter, quieter column headers so the grid keeps its width for the controls. */
 .alfa-combinations thead th {
   padding: 0.3rem 0.5rem;

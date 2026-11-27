@@ -18,8 +18,18 @@
   --price-canvas: var(--tertiary-bg, #fafbfc);
   /* The admin's own corner (Atum's token) on the card and every joined control. */
   --price-radius: var(--border-radius, 0.25rem);
+  /* One height for every control of a row, the small Joomla control's (its 0.8rem
+     text at line-height 1.5, the padding, the borders): inputs, selects, cycle
+     buttons, segments and the calendar fields read as one line. */
+  --price-control: calc(1.7rem + calc(var(--border-width, 1px) * 2));
 
   container-type: inline-size;
+}
+
+.alfa-prices .form-control-sm,
+.alfa-prices .form-select-sm {
+  height: var(--price-control);
+  min-height: 0;
 }
 
 .alfa-prices .price-row {
@@ -307,7 +317,21 @@
 .alfa-combi-tools .seg,
 .alfa-combinations .seg {
   position: relative;
+  display: flex;
   margin: 0;
+}
+
+/* The segments stand as tall as the row's other controls; each label fills its segment. */
+.alfa-prices .seg-group {
+  height: var(--price-control);
+  align-items: stretch;
+}
+
+.alfa-prices .seg span {
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .alfa-prices .seg input,
@@ -383,6 +407,13 @@
   border-color: var(--price-gold, var(--alfa-gold));
 }
 
+/* Every cycle button of a row, joined or standalone, is as tall as the row's inputs. */
+.alfa-prices .op-cycle button {
+  height: var(--price-control);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /* Mode cycler (set <-> adjust): a standalone toggle, so fully rounded and wide
    enough for the word: the outer-grid look brought into the Studio editor. */
 .alfa-prices .mode-cycle button {
@@ -437,16 +468,22 @@
   flex-wrap: nowrap;
 }
 
-/* Calendar renders full-size controls; shrink to match the -sm fields. */
+/* Calendar renders full-size controls; shrink them to the row's control height,
+   beside the quantity inputs of the same height. */
 .alfa-prices .field-calendar .form-control {
   min-width: 0;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+  height: var(--price-control);
+  min-height: 0;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
 }
 
 .alfa-prices .field-calendar .btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  height: var(--price-control);
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
   line-height: 1.5;
 }
 
