@@ -121,7 +121,11 @@
 
         <!-- Shipping methods
              Every method the shop offers, or the chosen ones only; a cart is
-             offered what every product in it allows (ItemShipments). -->
+             offered what every product in it allows (ItemShipments). The
+             list offers the published methods and the ones the product holds
+             that are not published now, marked: a save keeps them, since a
+             product limited to an unpublished method is still limited. "Only
+             these" with none chosen is refused, never read as all methods. -->
         <field name="shipments_scope" type="radio"
                class="btn-group"
                showon="is_virtual:0"
@@ -136,6 +140,8 @@
                 name="shipments" type="model"
                 model="shipments"
                 state="1"
+                held="marked"
+                held_label="COM_ALFA_ITEM_SHIPMENTS_HELD_NOT_PUBLISHED"
                 column_value="id"
                 column_text="name"
                 input_type="list"

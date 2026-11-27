@@ -994,6 +994,18 @@ class ItemModel extends AlfaAdminModel
             return false;
         }
 
+        // THE SHIPPING LIST, judged before the transaction (ItemShipments): "only these" with no method chosen is
+        // refused, never stored as every method.
+        $shipmentsRefusal = \array_key_exists('shipments_scope', $data)
+            ? ItemShipments::choiceRefusal(choice: (string) $data['shipments_scope'], ids: $data['shipments'] ?? [])
+            : null;
+
+        if ($shipmentsRefusal !== null) {
+            $this->setError($shipmentsRefusal);
+
+            return false;
+        }
+
         // THE LABELS, judged before the transaction (ItemLabels): the labels the product ticks with their corners, and
         // its own label with its choice for the New label, which travel with the row as its label_settings column; an
         // own label whose period ends before it starts is refused and nothing is saved. A write that posts no ticks

@@ -9,8 +9,11 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Joomla\CMS\Language\Text;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use RuntimeException;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -47,6 +50,20 @@ final class ItemShipments
      * @since  2.3.0
      */
     public const EVERY_METHOD = 0;
+
+    /**
+     * The kinds of list the product list filters by, and the counts are made of: a list that names some of the
+     * methods asked about; one that names some of them and no other; one that holds no published method.
+     *
+     * The last is not the absence of a list. A product with no row has no restriction and ships with every method;
+     * a product whose rows name nothing usable has a restriction and ships with none until one of its methods is
+     * published or it is given another. Nothing here, and no reader, reads the second as the first.
+     *
+     * @since  2.3.0
+     */
+    public const LIST_ANY = '';
+    public const LIST_ONLY = 'only';
+    public const LIST_NONE = 'none';
 
     /**
      * The lists of a set of products, read in one query, by product id: the product's own method ids ([] for every
@@ -186,15 +203,85 @@ final class ItemShipments
     }
 
     /**
+     * Why a posted choice is not saved, or null when it is: the chosen methods only, with no method chosen. Limiting a
+     * product to nothing is not a way to say every method, which has its own choice, so the save is refused and says
+     * which of the two to choose.
+     *
+     * @param string $choice ALL, ONLY or AS_PRODUCT.
+     * @param mixed $ids The chosen method ids, as posted.
+     *
+     * @since  2.3.0
+     */
+    public static function choiceRefusal(string $choice, mixed $ids): ?string
+    {
+        if ($choice !== self::ONLY || self::methodIds(\is_array($ids) ? $ids : []) !== []) {
+            return null;
+        }
+
+        return Text::_('COM_ALFA_ITEM_SHIPMENTS_ONLY_NEEDS_METHOD');
+    }
+
+    /**
+     * The shipping methods a unit's list holds that are not published now, by id, each with its name and its state:
+     * what the forms add to the published methods they offer, marked, so a save keeps a method the shop only
+     * unpublished and the operator sees it and may take it off. One statement; a method that no longer exists is
+     * not among them.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The methods the list holds.
+     *
+     * @return array<int, object{id: int, name: string, state: int}>
+     *
+     * @since  2.3.0
+     */
+    public static function heldUnpublished(DatabaseInterface $db, array $shipmentIds): array
+    {
+        $ids = self::methodIds($shipmentIds);
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['a.id', 'a.state']))
+            ->from($db->quoteName('#__alfa_shipments', 'a'))
+            ->whereIn($db->quoteName('a.id'), $ids)
+            ->where($db->quoteName('a.state') . ' <> 1');
+
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_shipments',
+            langPrimaryColumn: 'id_shipment',
+            fields:            ['name'],
+        );
+
+        $held = [];
+
+        foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
+            $held[(int) $row->id] = (object) [
+                'id' => (int) $row->id,
+                'name' => Text::sprintf('COM_ALFA_ITEM_SHIPMENTS_HELD_NOT_PUBLISHED', (string) ($row->name ?? '') !== '' ? (string) $row->name : '#' . (int) $row->id),
+                'state' => (int) $row->state,
+            ];
+        }
+
+        return $held;
+    }
+
+    /**
      * The rows a posted choice stores for a unit, or null for none: every method is no row for a product and the
-     * wildcard row for a combination; the chosen methods are their rows; a choice with no method chosen restricts
-     * nothing; as the product is no row.
+     * wildcard row for a combination; the chosen methods are their rows; as the product is no row. The chosen
+     * methods only with none chosen is refused ({@see self::choiceRefusal()}).
      *
      * @param string $choice ALL, ONLY or AS_PRODUCT.
      * @param mixed $ids The chosen method ids, as posted.
      * @param bool $combination Whether the unit is a combination.
      *
      * @return int[]|null
+     *
+     * @throws RuntimeException For the chosen methods only with none chosen; nothing is stored.
      *
      * @since  2.3.0
      */
@@ -210,7 +297,9 @@ final class ItemShipments
                 return $chosen;
             }
 
-            $choice = $combination ? self::AS_PRODUCT : self::ALL;
+            // "The chosen methods only" with none chosen is not "every method": a restriction that names nothing
+            // is never stored as no restriction. The forms ask first (choiceRefusal()); nothing is saved.
+            throw new RuntimeException((string) self::choiceRefusal(choice: self::ONLY, ids: []));
         }
 
         if ($choice === self::ALL) {
@@ -228,12 +317,33 @@ final class ItemShipments
      * @param int $combinationId The combination, 0 for the product itself.
      * @param int[]|null $shipmentIds The rows to hold, null or [] for none.
      *
+     * @throws RuntimeException When a method the rows name does not exist; nothing is written.
+     *
      * @since  2.3.0
      */
     public static function replace(DatabaseInterface $db, int $itemId, int $combinationId, ?array $shipmentIds): void
     {
         if ($itemId <= 0) {
             return;
+        }
+
+        $rows = array_values(array_unique(array_map('intval', $shipmentIds ?? [])));
+        $methods = self::methodIds($rows);
+
+        // The methods the list will name must exist, read under a shared lock held to the end of the save's
+        // transaction, before any row of the list is touched: a delete of one of them locks its row first, so the
+        // two never pass each other. A list is never written naming a method that is gone, and never emptied
+        // because one went: nothing is saved.
+        if ($methods !== []) {
+            $existing = array_map('intval', $db->setQuery(
+                'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_shipments')
+                . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $methods) . ') LOCK IN SHARE MODE',
+            )->loadColumn() ?: []);
+            $gone = array_values(array_diff($methods, $existing));
+
+            if ($gone !== []) {
+                throw new RuntimeException(Text::sprintf('COM_ALFA_ITEM_SHIPMENTS_METHOD_GONE', implode(', ', $gone)));
+            }
         }
 
         $db->setQuery(
@@ -244,8 +354,6 @@ final class ItemShipments
                 ->bind(':itemId', $itemId, ParameterType::INTEGER)
                 ->bind(':combinationId', $combinationId, ParameterType::INTEGER),
         )->execute();
-
-        $rows = array_values(array_unique(array_map('intval', $shipmentIds ?? [])));
 
         if ($rows === []) {
             return;
@@ -309,51 +417,191 @@ final class ItemShipments
     }
 
     /**
-     * Remove deleted shipping methods from every product's and combination's list, and count the units that were
-     * limited to those methods alone. With no row left such a product ships with every method and such a combination
-     * as its product does, so the caller tells the operator how many there are.
+     * The products that name one of some shipping methods on a list of theirs, the product's own or a variant's.
      *
-     * Two statements over the list table by its method index, whatever the catalogue's size: the count, then the
-     * delete. Called inside the method delete's transaction, so a failure leaves every list as it was.
+     * One statement on the list table's method index (idx_shipment_id), whatever the catalogue's size. Read with
+     * the rows locked when asked, inside the transaction that then deletes the methods: the rows that name the
+     * methods, and the gaps a new one would go in, stay locked until it ends, so a product save that adds or takes
+     * away one of the methods waits for the delete, or the delete waits for the save and judges what it committed.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The shipping methods, taken together.
+     * @param bool $lock Whether the rows read are locked for the transaction.
+     *
+     * @since  2.3.0
+     */
+    public static function countNaming(DatabaseInterface $db, array $shipmentIds, bool $lock = false): int
+    {
+        $ids = self::methodIds($shipmentIds);
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        return (int) $db->setQuery(
+            'SELECT COUNT(DISTINCT ' . $db->quoteName('d.item_id') . ') FROM ' . $db->quoteName('#__alfa_items_shipments', 'd')
+            . ' WHERE ' . self::unitSql(db: $db, shipmentIds: $ids, list: self::LIST_ANY) . ($lock ? ' FOR UPDATE' : ''),
+        )->loadResult();
+    }
+
+    /**
+     * The products with a list, the product's own or a variant's, that names some of these shipping methods and no
+     * method outside them: the methods are, together, the only ones the list allows. Judged on the whole set at
+     * once, so two methods that are each other's only alternative count when both are in it.
+     *
+     * One statement: the method index finds the rows of the methods, the primary key (item, combination, method)
+     * answers whether the same unit holds a row outside them.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The shipping methods, taken together.
+     *
+     * @since  2.3.0
+     */
+    public static function countLimitedTo(DatabaseInterface $db, array $shipmentIds): int
+    {
+        $ids = self::methodIds($shipmentIds);
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        return (int) $db->setQuery(
+            'SELECT COUNT(DISTINCT ' . $db->quoteName('d.item_id') . ') FROM ' . $db->quoteName('#__alfa_items_shipments', 'd')
+            . ' WHERE ' . self::unitSql(db: $db, shipmentIds: $ids, list: self::LIST_ONLY),
+        )->loadResult();
+    }
+
+    /**
+     * The products with a list that names some of these shipping methods and would hold no published method once
+     * they are gone or unpublished: a restriction that stands with nothing usable on it, so the product cannot be
+     * shipped until one of its methods is published or it is given another. Judged on the whole set at once.
+     *
+     * One statement: the method index finds the rows, the primary keys of the list and of the methods answer the rest.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The shipping methods leaving, taken together.
+     *
+     * @since  2.3.0
+     */
+    public static function countLeftWithoutPublished(DatabaseInterface $db, array $shipmentIds): int
+    {
+        $ids = self::methodIds($shipmentIds);
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        return (int) $db->setQuery(
+            'SELECT COUNT(DISTINCT ' . $db->quoteName('d.item_id') . ') FROM ' . $db->quoteName('#__alfa_items_shipments', 'd')
+            . ' WHERE ' . self::unitSql(db: $db, shipmentIds: $ids, list: self::LIST_NONE, leaving: $ids),
+        )->loadResult();
+    }
+
+    /**
+     * The condition that a product has a list, its own or a variant's, of one of the kinds the product list filters
+     * by: one that names some of the methods given (LIST_ANY), one that names some of them and no other (LIST_ONLY),
+     * or one that holds no published method (LIST_NONE, among the lists naming the methods when some are given).
+     * The words the counts above are made of, so a count and the list it links to are the same products.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param string $itemId The product's id as SQL: a quoted column (a.id).
+     * @param int[] $shipmentIds The shipping methods; none for LIST_NONE alone.
+     * @param string $list LIST_ANY, LIST_ONLY or LIST_NONE.
+     *
+     * @return string|null A condition, or null when the choice narrows nothing (no method given, and not LIST_NONE).
+     *
+     * @since  2.3.0
+     */
+    public static function productSql(DatabaseInterface $db, string $itemId, array $shipmentIds, string $list): ?string
+    {
+        $ids = self::methodIds($shipmentIds);
+        $list = \in_array($list, [self::LIST_ONLY, self::LIST_NONE], true) ? $list : self::LIST_ANY;
+
+        if ($ids === [] && $list !== self::LIST_NONE) {
+            return null;
+        }
+
+        return 'EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items_shipments', 'd')
+            . ' WHERE ' . $db->quoteName('d.item_id') . ' = ' . $itemId
+            . ' AND ' . self::unitSql(db: $db, shipmentIds: $ids, list: $list) . ')';
+    }
+
+    /**
+     * Remove deleted shipping methods from every product's and combination's list. Called inside the method
+     * delete's transaction, after it judged that no list names these methods alone
+     * ({@see self::countLimitedTo()}): a list that loses a method here keeps another, so no restricted unit becomes
+     * an unrestricted one.
      *
      * @param DatabaseInterface $db The database.
      * @param int[] $shipmentIds The deleted shipping methods.
      *
-     * @return array{items: int, combinations: int} The products and the combinations whose list ended.
-     *
      * @since  2.3.0
      */
-    public static function forgetMethods(DatabaseInterface $db, array $shipmentIds): array
+    public static function forgetMethods(DatabaseInterface $db, array $shipmentIds): void
     {
-        $ids = array_values(array_unique(array_filter(array_map('intval', $shipmentIds), static fn (int $id): bool => $id > 0)));
+        $ids = self::methodIds($shipmentIds);
 
         if ($ids === []) {
-            return ['items' => 0, 'combinations' => 0];
+            return;
         }
-
-        $list = implode(',', $ids);
-        $table = $db->quoteName('#__alfa_items_shipments');
-
-        // A unit's list ends when it names one of the methods and no other row: a combination's "every method" row
-        // (0) is a row that stays.
-        $ended = $db->setQuery(
-            'SELECT COALESCE(SUM(CASE WHEN ' . $db->quoteName('u.combination_id') . ' = 0 THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('items')
-            . ', COALESCE(SUM(CASE WHEN ' . $db->quoteName('u.combination_id') . ' > 0 THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('combinations')
-            . ' FROM (SELECT DISTINCT ' . $db->quoteName('d.item_id') . ', ' . $db->quoteName('d.combination_id')
-            . ' FROM ' . $table . ' AS ' . $db->quoteName('d')
-            . ' WHERE ' . $db->quoteName('d.shipment_id') . ' IN (' . $list . ')'
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $table . ' AS ' . $db->quoteName('k')
-            . ' WHERE ' . $db->quoteName('k.item_id') . ' = ' . $db->quoteName('d.item_id')
-            . ' AND ' . $db->quoteName('k.combination_id') . ' = ' . $db->quoteName('d.combination_id')
-            . ' AND ' . $db->quoteName('k.shipment_id') . ' NOT IN (' . $list . '))) AS ' . $db->quoteName('u'),
-        )->loadAssoc() ?: [];
 
         $db->setQuery(
             $db->getQuery(true)
-                ->delete($table)
+                ->delete($db->quoteName('#__alfa_items_shipments'))
                 ->whereIn($db->quoteName('shipment_id'), $ids),
         )->execute();
+    }
 
-        return ['items' => (int) ($ended['items'] ?? 0), 'combinations' => (int) ($ended['combinations'] ?? 0)];
+    /**
+     * The condition on one row (alias d) of the list table that its unit's list is of a kind: it names one of the
+     * methods; it names one of them and the unit holds no row outside them; or the unit holds no row that is usable
+     * now, neither the "every method" row of a combination nor a published method (one of the methods leaving
+     * counts as not published).
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The methods, cleaned; none for LIST_NONE alone.
+     * @param string $list LIST_ANY, LIST_ONLY or LIST_NONE.
+     * @param int[] $leaving For LIST_NONE: published methods about to leave, read as not published.
+     *
+     * @since  2.3.0
+     */
+    private static function unitSql(DatabaseInterface $db, array $shipmentIds, string $list, array $leaving = []): string
+    {
+        $in = implode(',', $shipmentIds);
+        $names = $shipmentIds === [] ? '' : $db->quoteName('d.shipment_id') . ' IN (' . $in . ')';
+        $sameUnit = $db->quoteName('k.item_id') . ' = ' . $db->quoteName('d.item_id')
+            . ' AND ' . $db->quoteName('k.combination_id') . ' = ' . $db->quoteName('d.combination_id');
+        $rows = $db->quoteName('#__alfa_items_shipments', 'k');
+
+        if ($list === self::LIST_ONLY) {
+            return $names . ' AND NOT EXISTS (SELECT 1 FROM ' . $rows . ' WHERE ' . $sameUnit
+                . ' AND ' . $db->quoteName('k.shipment_id') . ' NOT IN (' . $in . '))';
+        }
+
+        if ($list === self::LIST_NONE) {
+            $published = $db->quoteName('m.state') . ' = 1'
+                . ($leaving === [] ? '' : ' AND ' . $db->quoteName('k.shipment_id') . ' NOT IN (' . implode(',', $leaving) . ')');
+
+            return ($names === '' ? '' : $names . ' AND ') . 'NOT EXISTS (SELECT 1 FROM ' . $rows
+                . ' LEFT JOIN ' . $db->quoteName('#__alfa_shipments', 'm') . ' ON ' . $db->quoteName('m.id') . ' = ' . $db->quoteName('k.shipment_id')
+                . ' WHERE ' . $sameUnit
+                . ' AND (' . $db->quoteName('k.shipment_id') . ' = ' . self::EVERY_METHOD . ' OR (' . $published . ')))';
+        }
+
+        return $names;
+    }
+
+    /**
+     * Shipping method ids as given, cleaned: whole numbers above zero, each once.
+     *
+     * @param array $shipmentIds The ids as given.
+     *
+     * @return int[]
+     *
+     * @since  2.3.0
+     */
+    private static function methodIds(array $shipmentIds): array
+    {
+        return array_values(array_unique(array_filter(array_map('intval', $shipmentIds), static fn (int $id): bool => $id > 0)));
     }
 }

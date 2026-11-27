@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Joomla\CMS\MVC\Controller\AdminController;
 
 /**
@@ -33,6 +34,12 @@ class ShipmentsController extends AdminController
      */
     public function getModel($name = 'Shipment', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {
-        return parent::getModel($name, $prefix, $config);
+        $model = parent::getModel($name, $prefix, $config);
+
+        // The operator's confirmation of a delete that products' shipping lists still name (the button printed
+        // with the model's refusal posts it): the model judges with it, and judges the lists again.
+        $model->setState('delete.confirmed', RequestScalar::int($this->input->post, 'confirm') === 1);
+
+        return $model;
     }
 }

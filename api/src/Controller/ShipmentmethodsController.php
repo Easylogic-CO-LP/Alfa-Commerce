@@ -110,6 +110,30 @@ class ShipmentmethodsController extends ApiController
     }
 
     /**
+     * The model, told whether the request confirms a delete that products' shipping lists still name beside other
+     * methods: force=1 on the DELETE, as a forced order transition is asked. Without it such a delete answers 409
+     * with the count; a delete that would leave a product limited to nothing answers 409 whatever is sent.
+     *
+     * @param string $name The model name.
+     * @param string $prefix The class prefix.
+     * @param array $config The configuration.
+     *
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel|bool
+     *
+     * @since  2.3.0
+     */
+    public function getModel($name = '', $prefix = '', $config = [])
+    {
+        $model = parent::getModel($name, $prefix, $config);
+
+        if ($model instanceof \Alfa\Component\Alfa\Administrator\Model\ShipmentModel) {
+            $model->setState('delete.confirmed', RequestScalar::bool($this->input, 'force'));
+        }
+
+        return $model;
+    }
+
+    /**
      * A shipping method is deleted from the trash only, as the administrator's list of shipping methods deletes it.
      *
      * @since  2.2.1

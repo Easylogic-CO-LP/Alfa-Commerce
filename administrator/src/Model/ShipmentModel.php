@@ -24,7 +24,10 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Table\Table;
 use RuntimeException;
 use Throwable;
@@ -232,6 +235,12 @@ class ShipmentModel extends AlfaAdminModel
         $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
+        // A save that takes a published method out of the published state: the products it leaves with no published
+        // method on their list are counted before it, and said after it.
+        $leaving = \array_key_exists('state', $data) && (int) ($data['id'] ?? 0) > 0
+            ? $this->leavingPublished(ids: [(int) $data['id']], state: (int) $data['state'])
+            : ['ids' => [], 'count' => 0];
+
         // A new method that leaves a colour out takes the one its form offers: the edit form always posts
         // both, a REST create need not, and neither column has a default of its own.
         $data = $this->withFormDefaults(data: $data, fields: ['color', 'bg_color']);
@@ -377,12 +386,96 @@ class ShipmentModel extends AlfaAdminModel
             );
         }
 
+        $this->warnLeftWithout(leaving: $leaving);
+
         return true;
     }
 
     /**
+     * Method to change the published state of one or more records. Unpublishing, archiving and trashing a shipping
+     * method are allowed whatever the products' shipping lists say, and change no list: a product limited to methods
+     * that are all unpublished keeps its restriction, ships with none meanwhile, and ships again when one is
+     * published. The operator is told how many products the change leaves so, judged on the whole selection.
+     *
+     * @param array &$pks A list of the primary keys to change.
+     * @param int $value The value of the published state.
+     *
+     * @return bool True on success.
+     *
+     * @since  2.3.0
+     */
+    public function publish(&$pks, $value = 1)
+    {
+        $leaving = $this->leavingPublished(ids: array_map('intval', (array) $pks), state: (int) $value);
+        $result = parent::publish($pks, $value);
+
+        if ($result) {
+            $this->warnLeftWithout(leaving: $leaving);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The published methods among some that a change of state takes out of the published state, and the products
+     * the change leaves with no published method on a list of theirs. Two indexed statements, read before the change.
+     *
+     * @param int[] $ids The methods the change is asked for.
+     * @param int $state The state they are given.
+     *
+     * @return array{ids: int[], count: int}
+     *
+     * @since  2.3.0
+     */
+    private function leavingPublished(array $ids, int $state): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+
+        if ($state === 1 || $ids === []) {
+            return ['ids' => [], 'count' => 0];
+        }
+
+        $db = $this->getDatabase();
+        $published = array_map('intval', $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_shipments'))
+                ->whereIn($db->quoteName('id'), $ids)
+                ->where($db->quoteName('state') . ' = 1'),
+        )->loadColumn() ?: []);
+
+        return ['ids' => $published, 'count' => ItemShipments::countLeftWithoutPublished(db: $db, shipmentIds: $published)];
+    }
+
+    /**
+     * Tell the operator how many products a change of state left with no published method on their shipping list,
+     * with the link to them.
+     *
+     * @param array{ids: int[], count: int} $leaving What {@see self::leavingPublished()} read before the change.
+     *
+     * @since  2.3.0
+     */
+    private function warnLeftWithout(array $leaving): void
+    {
+        if ($leaving['count'] <= 0) {
+            return;
+        }
+
+        Factory::getApplication()->enqueueMessage(
+            trim(Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', $leaving['count']) . ' ' . $this->productsLink(ids: $leaving['ids'], list: ItemShipments::LIST_NONE)),
+            'warning',
+        );
+    }
+
+    /**
      * Method to delete one or more records: the methods' rows, their scope and link rows, their texts and their place
-     * on every product's and variant's own shipping list, in one transaction; their images after it.
+     * on the products' and variants' own shipping lists, in one transaction; their images after it.
+     *
+     * What the products' lists say decides, judged on the whole selection: no list names it, deleted; lists name it
+     * beside other methods, deleted once the request confirms (the state delete.confirmed, set by the controllers
+     * from the request) and the lists keep their other methods; a list names nothing but the selection, refused,
+     * since a list with no row left would mean every method. A method an order or a parcel names is refused before
+     * any of this, so an order keeps the method it was shipped with.
      *
      * @param array &$pks An array of record primary keys.
      *
@@ -472,14 +565,45 @@ class ShipmentModel extends AlfaAdminModel
             return false;
         }
 
-        // ONE TRANSACTION: the methods' rows, their scope and link pivots, their texts, and the products' and
-        // variants' shipping lists that name them. A list that kept a deleted method would have every remaining
-        // method refused for its product, so the method leaves the lists with its own row, or nothing is deleted.
+        // ONE TRANSACTION: the judgement of the products' shipping lists, the methods' rows, their scope and link
+        // pivots, their texts and their place on the lists. The methods and the list rows that name them are read
+        // under locks held until the commit.
         $driver = $this->alfaDriver();
         $driver->transactionStart(true);
-        $ended = ['items' => 0, 'combinations' => 0];
+        $leftWithout = 0;
 
         try {
+            // The methods' own rows first, locked: a product save that names one of them reads it under a shared
+            // lock before it writes its list (ItemShipments::replace()), so it waits here and then finds the method
+            // gone, or this delete waits for it and judges the list it committed. Never both at once.
+            $driver->setQuery(
+                'SELECT ' . $driver->quoteName('id') . ' FROM ' . $driver->quoteName('#__alfa_shipments')
+                . ' WHERE ' . $driver->quoteName('id') . ' IN (' . implode(',', $pks ?: [0]) . ') FOR UPDATE',
+            )->loadColumn();
+
+            // What the delete of the WHOLE selection would do to the lists: two methods that are each other's only
+            // alternative on a product leave it none when both are chosen.
+            $naming = ItemShipments::countNaming(db: $driver, shipmentIds: $pks, lock: true);
+
+            if ($naming > 0) {
+                // A list that names nothing but the selection would have no row left, and a product with no row
+                // ships with every method: a delete never turns a restriction into none. Refused, with the count.
+                $only = ItemShipments::countLimitedTo(db: $driver, shipmentIds: $pks);
+
+                if ($only > 0) {
+                    throw $this->listRefusal(key: 'COM_ALFA_SHIPMENT_DELETE_ONLY_METHOD', count: $only, ids: $pks, list: ItemShipments::LIST_ONLY);
+                }
+
+                // Lists that name the selection beside other methods lose it and keep the others: done only when
+                // the request confirms it, on every entry point.
+                if (!$this->getState('delete.confirmed', false)) {
+                    throw $this->listRefusal(key: 'COM_ALFA_SHIPMENT_DELETE_CONFIRM', count: $naming, ids: $pks, list: ItemShipments::LIST_ANY, confirm: true);
+                }
+
+                // Counted before the rows go: the products whose remaining methods are all unpublished.
+                $leftWithout = ItemShipments::countLeftWithoutPublished(db: $driver, shipmentIds: $pks);
+            }
+
             $this->alfaDeleteAsked = true;
 
             if (!parent::delete($pks)) {
@@ -506,8 +630,9 @@ class ShipmentModel extends AlfaAdminModel
                     )->execute();
                 }
 
-                // The products' and variants' own shipping lists.
-                $ended = ItemShipments::forgetMethods(db: $driver, shipmentIds: $pks);
+                // Their place on the products' and variants' own shipping lists: every list judged above keeps
+                // another method.
+                ItemShipments::forgetMethods(db: $driver, shipmentIds: $pks);
 
                 // MULTILINGUAL: remove the per-language rows for the deleted shipments.
                 MultilingualHelper::deleteMultilingualData(
@@ -518,16 +643,24 @@ class ShipmentModel extends AlfaAdminModel
             }
 
             TransactionState::commitLevel(db: $driver);
+        } catch (DeleteRefusedException $refused) {
+            TransactionState::rollBackLevel(db: $driver, failure: $refused);
+            $this->setError($refused);
+
+            return false;
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $driver, failure: $e);
 
             throw $e;
         }
 
-        // A unit that shipped with the deleted methods alone has no list now: the operator is told how many, since
-        // such a product ships with every method from here on.
-        if ($ended['items'] > 0 || $ended['combinations'] > 0) {
-            Factory::getApplication()->enqueueMessage(Text::sprintf('COM_ALFA_SHIPMENT_DELETE_LISTS_ENDED', $ended['items'], $ended['combinations']), 'warning');
+        // The products that keep a list with no published method on it: their restriction stands, so they cannot be
+        // shipped until one of their methods is published or they are given another. Said with the count.
+        if ($leftWithout > 0) {
+            Factory::getApplication()->enqueueMessage(
+                trim(Text::plural('COM_ALFA_SHIPMENT_DELETE_LEAVES_NONE', $leftWithout) . ' ' . $this->productsLink(ids: [], list: ItemShipments::LIST_NONE)),
+                'warning',
+            );
         }
 
         // The methods' images (rows; files when media_full_deletion is on): files are not transactional, so after
@@ -537,6 +670,57 @@ class ShipmentModel extends AlfaAdminModel
         }
 
         return true;
+    }
+
+    /**
+     * The refusal of a delete for what it would do to the products' shipping lists: the sentence with the count,
+     * for the back office the link to the Products list filtered to those products and, when the delete only waits
+     * for a confirmation, the button that confirms it; for the REST answer the sentence alone, with how to confirm.
+     *
+     * @param string $key The sentence's language key (its _1 and _MORE forms).
+     * @param int $count The products.
+     * @param int[] $ids The shipping methods chosen.
+     * @param string $list The kind of list the products have (ItemShipments::LIST_*), for the link.
+     * @param bool $confirm Whether the delete waits for a confirmation.
+     *
+     * @since  2.3.0
+     */
+    private function listRefusal(string $key, int $count, array $ids, string $list, bool $confirm = false): DeleteRefusedException
+    {
+        $sentence = Text::plural($key, $count);
+        $html = trim(htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8') . ' ' . $this->productsLink(ids: $ids, list: $list));
+
+        // The button posts the back office's own delete task: printed there alone.
+        if ($confirm && Factory::getApplication()->isClient('administrator')) {
+            $html .= LayoutHelper::render('shipments.delete_confirm', ['ids' => $ids], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
+        }
+
+        return new DeleteRefusedException($html, $sentence . ($confirm ? ' ' . Text::_('COM_ALFA_SHIPMENT_DELETE_CONFIRM_REST') : ''));
+    }
+
+    /**
+     * The link to the Products list filtered to the products limited to shipping methods, in every state; '' outside
+     * the back office.
+     *
+     * @param int[] $ids The shipping methods; none for every product whose list holds no published method.
+     * @param string $list The kind of list (ItemShipments::LIST_*).
+     *
+     * @since  2.3.0
+     */
+    private function productsLink(array $ids, string $list): string
+    {
+        // A link of the back office: another client (the REST API, a command line run) is told the sentence alone.
+        if (!Factory::getApplication()->isClient('administrator')) {
+            return '';
+        }
+
+        $filter = ['state' => '*', 'shipment' => array_values(array_map('intval', $ids)), 'shipment_list' => $list];
+
+        return HTMLHelper::_(
+            'link',
+            Route::_('index.php?option=com_alfa&view=items&' . http_build_query(['filter' => array_filter($filter, static fn ($value): bool => $value !== [] && $value !== '')])),
+            Text::_('COM_ALFA_SHIPMENT_PRODUCTS_LINK'),
+        );
     }
 
     /**

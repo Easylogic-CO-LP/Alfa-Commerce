@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\RuleReach;
@@ -487,6 +488,20 @@ class ItemsModel extends AlfaListModel
                 . ' FROM ' . $db->quoteName('#__alfa_item_labels')
                 . ' WHERE ' . $db->quoteName('label_id') . ' IN (' . implode(',', $labels) . '))',
             );
+        }
+
+        // The products limited to shipping methods (a shipping method's delete and unpublish link here): a list that
+        // names some of the chosen methods, one that names them alone, or one with no published method on it. The
+        // condition is the one the shipping method's own counts are made of.
+        $shipmentList = ItemShipments::productSql(
+            db:          $db,
+            itemId:      $db->quoteName('a.id'),
+            shipmentIds: (array) $this->getState('filter.shipment'),
+            list:        (string) $this->getState('filter.shipment_list', ItemShipments::LIST_ANY),
+        );
+
+        if ($shipmentList !== null) {
+            $query->where($shipmentList);
         }
 
         // The products one discount rule reaches today (the rule form's Reach card links here), by the reach's own
