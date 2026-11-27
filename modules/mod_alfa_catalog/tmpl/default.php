@@ -26,10 +26,8 @@ $moduleId = (int) $module->id;
 $sfx = htmlspecialchars((string) $params->get('moduleclass_sfx', ''), ENT_QUOTES, 'UTF-8');
 $idBase = 'mod-alfa-catalog-' . $moduleId;
 $tabbed = \count($groups) > 1;
-// What the catalogue draws inside a product (price, stock, add to cart) is styled under the catalogue's own root.
-$shop = $needs['shop'] ? 'com-alfa ' : '';
 ?>
-<div class="<?php echo $shop; ?>mod-alfa-catalog mod-alfa-catalog-<?php echo $moduleId; ?><?php echo $sfx !== '' ? ' ' . $sfx : ''; ?>"
+<div class="mod-alfa-catalog mod-alfa-catalog-<?php echo $moduleId; ?><?php echo $sfx !== '' ? ' ' . $sfx : ''; ?>"
      data-mod-alfa-catalog
      data-module-id="<?php echo $moduleId; ?>"
      data-arrangement="<?php echo $tabbed ? 'tabs' : 'single'; ?>"<?php echo $tabbed ? ' data-lazy-url="' . htmlspecialchars($lazyUrl, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>

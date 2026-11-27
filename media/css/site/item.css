@@ -5,7 +5,7 @@
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-container {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: 20px;
@@ -21,7 +21,7 @@
    badge (the item.label layout, contributed by Labels). The colours come from the label; a label without colours
    wears the label tokens, a sale tag the sale tokens. The kind rides on data-kind (sale, new, predefined, custom),
    the context on data-context (list for cards, item for the product page), the key on data-label. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-label {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-label {
     display: inline-block;
     padding: 3px 8px;
     font-size: 0.72rem;
@@ -34,13 +34,13 @@
     white-space: nowrap;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-label[data-kind="sale"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-label[data-kind="sale"] {
     color: var(--alfa-sale-color);
     background: var(--alfa-sale-bg);
 }
 
 /* A slot's labels stand in a row (the item.labels layout, one per slot). */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-labels {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-labels {
     display: inline-flex;
     flex-wrap: wrap;
     gap: 4px;
@@ -48,12 +48,12 @@
 
 /* In the IMAGE slot a badge overlays the image; the image container is the positioning context. Other slots (title,
    buy-form, ...) flow inline. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-image,
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-wrapper {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-image,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-wrapper {
     position: relative;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-field-surface[data-surface="image"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-field-surface[data-surface="image"] {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -63,33 +63,33 @@
 
 /* Labels in the image slot: their wrapper spans the image, and each corner's labels stack one under the other in
    that corner (one item.labels per corner). */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-field-surface[data-surface="image"]:has(> .item-labels) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-field-surface[data-surface="image"]:has(> .item-labels) {
     inset: 0;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-labels[data-corner] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-labels[data-corner] {
     position: absolute;
     flex-direction: column;
     align-items: flex-start;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-labels[data-corner="top-left"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-labels[data-corner="top-left"] {
     top: 8px;
     left: 8px;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-labels[data-corner="top-right"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-labels[data-corner="top-right"] {
     top: 8px;
     right: 8px;
     align-items: flex-end;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-labels[data-corner="bottom-left"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-labels[data-corner="bottom-left"] {
     bottom: 8px;
     left: 8px;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-labels[data-corner="bottom-right"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-labels[data-corner="bottom-right"] {
     bottom: 8px;
     right: 8px;
     align-items: flex-end;
@@ -104,7 +104,7 @@
    in a card the controls sit under centred content and reading left-aligned there
    looks like a mistake. Neither stretches: each keeps its natural width, so a
    3-digit quantity field is not pulled to the full column. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-add {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-add {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -113,13 +113,13 @@
 
 /* The item view is the exception: its column is left-aligned text, so the controls
    line up with the name and price above them rather than floating mid-column. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-container .item-cart-add {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-container .item-cart-add {
     align-items: flex-start;
 }
 
 /* ADD TO CART BUTTON */
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-btn {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-btn {
     border: none;
     /* The same height as the stepper above it: they are the same kind of control
        and stood 48px against 40px. The height comes from the token, so the vertical
@@ -139,25 +139,25 @@
 
 /* The class is also a link (Choose options, Personalise): a template's a:hover /
    a:focus must not recolour its label. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-btn:hover {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-btn:hover {
     background-color: var(--alfa-action-primary-bg-hover);
     color: var(--alfa-action-primary-color);
     text-decoration: none;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-btn:focus {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-btn:focus {
     color: var(--alfa-action-primary-color);
 }
 
 /* PRODUCT IMAGES SECTION */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .main-images {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .main-images {
     display: flex;
     overflow: hidden;
     position: relative;
     width: 100%;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .main-images .item-image {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .main-images .item-image {
     display: flex;
     align-items: center;
 
@@ -166,7 +166,7 @@
     flex-shrink: 0;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .main-images .item-image img {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .main-images .item-image img {
     display: block;
     width: 100%;
     height: auto;
@@ -174,32 +174,32 @@
 
 /* THE IMAGES GRID (default_images-grid.php): every image at once, each a link to the lightbox, in the columns of
    its modifier class; at most two columns on a phone. Never the slider's .main-images. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid--cols-3 {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid--cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid--cols-4 {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid--cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 @media screen and (max-width: 600px) {
-    :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid--cols-3,
-    :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid--cols-4 {
+    :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid--cols-3,
+    :where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid--cols-4 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid .item-image {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid .item-image {
     display: block;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-images-grid img {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-images-grid img {
     display: block;
     width: 100%;
     height: auto;
@@ -207,83 +207,83 @@
     object-fit: cover;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .thumbnail-images {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .thumbnail-images {
     display: flex;
     flex-direction: row;
     gap: 6px;
     margin-top: 1rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .thumbnail-images .item-image{
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .thumbnail-images .item-image{
     height: 85px;
     width: 85px;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .thumbnail-images .active {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .thumbnail-images .active {
     border: 2px solid blue;
 }
 
 /* Price Breakdown*/
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .price-breakdown-toggle {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .price-breakdown-toggle {
     cursor: pointer;
     user-select: none;
     display: inline-block;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .price-breakdown-toggle::-webkit-details-marker {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .price-breakdown-toggle::-webkit-details-marker {
     display: none;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .price-breakdown-toggle::before {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .price-breakdown-toggle::before {
     content: '▸';
     display: inline-block;
     transition: transform 0.2s;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .price-breakdown[open] .price-breakdown-toggle::before {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .price-breakdown[open] .price-breakdown-toggle::before {
     transform: rotate(90deg);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .price-breakdown-content {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .price-breakdown-content {
     padding: 0.5rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .price-breakdown-steps {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .price-breakdown-steps {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .breakdown-step {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .breakdown-step {
     display: flex;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .breakdown-description {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .breakdown-description {
     display: flex;
     flex: 1;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .breakdown-amount {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .breakdown-amount {
     white-space: nowrap;
     display: flex;
     gap: 0.25rem;
 }
 
 /* Highlight different operations */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .breakdown-step[data-operation="subtract"] .breakdown-amount {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .breakdown-step[data-operation="subtract"] .breakdown-amount {
     color: var(--alfa-success-color);
 }
 
 /* MANUFACTURERS CATEGORIES */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-list-inner {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-list-inner {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
     gap: 1.5rem;
     margin: 1rem 0;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-list-entry {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-list-entry {
     border: 1px solid var(--alfa-hairline);
     border-radius: var(--alfa-radius);
     padding: 1.25rem;
@@ -292,7 +292,7 @@
     scrollbar-width: thin;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-list-entry a {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-list-entry a {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -300,13 +300,13 @@
     color: inherit;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-list-entry-name {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-list-entry-name {
     font-weight: bold;
     font-size: 1.1rem;
     color: var(--alfa-surface-color);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-list-entry-image {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-list-entry-image {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 1rem;
@@ -314,7 +314,7 @@
     align-items: center;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-list-entry-image img {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-list-entry-image img {
     width: 100%;
     height: auto;
     object-fit: cover;
@@ -323,42 +323,42 @@
 
 /* PAYMENT AND SHIPPING: one framed block in the buy column, one method per row (core's drawing of the method, or the
    part its plugin draws), the frame and the lines between the rows in one token's colour. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-methods) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-methods) {
     margin: 1rem 0;
     padding: 0.75rem 1rem;
     border: 1px solid var(--alfa-methods-frame);
     border-radius: var(--alfa-radius);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-methods-title) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-methods-title) {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-methods-inner) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-methods-inner) {
     display: grid;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-methods-inner > .item-field-surface) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-methods-inner > .item-field-surface) {
     padding: 0.5rem 0;
     border-top: 1px solid var(--alfa-methods-frame);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-methods-inner > .item-field-surface:first-child) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-methods-inner > .item-field-surface:first-child) {
     padding-top: 0;
     border-top: 0;
 }
 
 /* A payment or shipping method's image, before its title: held to the token's height, never wider than a
    few words, its own proportions kept. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.method-image) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.method-image) {
     display: inline-block;
     margin-inline-end: 0.5em;
     vertical-align: middle;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.method-image img) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.method-image img) {
     display: block;
     width: auto;
     height: auto;
@@ -366,12 +366,12 @@
     max-width: 6rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.method-item-title) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.method-item-title) {
     display: block;
     font-weight: 600;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.method-item-description) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.method-item-description) {
     margin: 0.25rem 0 0;
 }
 /*
@@ -380,24 +380,24 @@
 
 /* Field reload in flight: dim + lock the item/card while swapping. The unified
    reload (variant.js) flags the [data-item-id] container, not the #alfa-app shell. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-container.is-loading,
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .list-item.is-loading {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-container.is-loading,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .list-item.is-loading {
     opacity: 0.55;
     pointer-events: none;
     transition: opacity 0.15s ease;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-buy-form .variant-field {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-buy-form .variant-field {
     margin: 0 0 1rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-field-label {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-field-label {
     display: block;
     margin-bottom: 0.4rem;
     font-weight: 600;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-field-control {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-field-control {
     min-width: 12rem;
     padding: 0.4rem 0.6rem;
     /* It is a <select>: leave room for the drop-down arrow, whether the browser
@@ -405,15 +405,15 @@
     padding-inline-end: 2rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-options,
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatches {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-options,
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatches {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 
 /* radio / buttons */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-option {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-option {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -424,11 +424,11 @@
     user-select: none;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-option input {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-option input {
     margin: 0;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-options--buttons .variant-option input {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-options--buttons .variant-option input {
     position: absolute;
     opacity: 0;
     pointer-events: none;
@@ -437,23 +437,23 @@
 /* Selected state is driven by the native radio's :checked, the SAME input that
    carries the value contract (sel[]/opt[]). No JS class to keep in sync, so a
    price-only reload (which doesn't re-render the control) still shows the choice. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-option:has(> input:checked) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-option:has(> input:checked) {
     border-color: var(--alfa-selected);
     box-shadow: inset 0 0 0 1px var(--alfa-selected);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-option.is-out-of-stock .variant-option-label {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-option.is-out-of-stock .variant-option-label {
     opacity: 0.6;
     text-decoration: line-through;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-option.is-unavailable {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-option.is-unavailable {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
 /* swatches */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -463,13 +463,13 @@
     cursor: pointer;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch-input {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch-input {
     position: absolute;
     opacity: 0;
     pointer-events: none;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch-chip {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch-chip {
     width: 2.2rem;
     height: 2.2rem;
     border: 2px solid var(--alfa-hairline);
@@ -478,37 +478,37 @@
     background-position: center;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch-chip[data-empty="1"] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch-chip[data-empty="1"] {
     background: repeating-linear-gradient(45deg, #eee, #eee 4px, #fafafa 4px, #fafafa 8px);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch:has(> input:checked) .variant-swatch-chip {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch:has(> input:checked) .variant-swatch-chip {
     border-color: var(--alfa-selected);
     box-shadow: 0 0 0 2px #1a73e8;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch-name {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch-name {
     font-size: 0.8rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch.is-out-of-stock .variant-swatch-name {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch.is-out-of-stock .variant-swatch-name {
     opacity: 0.6;
     text-decoration: line-through;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-swatch.is-unavailable {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-swatch.is-unavailable {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
 /* cards: a big tappable card per value (image on top, name below) */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-cards {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-cards {
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -522,17 +522,17 @@
     transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card:hover {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card:hover {
     border-color: var(--alfa-selected);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card-input {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card-input {
     position: absolute;
     opacity: 0;
     pointer-events: none;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card-media {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card-media {
     width: 100%;
     aspect-ratio: 1;
     border-radius: var(--alfa-radius);
@@ -543,40 +543,40 @@
     justify-content: center;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card-media img {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card:has(> input:checked) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card:has(> input:checked) {
     border-color: var(--alfa-selected);
     box-shadow: 0 0 0 2px rgb(26 115 232 / 25%);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card-name {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card-name {
     font-size: 0.8rem;
     line-height: 1.15;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card.is-out-of-stock .variant-card-name {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card.is-out-of-stock .variant-card-name {
     opacity: 0.6;
     text-decoration: line-through;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .variant-card.is-unavailable {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .variant-card.is-unavailable {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
 /* Variant gating: disabled add-to-cart + reason hint */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-btn[disabled] {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-btn[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-hint {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-hint {
     display: inline-block;
     flex-basis: 100%;
     font-size: 0.85rem;
@@ -584,7 +584,7 @@
 }
 
 /* required gate: visible hint (no hover on mobile) */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) .item-cart-required-hint {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) .item-cart-required-hint {
     flex-basis: 100%;
     font-size: 0.82rem;
     color: var(--alfa-warning-color);
@@ -593,17 +593,17 @@
 
 /* Catalogue only: a product field as a plain list of its values (item.fields_readonly), its values level with
    its name, not indented as a browser draws a <dd>. Lowest specificity, for a template to restyle. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-field-readonly-value) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-field-readonly-value) {
     margin-inline-start: 0;
 }
 
 /* THE RELATED PRODUCTS (default_related.php): a part after the product, the listing's grid and cards (list.css).
    Only the part's own spacing and heading here; a template overrides either without !important. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-related) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-related) {
     margin-top: 2rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.item-related-heading) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.item-related-heading) {
     margin: 0 0 1rem;
     font-size: 1.25rem;
 }
@@ -612,59 +612,59 @@
    box: the description, the specifications table, the shop's and the product's own sections, the fields placed in a
    section of their own and the plugins' sections, one under the other, as tabs (the bar is tabs.css) or as an
    accordion of native details. Only their look here, at the lowest specificity. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.sections) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.sections) {
     margin-top: 2rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.section) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.section) {
     margin-bottom: 2rem;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.section-title) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.section-title) {
     margin: 0 0 0.75rem;
     font-size: 1.25rem;
 }
 
 /* The accordion: each section a row with a hairline under it, its heading on the summary line beside the marker. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.sections-accordion .section) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.sections-accordion .section) {
     margin: 0;
     border-bottom: 1px solid var(--alfa-hairline);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.section-summary) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.section-summary) {
     padding: 0.75rem 0;
     cursor: pointer;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.section-summary > .section-title) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.section-summary > .section-title) {
     display: inline;
     margin: 0;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.sections-accordion .section-body) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.sections-accordion .section-body) {
     padding: 0 0 1rem;
 }
 
 /* The specifications table: the fields placed in the Specifications section, one row each, the label as the row's
    header. */
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.spec-table) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.spec-table) {
     width: 100%;
     border-collapse: collapse;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.spec-table th, .spec-table td) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.spec-table th, .spec-table td) {
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--alfa-hairline);
     text-align: start;
     vertical-align: top;
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.spec-table th) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.spec-table th) {
     width: 30%;
     font-weight: 600;
     color: var(--alfa-muted-color);
 }
 
-:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart) :where(.spec-field-values) {
+:where(#alfa-app, .mod-alfa-items, .mod-alfa-cart, .mod-alfa-catalog) :where(.spec-field-values) {
     margin: 0;
 }

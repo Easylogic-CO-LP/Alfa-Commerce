@@ -33,8 +33,8 @@
  *   [CT8] assets: a single grid or list needs no script, only a slider the slider library, only products the
  *         shop's styles, only product cards the buying scripts.
  *   [CT9] the source: every rule of the stylesheet is scoped with :where(.mod-alfa-catalog), none is forced, no
- *         class in a layout carries the alfa- prefix, nothing names another module, every language key used is
- *         defined, and the registry names the files the build made.
+ *         class, data attribute or id in a layout or a script carries the alfa- prefix, nothing names another
+ *         module, every language key used is defined, and the registry names the files the build made.
  *
  *   cd <docroot> && php administrator/components/com_alfa/tests/modules/catalog-suite.php
  *   php tests/modules/catalog-suite.php joomla=<docroot>     (from the repository)
@@ -1007,13 +1007,19 @@ namespace {
     $classes = [];
 
     foreach ($sources as $name => $source) {
-        if (str_starts_with($name, 'tmpl/') && preg_match_all('/class="([^"<]*)/', $source, $found)) {
+        if ((str_starts_with($name, 'tmpl/') || str_starts_with($name, 'layouts/')) && preg_match_all('/class="([^"<]*)/', $source, $found)) {
             $classes = array_merge($classes, preg_split('/\s+/', implode(' ', $found[1]), -1, PREG_SPLIT_NO_EMPTY));
         }
     }
 
     is_same('[CT9] no class in a layout carries the alfa- prefix', array_values(array_filter(array_unique($classes), static fn (string $class): bool => str_starts_with($class, 'alfa-'))), []);
     is_true('[CT9] the layouts were read', \count(array_unique($classes)) > 15);
+    is_same(
+        '[CT9] no data attribute, element id or script name carries the prefix either',
+        array_keys(array_filter($sources, static fn (string $source, string $name): bool => !str_ends_with($name, '.md') && preg_match('/data-alfa-|dataset\.alfa|id="alfa-|[\s"\'.]alfa-look|com-alfa\b/', $source) === 1, ARRAY_FILTER_USE_BOTH)),
+        [],
+    );
+    is_true('[CT9] the root is the module\'s own class and nothing of the shop\'s', str_contains($sources['tmpl/default.php'], '<div class="mod-alfa-catalog mod-alfa-catalog-<?php echo $moduleId; ?>'));
     is_same(
         '[CT9] nothing but the migration notes names another module of the shop',
         array_keys(array_filter($sources, static fn (string $source, string $name): bool => $name !== 'MIGRATION-NOTES.md' && preg_match('/mod[_-]alfa[_-](items|categories|manufacturers)/i', $source) === 1, ARRAY_FILTER_USE_BOTH)),

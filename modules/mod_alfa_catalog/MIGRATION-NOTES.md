@@ -56,9 +56,8 @@ By hand, because it is not in the row:
 - in `custom_js`: the root attribute `data-mod-alfa-items` becomes `data-mod-alfa-catalog`, and a slider's instance
   on its element is `catalogSlider`.
 
-No counterpart: nothing. What changes without being asked for: every rule of the new stylesheet has the
-specificity of its last part only, so a site rule that needed two classes to win over the old module now wins with
-one; the module's script is no longer loaded for a single tab that is a grid.
+No counterpart: nothing. What changes without being asked for: the module's script is no longer loaded for a
+single tab that is a grid.
 
 ## mod_alfa_categories
 
