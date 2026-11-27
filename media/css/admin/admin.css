@@ -683,6 +683,8 @@ tr.alfa-row-refund > * {
    control's "In a new tab" choice carries its own icon, so the glyph stays out of this control only. */
 #toolbar-preview a[target="_blank"]::before {
     content: none;
+}
+
 /* The webhook form's Topics tab: one box under the other, the line that says when the topic is told right under its
    name. */
 .alfa-topics .form-check + .form-check {
