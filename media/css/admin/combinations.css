@@ -187,7 +187,7 @@ body:has(.alfa-studio) {
 }
 
 /* Responsive field grid: ~3 across, wrapping to a new line only when they no
-   longer fit (the identity + logistics override fields). */
+   longer fit (the logistics override fields). */
 .alfa-studio .studio-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -358,6 +358,7 @@ body:has(.alfa-studio) {
 
 .alfa-combi-tools .tools-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin-bottom: 0.6rem;
@@ -372,10 +373,12 @@ body:has(.alfa-studio) {
   margin-left: auto;
 }
 
-/* The variations head's action cluster (show-only, bulk, generate) hugs right. */
+/* The variations head's action cluster (show-only, bulk, generate) hugs right, and
+   wraps onto further lines where the width runs out. */
 .alfa-combi-tools .tools-head .tools-actions {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
 }
@@ -407,6 +410,7 @@ body:has(.alfa-studio) {
 
 .alfa-combi-tools .settings-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   padding: 0.4rem 0.2rem;

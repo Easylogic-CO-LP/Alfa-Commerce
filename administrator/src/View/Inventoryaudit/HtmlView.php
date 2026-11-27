@@ -115,8 +115,11 @@ class HtmlView extends BaseHtmlView
 
         $this->report = $this->getModel()->getReport();
 
-        // The repair of a whole section asks before it runs, in Joomla's own dialog.
-        $this->getDocument()->getWebAssetManager()->useScript('joomla.dialog-autocreate');
+        // The repair of a whole section asks before it runs, in Joomla's own dialog. The report is
+        // a fixed-path partial, so its stylesheet is the view's to load, not the template's.
+        $this->getDocument()->getWebAssetManager()
+            ->useScript('joomla.dialog-autocreate')
+            ->useStyle('com_alfa.admin');
 
         ob_start();
         include __DIR__ . '/_report.php';
@@ -260,18 +263,10 @@ class HtmlView extends BaseHtmlView
     {
         ToolbarHelper::title(title: Text::_('COM_ALFA_TITLE_INVENTORY_AUDIT'), icon: 'generic');
 
-        // The two lists the audit is reached from, so a repair can be followed up where the
-        // stock is edited and where its movements are read.
-        $toolbar = $this->getDocument()->getToolbar();
-
-        $toolbar->linkButton('items')
-            ->text('COM_ALFA_TITLE_ITEMS')
-            ->url(Route::_(url: 'index.php?option=com_alfa&view=items'))
-            ->icon('icon-list');
-
-        $toolbar->linkButton('inventorymovements')
+        // The audit is reached from the stock movements list, and the way back leads there.
+        $this->getDocument()->getToolbar()->linkButton('back')
             ->text('COM_ALFA_INVENTORYMOVEMENTS_TITLE')
             ->url(Route::_(url: 'index.php?option=com_alfa&view=inventorymovements'))
-            ->icon('icon-generic');
+            ->icon('icon-arrow-left');
     }
 }
