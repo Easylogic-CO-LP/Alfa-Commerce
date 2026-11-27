@@ -36,7 +36,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS"
-                    description="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS_DESC"
+                    description="COM_ALFA_MENU_SHOW_ITEMS_FILTERS_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -50,7 +50,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_SHOW_ITEMS_FIELD_FACETS"
-                    description="COM_ALFA_CONFIG_SHOW_ITEMS_FIELD_FACETS_DESC"
+                    description="COM_ALFA_MENU_SHOW_ITEMS_FIELD_FACETS_DESC"
                     showon="show_items_filters:1"
                     validate="options"
             >
@@ -66,7 +66,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED"
-                    description="COM_ALFA_CONFIG_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED_DESC"
+                    description="COM_ALFA_MENU_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED_DESC"
                     showon="show_items_filters:1"
                     validate="options"
             >
@@ -81,7 +81,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_HIDE_CATEGORIES_WHEN_FILTERED"
-                    description="COM_ALFA_CONFIG_HIDE_CATEGORIES_WHEN_FILTERED_DESC"
+                    description="COM_ALFA_MENU_HIDE_CATEGORIES_WHEN_FILTERED_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -94,7 +94,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE"
-                    description="COM_ALFA_CONFIG_SHOW_CATEGORY_TITLE_DESC"
+                    description="COM_ALFA_MENU_SHOW_CATEGORY_TITLE_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -106,7 +106,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION"
-                    description="COM_ALFA_CONFIG_SHOW_CATEGORY_DESCRIPTION_DESC"
+                    description="COM_ALFA_MENU_SHOW_CATEGORY_DESCRIPTION_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -118,7 +118,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES"
-                    description="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES_DESC"
+                    description="COM_ALFA_MENU_INCLUDE_SUBCATEGORIES_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -133,7 +133,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_ITEMS_LABEL"
-                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_ITEMS_DESC"
+                    description="COM_ALFA_MENU_MEDIA_PLACEHOLDER_ITEMS_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -145,7 +145,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_CATEGORIES_LABEL"
-                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_CATEGORIES_DESC"
+                    description="COM_ALFA_MENU_MEDIA_PLACEHOLDER_CATEGORIES_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>

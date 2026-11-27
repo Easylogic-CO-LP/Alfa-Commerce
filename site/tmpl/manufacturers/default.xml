@@ -13,7 +13,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_SHOW_MANUFACTURERS_FILTERS"
-                    description="COM_ALFA_CONFIG_SHOW_MANUFACTURERS_FILTERS_DESC"
+                    description="COM_ALFA_MENU_SHOW_MANUFACTURERS_FILTERS_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -26,7 +26,7 @@
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_MANUFACTURERS_LABEL"
-                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_MANUFACTURERS_DESC"
+                    description="COM_ALFA_MENU_MEDIA_PLACEHOLDER_MANUFACTURERS_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
