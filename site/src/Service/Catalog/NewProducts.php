@@ -178,4 +178,25 @@ final class NewProducts
 
         return '(' . $date . ' IS NOT NULL AND ' . $date . ' <= ' . $momentSql . ' AND DATE_ADD(' . $date . ', INTERVAL ' . $daysSql . ' DAY) > ' . $momentSql . ')';
     }
+
+    /**
+     * The SQL condition that a discount rule does not leave a product out as new at a moment: the rule reaches new
+     * products, or the product is not new within the days the rule names (the shop's, or its own). A product with no
+     * items row (one not saved yet, on a LEFT JOIN) is reached. The one wording of the rule's new-products choice: the
+     * pricing engine's loader and the reach counts both read it.
+     *
+     * @param string $ruleAlias The discounts table's alias.
+     * @param string $itemAlias The items table's alias.
+     * @param string $momentSql The moment, as quoted SQL (UTC).
+     *
+     * @since  2.3.0
+     */
+    public static function reachedByRuleSql(string $ruleAlias, string $itemAlias, string $momentSql): string
+    {
+        $shopDays = self::days();
+        $shop = $shopDays > 0 ? 'NOT ' . self::withinSql(itemAlias: $itemAlias, daysSql: (string) $shopDays, momentSql: $momentSql) : '1 = 1';
+        $own = 'NOT ' . self::withinSql(itemAlias: $itemAlias, daysSql: $ruleAlias . '.new_days', momentSql: $momentSql);
+
+        return '(' . $itemAlias . '.id IS NULL OR ((' . $ruleAlias . '.new_products <> 1 OR ' . $shop . ') AND (' . $ruleAlias . '.new_products <> 2 OR ' . $ruleAlias . '.new_days <= 0 OR ' . $own . ')))';
+    }
 }

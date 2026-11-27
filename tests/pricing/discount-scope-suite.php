@@ -25,6 +25,15 @@
  *   [SC6] the product list field reads ids, rows and JSON alike; the saved rule answers ids for every list.
  *   [SC7] ★ deleting the only product a rule names is refused, naming the rule.
  *   [SC8] (needs a prepared price index context) the product's index periods end where the rule's days end.
+ *   [RR1] ★ the reach the Reach card, the price check and the product list's rule filter count by (RuleReach) reads
+ *         the rule's products: the rule naming one product reaches that one alone, its card says one, and the product
+ *         list filtered to the rule lists it alone.
+ *   [RR2] ★ the reach leaves out the product the rule excludes and the product in a category it excludes.
+ *   [RR3] ★ the reach leaves out the product whose own switch takes it out of every rule.
+ *   [RR4] ★ the reach follows the rule's new-products choice: its own days, and the shop's days at none and at ten.
+ *   [RR5] ★ for every rule and product of the run the reach says what the engine applied, on the product side alone
+ *         and for the anonymous visitor.
+ *   [RR6] the card's stack counts name only rules that reach the same product (read when every rule is compared).
  *   [MG1] ★ a per-language key of a field the form does not translate is not recovered from the post, every other
  *         undeclared key still is; a discount saved with a stray alias_<lang> and foo_<lang> saves its name and
  *         gives its language table no column; a product saves its name and its alias per language.
@@ -58,6 +67,8 @@ use Alfa\Component\Alfa\Administrator\Field\DiscountItemsField;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper as Multilingual;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\DiscountReach;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\RuleReach;
 use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -332,9 +343,52 @@ try {
         $reach[$name] = $matched($id, $mine);
     }
 
+    // The reach as the Reach card, the price check and the product list's rule filter count it: the product side
+    // alone, and with the anonymous visitor's side.
+    $reaches = static fn (int $ruleId, int $itemId, bool $visitor = false): bool => (int) $db->setQuery(
+        'SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_items', 'a') . ' WHERE ' . $db->quoteName('a.id') . ' = ' . $itemId . ' AND '
+        . ($visitor
+            ? RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: (string) $ruleId, itemId: $db->quoteName('a.id'))
+            : RuleReach::productSql(kind: RuleReach::DISCOUNT, ruleId: (string) $ruleId, itemId: $db->quoteName('a.id'))),
+    )->loadResult() === 1;
+    $counted = [];
+
+    foreach (['d1' => $d1, 'd2' => $d2, 'd3' => $d3, 'd4' => $d4] as $ruleName => $ruleId) {
+        foreach (['in' => $pIn, 'out' => $pOut, 'excl' => $pExcl, 'catexcl' => $pCatExcl, 'switch' => $pSwitch, 'new' => $pNew, 'old' => $pOld] as $name => $id) {
+            $counted[$ruleName][$name] = [
+                'product' => $reaches($ruleId, $id),
+                'visitor' => $reaches($ruleId, $id, true),
+                'engine' => \in_array($ruleId, $reach[$name]['applied'], true),
+            ];
+        }
+    }
+
+    // The card of the rule naming one product, and the product list narrowed to that rule: each read on its own, so
+    // one that cannot be read in a command-line run says so and the other arms still stand.
+    try {
+        $card = (new DiscountReach(db: $db))->of($d1);
+        $card = ['reaches' => $card['reaches'] ?? null, 'more' => $card['more'] ?? null, 'exclusions' => $card['exclusions'] ?? null,
+            'stacks' => array_column(array_values(array_filter($card['stacks'] ?? [], static fn (array $stack): bool => \in_array((int) $stack['id'], $mine, true))), 'count', 'id')];
+    } catch (\Throwable $e) {
+        $card = ['error' => \get_class($e) . ': ' . $e->getMessage()];
+    }
+
+    try {
+        $listModel = $factory->createModel('Items', 'Administrator', ['ignore_request' => true]);
+        $listModel->setState('filter.state', 1);
+        $listModel->setState('filter.discount', $d1);
+        $listModel->setState('list.ordering', 'a.id');
+        $listModel->setState('list.direction', 'ASC');
+        $listModel->setState('list.start', 0);
+        $listModel->setState('list.limit', 0);
+        $listed = array_map(static fn (object $row): int => (int) $row->id, $listModel->getItems() ?: []);
+    } catch (\Throwable $e) {
+        $listed = ['error' => \get_class($e) . ': ' . $e->getMessage()];
+    }
+
     // The shop's days: ten, then none.
     $params->set(NewProducts::PARAM_DAYS, 10);
-    $shopTen = ['new' => $matched($pNew, [$d4]), 'old' => $matched($pOld, [$d4])];
+    $shopTen = ['new' => $matched($pNew, [$d4]), 'old' => $matched($pOld, [$d4]), 'counted' => [$reaches($d4, $pNew), $reaches($d4, $pOld)]];
     $params->set(NewProducts::PARAM_DAYS, 0);
 
     // The variants: one takes the rules on its own, one takes none, while the product takes none.
@@ -372,7 +426,8 @@ try {
 
     $result = ['reach' => $reach, 'shopTen' => $shopTen, 'switches' => $switches, 'variants' => $variants, 'saved' => $savedShape, 'savedD3' => [(int) $savedD3->new_products, (int) $savedD3->new_days],
         'delete' => ['result' => $deleted, 'named' => str_contains($deleteError, 'DS disposable rule D1 ' . $run), 'kept' => $stillThere], 'edge' => $edge,
-        'ids' => ['d1' => $d1, 'd2' => $d2, 'd3' => $d3, 'd4' => $d4, 'excl' => $pExcl], 'guard' => $guard];
+        'ids' => ['d1' => $d1, 'd2' => $d2, 'd3' => $d3, 'd4' => $d4, 'excl' => $pExcl, 'in' => $pIn], 'guard' => $guard,
+        'counted' => $counted, 'card' => $card, 'listed' => $listed];
 } catch (\Throwable $e) {
     $result = ['error' => \get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine()];
 } finally {
@@ -403,6 +458,32 @@ if (isset($result['error'])) {
     check('[SC4] ★ a rule leaving new products out for seven days of its own skips the product made today and reaches the one made thirty days ago', [$has($r['new']['rules'], $d3), $has($r['old']['rules'], $d3)], [false, true]);
     check('[SC4] ★ a rule on the shop\'s days reaches both while the shop counts no product as new', [$has($r['new']['rules'], $d4), $has($r['old']['rules'], $d4)], [true, true]);
     check('[SC4] ★ and skips the product made today once the shop counts ten days', [$has($result['shopTen']['new']['rules'], $d4), $has($result['shopTen']['old']['rules'], $d4)], [false, true]);
+
+    echo "\nthe reach the card, the price check and the product list count by\n";
+    $c = $result['counted'];
+    $side = static fn (string $rule, string $key): array => array_map(static fn (array $row): bool => $row[$key], $c[$rule]);
+    check('[RR1] ★ the rule naming one product reaches that product and no other of its category', [$c['d1']['in']['product'], $c['d1']['out']['product']], [true, false]);
+    check('[RR1] ★ its card says one published product, with none excluded', [$result['card']['reaches'] ?? $result['card'], $result['card']['exclusions'] ?? null], [1, ['by_rule' => 0, 'own' => 0]]);
+    check('[RR1] ★ the product list filtered to the rule lists that product alone', $result['listed'], [$result['ids']['in']]);
+    check('[RR2] ★ the reach leaves out the product the rule excludes and the product in a category it excludes, and keeps the others',
+        [$c['d2']['excl']['product'], $c['d2']['catexcl']['product'], $c['d2']['in']['product'], $c['d2']['out']['product']], [false, false, true, true]);
+    check('[RR3] ★ the reach leaves out the product whose own switch takes it out of every rule', [$c['d2']['switch']['product'], $c['d4']['switch']['product']], [false, false]);
+    check('[RR4] ★ a rule leaving new products out for seven days of its own does not reach the product made today and reaches the one made thirty days ago', [$c['d3']['new']['product'], $c['d3']['old']['product']], [false, true]);
+    check('[RR4] ★ a rule on the shop\'s days reaches both while the shop counts no product as new', [$c['d4']['new']['product'], $c['d4']['old']['product']], [true, true]);
+    check('[RR4] ★ and leaves the product made today out once the shop counts ten days', $result['shopTen']['counted'], [false, true]);
+
+    foreach (['d1', 'd2', 'd3', 'd4'] as $rule) {
+        check('[RR5] ★ the reach of rule ' . strtoupper($rule) . ' is what the engine applied, product by product', $side($rule, 'product'), $side($rule, 'engine'));
+        check('[RR5] ★ and the same for the anonymous visitor', $side($rule, 'visitor'), $side($rule, 'engine'));
+    }
+
+    if (isset($result['card']['error'])) {
+        check('[RR6] the card of the rule is read', $result['card']['error'], 'read');
+    } elseif ((int) $result['card']['more'] > 0) {
+        echo "  skip [RR6] the shop has more combining rules than the card compares, so this run's rules may not be among them\n";
+    } else {
+        check('[RR6] the rule naming one product stacks on it with the two rules that reach it, and not with the rule that leaves it out as new', $result['card']['stacks'], [$d2 => 1, $d4 => 1]);
+    }
 
     echo "\nthe saved rule\n";
     check('[SC6] the saved rule answers ids for its products, its excluded products and its excluded categories, and its new-products choice', $result['saved'], ['items' => [], 'excluded_items' => [$pExcl], 'excluded_categories' => [$catB], 'new' => [0, 0]]);

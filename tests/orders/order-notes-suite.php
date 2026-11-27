@@ -25,6 +25,10 @@
  *        and the text is in no e-mail and in no attribute the API renders; the API refuses the key.
  *   [I2] the API's history for the order lists the status changes with their notes to the customer and the e-mail
  *        sent again with its note, and nothing of the internal note.
+ *   [S4] ★ the order screen's form posted with the e-mail box unticked (a tick box that is not ticked posts nothing):
+ *        validation hands save() an explicit no, the order moves, its record says the customer is not e-mailed, and
+ *        no e-mail single of the change is for the customer. Ticked, the same posting hands save() a yes.
+ *   [S5] the API's order model validates a posting without the key and leaves it out: the status decides.
  *   [T1] every table touched holds exactly the rows it held.
  *
  * Fixtures: one disposable guest order of this run's own, with no lines, whose customer address is
@@ -463,6 +467,64 @@ try {
     $check('[I2] and its statuses by id and name', ($firstMove['from_status']['id'] ?? 0) === $initial && ($firstMove['to_status']['id'] ?? 0) === $target && ($firstMove['to_status']['name'] ?? '') !== '', true);
     $check('[I2] the internal note is nowhere in the history', str_contains(json_encode($history, JSON_UNESCAPED_UNICODE), $internal), false);
     $check('[I2] no entry names who on staff did it', str_contains(json_encode($history), '"actor"') || str_contains(json_encode($history), 'employee'), false);
+
+    // S4: the order screen's form, posted as a browser posts it with the e-mail box unticked: the key is not there.
+    $screen = static function () use ($model, $orderId): array {
+        $subject = $model();
+        $subject->setState('order.id', $orderId);
+
+        return [$subject, $subject->getForm([], false)];
+    };
+    $posted = ['id' => $orderId, 'id_order_status' => (string) $target, 'status_note' => ''];
+
+    [$subject, $form] = $screen();
+    $check('[S4] the order screen\'s form carries the e-mail box', $form !== false && $form->getField('status_notify') !== false, true);
+    $valid = $form !== false ? $subject->validate($form, $posted) : false;
+    $app->getMessageQueue(true);
+    $check('[S4] a posting without the box is valid', \is_array($valid), true);
+    $check('[S4] and reaches save() as an explicit no', \is_array($valid) && \array_key_exists('status_notify', $valid) ? $valid['status_notify'] : null, 0);
+
+    [$ticked, $tickedForm] = $screen();
+    $tickedValid = $tickedForm !== false ? $ticked->validate($tickedForm, $posted + ['status_notify' => '1']) : false;
+    $app->getMessageQueue(true);
+    $check('[S4] the ticked box reaches save() as a yes', \is_array($tickedValid) ? ($tickedValid['status_notify'] ?? null) : null, 1);
+
+    $tasksBefore = array_map('intval', array_column($emailTasks($orderId), 'id'));
+    $saved = \is_array($valid) && $subject->save($subject->prefillData($orderId, $valid));
+    $app->getMessageQueue(true);
+    $check('[S4] the save is accepted', $saved, true);
+    $check('[S4] the order moved', OrderModel::persistedStatus($orderId), $target);
+
+    $quiet = $rowsOf($orderId, 'order.status_changed')[0] ?? null;
+    $quietContext = $quiet ? (json_decode((string) $quiet->context, true) ?: []) : [];
+    $check('[S4] it is a new record', $quiet && (int) $quiet->id !== (int) ($back->id ?? 0), true);
+    $check('[S4] that says the customer is not e-mailed', $quietContext['customer_emailed'] ?? null, false);
+    $check('[S4] the History line says so', $quiet ? str_contains(OrderHistoryHelper::line($quiet, $order), 'The customer is not e-mailed about it.') : false, true);
+
+    $forCustomer = [];
+
+    foreach ($emailTasks($orderId) as $task) {
+        if (\in_array((int) $task['id'], $tasksBefore, true)) {
+            continue;
+        }
+
+        echo $taskReport($task);
+
+        if (!empty($task['payload']['customer']) || !empty($task['payload']['customer_asked']) || $unitOf($task, $customerUnit) !== null) {
+            $forCustomer[] = (int) $task['id'];
+        }
+    }
+
+    $check('[S4] no e-mail single of the change is for the customer', $forCustomer, []);
+
+    // S5: the API's model, the same posting: a key left out says nothing.
+    $apiSubject = $factory->createModel('Order', 'Api', ['ignore_request' => true]);
+    $apiSubject->setState('order.id', $orderId);
+    $apiForm = $apiSubject->getForm([], false);
+    $apiValid = $apiForm !== false ? $apiSubject->validate($apiForm, ['id' => $orderId, 'id_order_status' => (string) $initial]) : false;
+    $app->getMessageQueue(true);
+    $check('[S5] the API\'s posting without the key is valid', \is_array($apiValid), true);
+    $check('[S5] and the key stays out: the status decides', \is_array($apiValid) && \array_key_exists('status_notify', $apiValid), false);
 } finally {
     // Teardown: only this run's own rows.
     if ($orderId > 0) {

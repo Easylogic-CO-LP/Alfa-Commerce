@@ -49,7 +49,7 @@ final class RelatedResolveEvent extends AbstractEvent
     /**
      * @param int $itemId The product whose page shows the links.
      * @param list<RelatedLink> $links Its links, in staff order.
-     * @param int $count How many the page shows at most.
+     * @param int $count How many the page shows at most; PHP_INT_MAX when it shows every one.
      *
      * @since  2.3.0
      */
@@ -69,7 +69,7 @@ final class RelatedResolveEvent extends AbstractEvent
     }
 
     /**
-     * How many related products the page shows at most.
+     * How many related products the page shows at most; PHP_INT_MAX when it shows every one that stands.
      *
      * @since  2.3.0
      */

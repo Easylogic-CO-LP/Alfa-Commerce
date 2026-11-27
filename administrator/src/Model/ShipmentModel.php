@@ -21,10 +21,12 @@ use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\Traits\LocksMethodTypeTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -379,11 +381,14 @@ class ShipmentModel extends AlfaAdminModel
     }
 
     /**
-     * Method to delete one or more records.
+     * Method to delete one or more records: the methods' rows, their scope and link rows, their texts and their place
+     * on every product's and variant's own shipping list, in one transaction; their images after it.
      *
      * @param array &$pks An array of record primary keys.
      *
      * @return bool True on success.
+     *
+     * @throws Throwable What ended the transaction; nothing of the delete is kept.
      *
      * @since  1.0.0
      */
@@ -462,38 +467,76 @@ class ShipmentModel extends AlfaAdminModel
             }
         }
 
-        $result = parent::delete($pks);
+        // Every delete veto, Alfa's and Joomla's, before the transaction: no plugin code runs inside it.
+        if (!$this->alfaAskBeforeDelete(pks: $pks)) {
+            return false;
+        }
 
-        if ($result && !empty($pks)) {
-            // MULTILINGUAL: remove the per-language rows for the deleted shipments.
-            // Scope/link pivots of the deleted rows.
-            foreach ([
-                '#__alfa_shipment_categories',
-                '#__alfa_shipment_excluded_categories',
-                '#__alfa_shipment_manufacturers',
-                '#__alfa_shipment_places',
-                '#__alfa_shipment_usergroups',
-                '#__alfa_shipment_users',
-                '#__alfa_shipment_taxes',
-            ] as $pivotTable) {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->delete($db->quoteName($pivotTable))
-                        ->whereIn($db->quoteName('shipment_id'), $pks),
-                )->execute();
+        // ONE TRANSACTION: the methods' rows, their scope and link pivots, their texts, and the products' and
+        // variants' shipping lists that name them. A list that kept a deleted method would have every remaining
+        // method refused for its product, so the method leaves the lists with its own row, or nothing is deleted.
+        $driver = $this->alfaDriver();
+        $driver->transactionStart(true);
+        $ended = ['items' => 0, 'combinations' => 0];
+
+        try {
+            $this->alfaDeleteAsked = true;
+
+            if (!parent::delete($pks)) {
+                TransactionState::rollBackLevel(db: $driver, failure: new RuntimeException('The shipping methods were not deleted.'));
+
+                return false;
             }
 
-            MultilingualHelper::deleteMultilingualData(
-                ids:               $pks,
-                primaryColumnName: 'id_shipment',
-                tableName:         '#__alfa_shipments',
-            );
+            if (!empty($pks)) {
+                // Scope/link pivots of the deleted rows.
+                foreach ([
+                    '#__alfa_shipment_categories',
+                    '#__alfa_shipment_excluded_categories',
+                    '#__alfa_shipment_manufacturers',
+                    '#__alfa_shipment_places',
+                    '#__alfa_shipment_usergroups',
+                    '#__alfa_shipment_users',
+                    '#__alfa_shipment_taxes',
+                ] as $pivotTable) {
+                    $driver->setQuery(
+                        $driver->getQuery(true)
+                            ->delete($driver->quoteName($pivotTable))
+                            ->whereIn($driver->quoteName('shipment_id'), $pks),
+                    )->execute();
+                }
 
-            // The methods' images (rows; files when media_full_deletion is on).
+                // The products' and variants' own shipping lists.
+                $ended = ItemShipments::forgetMethods(db: $driver, shipmentIds: $pks);
+
+                // MULTILINGUAL: remove the per-language rows for the deleted shipments.
+                MultilingualHelper::deleteMultilingualData(
+                    ids:               $pks,
+                    primaryColumnName: 'id_shipment',
+                    tableName:         '#__alfa_shipments',
+                );
+            }
+
+            TransactionState::commitLevel(db: $driver);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $driver, failure: $e);
+
+            throw $e;
+        }
+
+        // A unit that shipped with the deleted methods alone has no list now: the operator is told how many, since
+        // such a product ships with every method from here on.
+        if ($ended['items'] > 0 || $ended['combinations'] > 0) {
+            Factory::getApplication()->enqueueMessage(Text::sprintf('COM_ALFA_SHIPMENT_DELETE_LISTS_ENDED', $ended['items'], $ended['combinations']), 'warning');
+        }
+
+        // The methods' images (rows; files when media_full_deletion is on): files are not transactional, so after
+        // the commit.
+        if (!empty($pks)) {
             MediaHelper::deleteMediaForItems($pks, 'shipment');
         }
 
-        return $result;
+        return true;
     }
 
     /**

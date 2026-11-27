@@ -1099,6 +1099,19 @@ class OrderModel extends AlfaAdminModel
             $valid['invoice_differs'] = empty($data['invoice_differs']) ? 0 : 1;
         }
 
+        // The e-mail box of a status change is a tick box, and an unticked box posts nothing. The order screen posts
+        // its status block whole, so on a form that carries the box its absence is the operator's "no e-mail for
+        // this change", handed to save() as 0. A writer whose omitted keys mean "unchanged" (the REST API) says
+        // nothing by leaving it out, and the status decides.
+        if (
+            \is_array($valid)
+            && !$this->keepsOmittedDetails()
+            && !\array_key_exists('status_notify', $valid)
+            && $form->getField('status_notify') !== false
+        ) {
+            $valid['status_notify'] = 0;
+        }
+
         // silent is not a field of the form either: a creation that states it (a REST POST) keeps it for save(), which
         // then leaves the customer out of the e-mail the new order's status owes, as a status change made silent does.
         if (\is_array($valid) && $isNew && !empty($data['silent'])) {
@@ -4782,8 +4795,9 @@ class OrderModel extends AlfaAdminModel
         $prevOrder = !$isNew ? $this->getItem($pk) : null;
 
         // What the order screen says about the status change it posts: the note to the customer and whether the
-        // customer is e-mailed (absent from a submission that says nothing: the inline list, the API, which leave
-        // the e-mail to the status). Neither is a column, so they are taken off the data here and handed to the
+        // customer is e-mailed: 1 for the ticked box, 0 for the unticked one (validate() writes the 0 an unticked
+        // box does not post). Absent from a submission that says nothing (the inline list, the API), which leaves
+        // the e-mail to the status. Neither is a column, so they are taken off the data here and handed to the
         // change below.
         $customerNote = trim((string) ($data['status_note'] ?? ''));
         $notifyCustomer = \array_key_exists('status_notify', $data) ? !empty($data['status_notify']) : null;

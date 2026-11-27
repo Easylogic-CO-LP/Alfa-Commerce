@@ -18,6 +18,9 @@
  *         product that keeps it off, and the empty list's sentence names both products.
  *   [IS4] ★ the reader: a variant with rows of its own ships with them, one with the wildcard row with every method,
  *         one with no row as its product; the product's page scope (one line, its own list) lists A and not B.
+ *   [IS5] ★ a shipping method deleted through its model leaves no row of it on any shipping list: the product and the
+ *         variant that shipped with it alone have no list (every method, as the product), a wildcard row and another
+ *         method's rows stay, and the operator is told one product and one variant lost their list.
  *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
  *
  * Fixtures: two published carriers of this run's own, admitted to everyone (the wildcard row on each scope), three
@@ -281,6 +284,32 @@ try {
     )));
     check('[IS4] ★ the product page\'s scope lists A', \in_array($a, $page, true), true);
     check('[IS4] ★ and not B', \in_array($b, $page, true), false);
+
+    // [IS5] carrier B deleted through its model, as the list and the REST resource delete it. The product that ships
+    // with B only and the variant with B alone lose their list with it.
+    $app->loadIdentity(new User($operatorId));
+    $app->getMessageQueue(true);
+    $shipmentModel = $app->bootComponent('com_alfa')->getMVCFactory()->createModel('Shipment', 'Administrator', ['ignore_request' => true]);
+    $pks = [$b];
+
+    try {
+        $deleted = $shipmentModel->delete($pks);
+    } finally {
+        $app->loadIdentity(new User(0));
+    }
+
+    $told = array_column($app->getMessageQueue(true), 'message');
+    $rowsOf = static fn (int $shipmentId): int => (int) $db->setQuery("SELECT COUNT(*) FROM `{$p}alfa_items_shipments` WHERE shipment_id = {$shipmentId}")->loadResult();
+    $lists = ItemShipments::forItems($db, [$onlyA, $onlyB, $variants]);
+    check('[IS5] ★ the delete is accepted', [$deleted, (string) $shipmentModel->getError()], [true, '']);
+    check('[IS5] ★ the method is gone', (int) $db->setQuery("SELECT COUNT(*) FROM `{$p}alfa_shipments` WHERE id = {$b}")->loadResult(), 0);
+    check('[IS5] ★ no shipping list names it', $rowsOf($b), 0);
+    check('[IS5] ★ the product that shipped with it alone has no list: every method', ItemShipments::allowed($lists[$onlyB] ?? null, null), []);
+    check('[IS5] ★ the variant that shipped with it alone ships as its product', ItemShipments::allowed($lists[$variants] ?? null, $own), [$a]);
+    check('[IS5] the lists that name another method, and the wildcard row, stay',
+        [ItemShipments::allowed($lists[$onlyA] ?? null, null), ItemShipments::allowed($lists[$variants] ?? null, null), $lists[$variants]->combinations[$every] ?? null], [[$a], [$a], [ItemShipments::EVERY_METHOD]]);
+    check('[IS5] ★ the operator is told one product and one variant lost their list',
+        \in_array(\Joomla\CMS\Language\Text::sprintf('COM_ALFA_SHIPMENT_DELETE_LISTS_ENDED', 1, 1), $told, true), true);
 } finally {
     $fx->rollback();
 }
