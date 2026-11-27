@@ -485,12 +485,14 @@ final class CoreCardProvider
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_DOCUMENTS'),
                     'url' => $list('orders', ['payment' => 'refunded', 'date_range' => $window]),
                 ],
-                // The price check's findings: how many, which kinds, and the page that lists each one.
+                // The price check's findings: the total as the figure, each kind on its own line leading to its
+                // section of the price check, and the page itself as the verb.
                 'prices' => [
                     'severity' => 'warning',
                     'kind' => Text::_('COM_ALFA_DASHCARD_ATTENTION_KIND_PRICES'),
                     'value' => number_format($finding['count']),
-                    'text' => PriceAudit::sentenceOf(counts: (array) ($extra['counts'] ?? []), building: (bool) ($extra['building'] ?? false)),
+                    'text' => '',
+                    'lines' => $this->priceLines(counts: (array) ($extra['counts'] ?? []), building: (bool) ($extra['building'] ?? false)),
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_PRICES'),
                     'url' => Route::_('index.php?option=com_alfa&view=priceaudit', false),
                 ],
@@ -504,6 +506,32 @@ final class CoreCardProvider
 
         // Every finding may have been one this viewer is not shown: then, as with none, no card.
         return $rows === [] ? [] : ['rows' => $rows];
+    }
+
+    /**
+     * The price check's kinds of finding as the Prices tile's lines: one short phrase a kind, with its count, each
+     * leading to that section of the price check (its anchor on the page).
+     *
+     * @param array<string, int> $counts The sections with findings and their counts (PriceAudit::counts()).
+     * @param bool $building Whether the price index is being built after the update.
+     *
+     * @return list<array{text: string, url: string}>
+     *
+     * @since  2.3.0
+     */
+    private function priceLines(array $counts, bool $building): array
+    {
+        $page = Route::_('index.php?option=com_alfa&view=priceaudit', false);
+        $lines = [];
+
+        foreach ($counts as $key => $count) {
+            $lines[] = [
+                'text' => PriceAudit::sentenceOf(counts: [(string) $key => (int) $count], building: $building),
+                'url' => $page . '#price-audit-' . (string) $key,
+            ];
+        }
+
+        return $lines;
     }
 
     /**

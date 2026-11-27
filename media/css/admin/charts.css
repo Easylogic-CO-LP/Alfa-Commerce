@@ -352,6 +352,36 @@ a.alfa-attention-tile:focus-visible {
     opacity: 0.88;
 }
 
+/* A tile with one fact a line (the kinds of a finding, each its own link): the lines take the sentence's place, and
+   with more than two of them the tile spans the row, so the links never crowd one column. */
+.alfa-attention-tile-wide {
+    grid-column: 1 / -1;
+}
+
+.alfa-attention-lines {
+    flex: 1;
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.83rem;
+    line-height: 1.4;
+}
+
+.alfa-attention-lines a {
+    color: var(--alfa-attention-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--alfa-attention-line);
+    text-underline-offset: 0.15em;
+}
+
+.alfa-attention-lines a:hover,
+.alfa-attention-lines a:focus-visible {
+    color: var(--alfa-attention-ink);
+    text-decoration-color: var(--alfa-attention-edge);
+}
+
 .alfa-attention-go {
     display: inline-flex;
     align-items: center;
