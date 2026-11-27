@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Outbound;
 use Alfa\Component\Alfa\Administrator\Event\Outbound\OutboundChange;
 use Alfa\Component\Alfa\Administrator\Event\Outbound\OutboundDeliverEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
@@ -147,12 +148,15 @@ final class OutboundDelivery
             return ['units' => 0, 'more' => false];
         }
 
+        // The batch's stock and price rows stop standing for their units before the values are read: a change of a
+        // unit during the delivery queues a row of its own, told with the newer figure next time.
+        $this->release(db: $db, rows: $rows);
         $values = OutboundValues::for(rows: $rows);
         $outcome = (string) $consumer->kind === OutboundConsumers::KIND_PLUGIN
             ? $this->toPlugin(consumer: $consumer, rows: $rows, values: $values)
             : $this->toWebhook(consumer: $consumer, rows: $rows, values: $values);
 
-        $this->settle(db: $db, rows: $rows, answers: $outcome['answers'], retryAfter: $outcome['retryAfter']);
+        $this->settle(db: $db, consumerId: $consumerId, rows: $rows, answers: $outcome['answers'], retryAfter: $outcome['retryAfter']);
         OutboundConsumers::noteAttempt(id: $consumerId, ok: $outcome['ok'], result: $outcome['result']);
         OutboundConsumers::syncNotice(consumerId: $consumerId);
 
@@ -403,17 +407,47 @@ final class OutboundDelivery
     }
 
     /**
-     * Settle a batch by its answers, in one transaction: taken, retried on the backoff (given up after the last
-     * retry), given up at once, taken by no consumer, or held one backoff step without counting an attempt.
+     * The batch's stock and price rows no longer stand as their units' waiting row (pending cleared), so a change of a
+     * unit while the batch is delivered queues a row of its own. A statement of its own, before the values are read:
+     * no transaction is held during the delivery.
      *
      * @param DatabaseDriver $db The connection.
+     * @param list<object> $rows The batch.
+     *
+     * @since  2.3.0
+     */
+    private function release(DatabaseDriver $db, array $rows): void
+    {
+        $ids = [];
+
+        foreach ($rows as $row) {
+            if (\in_array((string) $row->topic, OutboundTopics::MERGED, true)) {
+                $ids[] = (int) $row->id;
+            }
+        }
+
+        if ($ids !== []) {
+            $db->setQuery(
+                'UPDATE ' . $db->quoteName(OutboundFeed::DELIVERIES) . ' SET ' . $db->quoteName('pending') . ' = NULL WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $ids) . ')',
+            )->execute();
+        }
+    }
+
+    /**
+     * Settle a batch by its answers, in one transaction: taken, retried on the backoff (given up after the last
+     * retry), given up at once, taken by no consumer, or held one backoff step without counting an attempt. A stock or
+     * price row retried or held stands for its unit again (pending), unless a newer change of the unit already waits:
+     * then it is discarded as overtaken, the waiting row telling the unit's value.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param int $consumerId The consumer.
      * @param list<object> $rows The batch.
      * @param array<int, array{0: string, 1: string}> $answers By row id: delivered, retry, refused, none or hold, and why.
      * @param int|null $retryAfter Seconds the consumer asked to wait, or null.
      *
      * @since  2.3.0
      */
-    private function settle(DatabaseDriver $db, array $rows, array $answers, ?int $retryAfter): void
+    private function settle(DatabaseDriver $db, int $consumerId, array $rows, array $answers, ?int $retryAfter): void
     {
         $db->transactionStart(true);
 
@@ -422,7 +456,21 @@ final class OutboundDelivery
                 $id = (int) $row->id;
                 [$answer, $reason] = $answers[$id] ?? ['retry', 'No answer for this change.'];
                 $failed = (int) $row->attempts + 1;
+                $merged = \in_array((string) $row->topic, OutboundTopics::MERGED, true);
+                $waitsAgain = $merged && ($answer === 'hold' || ($answer === 'retry' && $failed <= self::RETRIES));
+
+                // A unit whose newer change waits already: this one is overtaken and discarded.
+                if ($waitsAgain && OutboundFeed::waiting(consumerId: $consumerId, topic: (string) $row->topic, itemId: (int) $row->subject_id, unitId: (int) $row->unit_id)) {
+                    $this->discard(db: $db, id: $id, reason: 'COM_ALFA_OUTBOUND_REASON_OVERTAKEN');
+
+                    continue;
+                }
+
                 $query = $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))->where($db->quoteName('id') . ' = ' . $id);
+
+                if ($waitsAgain) {
+                    $query->set($db->quoteName('pending') . ' = 1');
+                }
 
                 if ($answer === 'delivered') {
                     $query->set($db->quoteName('state') . ' = ' . $db->quote(self::STATE_SENT))
@@ -451,7 +499,16 @@ final class OutboundDelivery
                         ->set($db->quoteName('last_error') . ' = ' . $db->quote(substr($reason, 0, 500)));
                 }
 
-                $db->setQuery($query)->execute();
+                try {
+                    $db->setQuery($query)->execute();
+                } catch (Throwable $e) {
+                    // The unit's newer change was queued between the check and this write: overtaken all the same.
+                    if (!$waitsAgain || MysqlError::number(error: $e) !== 1062) {
+                        throw $e;
+                    }
+
+                    $this->discard(db: $db, id: $id, reason: 'COM_ALFA_OUTBOUND_REASON_OVERTAKEN');
+                }
             }
 
             TransactionState::commitLevel(db: $db);
@@ -460,6 +517,27 @@ final class OutboundDelivery
 
             throw $e;
         }
+    }
+
+    /**
+     * Discard one row for a reason: never sent, no longer counted, removed with the other settled rows.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param int $id The row.
+     * @param string $reason Why, a language key.
+     *
+     * @since  2.3.0
+     */
+    private function discard(DatabaseDriver $db, int $id, string $reason): void
+    {
+        $db->setQuery(
+            $db->getQuery(true)->update($db->quoteName(OutboundFeed::DELIVERIES))
+                ->set($db->quoteName('state') . ' = ' . $db->quote(self::STATE_DISCARDED))
+                ->set($db->quoteName('pending') . ' = NULL')
+                ->set($db->quoteName('dead_at') . ' = UTC_TIMESTAMP(6)')
+                ->set($db->quoteName('last_error') . ' = ' . $db->quote($reason))
+                ->where($db->quoteName('id') . ' = ' . $id),
+        )->execute();
     }
 
     /**
