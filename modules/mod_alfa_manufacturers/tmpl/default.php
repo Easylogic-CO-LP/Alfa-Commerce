@@ -30,7 +30,7 @@ $withLogo = $show !== 'name';
             <li class="entry">
                 <a class="link" href="<?php echo htmlspecialchars($entry->link, ENT_QUOTES, 'UTF-8'); ?>">
                     <?php if ($logo) : ?>
-                        <img class="logo" src="<?php echo htmlspecialchars($entry->logo, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo $show === 'logo' ? $name : ''; ?>" loading="lazy">
+                        <img class="logo" src="<?php echo htmlspecialchars($entry->logo, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo $name; ?>" loading="lazy">
                     <?php endif; ?>
                     <?php if (!$logo || $show !== 'logo') : ?>
                         <span class="name"><?php echo $name; ?></span>
