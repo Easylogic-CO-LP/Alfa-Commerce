@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One tab of mod_alfa_catalog: what kind of record it shows (products, categories or manufacturers), which ones,
+     in which order and how many; then, in one editor, whatever it sets for itself of the module's Style tab: a grid,
+     a slider or a list, its columns or cards per view, its cards, per screen too. Every option belongs to one kind
+     and shows only while that kind is chosen. -->
+<form>
+    <fields addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+        <field
+                name="label"
+                type="text"
+                label="MOD_ALFA_CATALOG_TAB_LABEL_LBL"
+                description="MOD_ALFA_CATALOG_TAB_LABEL_DESC"
+                hint="MOD_ALFA_CATALOG_TAB_LABEL_HINT"
+        />
+
+        <field
+                name="kind"
+                type="list"
+                default="products"
+                label="MOD_ALFA_CATALOG_KIND_LBL"
+                description="MOD_ALFA_CATALOG_KIND_DESC"
+                validate="options"
+        >
+            <option value="products">MOD_ALFA_CATALOG_KIND_PRODUCTS</option>
+            <option value="categories">MOD_ALFA_CATALOG_KIND_CATEGORIES</option>
+            <option value="manufacturers">MOD_ALFA_CATALOG_KIND_MANUFACTURERS</option>
+        </field>
+
+        <!-- Products -->
+
+        <field
+                name="source"
+                type="list"
+                default="items"
+                label="MOD_ALFA_CATALOG_SOURCE_LBL"
+                description="MOD_ALFA_CATALOG_SOURCE_DESC"
+                validate="options"
+                showon="kind:products"
+        >
+            <option value="items">MOD_ALFA_CATALOG_SOURCE_ITEMS</option>
+            <option value="on_sale">MOD_ALFA_CATALOG_SOURCE_ON_SALE</option>
+            <option value="new">MOD_ALFA_CATALOG_SOURCE_NEW</option>
+            <option value="best_sellers">MOD_ALFA_CATALOG_SOURCE_BEST_SELLERS</option>
+            <option value="recently_viewed">MOD_ALFA_CATALOG_SOURCE_RECENTLY_VIEWED</option>
+        </field>
+
+        <field
+                name="categories"
+                type="categories"
+                multiple="true"
+                showPath="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_CATALOG_CATEGORIES_LBL"
+                description="MOD_ALFA_CATALOG_CATEGORIES_DESC"
+                hint="MOD_ALFA_CATALOG_CATEGORIES_HINT"
+                showon="kind:products"
+        />
+
+        <field
+                name="manufacturers"
+                type="model"
+                model="manufacturers"
+                column_value="id"
+                column_text="name"
+                input_type="list"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_CATALOG_MANUFACTURERS_LBL"
+                description="MOD_ALFA_CATALOG_MANUFACTURERS_DESC"
+                hint="MOD_ALFA_CATALOG_MANUFACTURERS_HINT"
+                showon="kind:products"
+        />
+
+        <field
+                name="labels"
+                type="model"
+                model="labels"
+                column_value="id"
+                column_text="name"
+                orderBy="a.ordering"
+                state="1"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_CATALOG_LABELS_LBL"
+                description="MOD_ALFA_CATALOG_LABELS_DESC"
+                hint="MOD_ALFA_CATALOG_LABELS_HINT"
+                showon="kind:products"
+        />
+
+        <!-- One tab per chosen category, manufacturer or label, each showing that one's products. -->
+        <field
+                name="auto"
+                type="list"
+                default=""
+                label="MOD_ALFA_CATALOG_AUTO_LBL"
+                description="MOD_ALFA_CATALOG_AUTO_DESC"
+                validate="options"
+                showon="kind:products"
+        >
+            <option value="">MOD_ALFA_CATALOG_AUTO_NONE</option>
+            <option value="category">MOD_ALFA_CATALOG_AUTO_CATEGORY</option>
+            <option value="manufacturer">MOD_ALFA_CATALOG_AUTO_MANUFACTURER</option>
+            <option value="label">MOD_ALFA_CATALOG_AUTO_LABEL</option>
+        </field>
+
+        <field
+                name="ordering"
+                type="list"
+                default="a.id DESC"
+                label="MOD_ALFA_CATALOG_ORDERING_LBL"
+                description="MOD_ALFA_CATALOG_ORDERING_DESC"
+                validate="options"
+                showon="kind:products"
+        >
+            <option value="a.id DESC">MOD_ALFA_CATALOG_ORDER_NEWEST</option>
+            <option value="a.id ASC">MOD_ALFA_CATALOG_ORDER_OLDEST</option>
+            <option value="a.ordering ASC">MOD_ALFA_CATALOG_ORDER_CUSTOM_ASC</option>
+            <option value="a.ordering DESC">MOD_ALFA_CATALOG_ORDER_CUSTOM_DESC</option>
+            <option value="name ASC">MOD_ALFA_CATALOG_ORDER_NAME_ASC</option>
+            <option value="name DESC">MOD_ALFA_CATALOG_ORDER_NAME_DESC</option>
+            <option value="pf.final_price ASC">MOD_ALFA_CATALOG_ORDER_PRICE_ASC</option>
+            <option value="pf.final_price DESC">MOD_ALFA_CATALOG_ORDER_PRICE_DESC</option>
+            <option value="pf.discount_amount DESC">MOD_ALFA_CATALOG_ORDER_DISCOUNT_AMOUNT_DESC</option>
+            <option value="pf.discount_percent DESC">MOD_ALFA_CATALOG_ORDER_DISCOUNT_PERCENT_DESC</option>
+        </field>
+
+        <field
+                name="limit"
+                type="number"
+                default="8"
+                min="1"
+                max="60"
+                step="1"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_LIMIT_LBL"
+                description="MOD_ALFA_CATALOG_LIMIT_DESC"
+                showon="kind:products"
+        />
+
+        <!-- Categories -->
+
+        <field
+                name="cat_select"
+                type="list"
+                default="children"
+                label="MOD_ALFA_CATALOG_CAT_SELECT_LBL"
+                description="MOD_ALFA_CATALOG_CAT_SELECT_DESC"
+                validate="options"
+                showon="kind:categories"
+        >
+            <option value="children">MOD_ALFA_CATALOG_CAT_SELECT_CHILDREN</option>
+            <option value="chosen">MOD_ALFA_CATALOG_CAT_SELECT_CHOSEN</option>
+        </field>
+
+        <!-- 0: the shop's top-level categories. -->
+        <field
+                name="cat_parent"
+                type="categories"
+                showPath="true"
+                default="0"
+                filter="integer"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_CATALOG_CAT_PARENT_LBL"
+                description="MOD_ALFA_CATALOG_CAT_PARENT_DESC"
+                showon="kind:categories[AND]cat_select:children"
+        >
+            <option value="0">MOD_ALFA_CATALOG_CAT_PARENT_TOP</option>
+        </field>
+
+        <field
+                name="cat_ids"
+                type="categories"
+                multiple="true"
+                showPath="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_CATALOG_CAT_IDS_LBL"
+                description="MOD_ALFA_CATALOG_CAT_IDS_DESC"
+                showon="kind:categories[AND]cat_select:chosen"
+        />
+
+        <field
+                name="cat_ordering"
+                type="list"
+                default="ordering"
+                label="MOD_ALFA_CATALOG_CAT_ORDERING_LBL"
+                description="MOD_ALFA_CATALOG_CAT_ORDERING_DESC"
+                validate="options"
+                showon="kind:categories"
+        >
+            <option value="ordering">MOD_ALFA_CATALOG_CAT_ORDERING_ORDERING</option>
+            <option value="name">MOD_ALFA_CATALOG_CAT_ORDERING_NAME</option>
+        </field>
+
+        <field
+                name="cat_limit"
+                type="number"
+                default="0"
+                min="0"
+                max="200"
+                step="1"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_CAT_LIMIT_LBL"
+                description="MOD_ALFA_CATALOG_CAT_LIMIT_DESC"
+                showon="kind:categories"
+        />
+
+        <field
+                name="cat_show_count"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_CAT_SHOW_COUNT_LBL"
+                description="MOD_ALFA_CATALOG_CAT_SHOW_COUNT_DESC"
+                showon="kind:categories"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="cat_show_desc"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_CAT_SHOW_DESC_LBL"
+                description="MOD_ALFA_CATALOG_CAT_SHOW_DESC_DESC"
+                showon="kind:categories"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- The two settings of a list of the categories inside a parent: a navigation tree. -->
+        <field
+                name="cat_levels"
+                type="number"
+                default="1"
+                min="1"
+                max="10"
+                step="1"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_CAT_LEVELS_LBL"
+                description="MOD_ALFA_CATALOG_CAT_LEVELS_DESC"
+                showon="kind:categories[AND]cat_select:children"
+        />
+
+        <field
+                name="cat_open"
+                type="list"
+                default="current"
+                label="MOD_ALFA_CATALOG_CAT_OPEN_LBL"
+                description="MOD_ALFA_CATALOG_CAT_OPEN_DESC"
+                validate="options"
+                showon="kind:categories[AND]cat_select:children"
+        >
+            <option value="current">MOD_ALFA_CATALOG_CAT_OPEN_CURRENT</option>
+            <option value="all">MOD_ALFA_CATALOG_CAT_OPEN_ALL</option>
+        </field>
+
+        <!-- Manufacturers -->
+
+        <!-- Empty: every manufacturer the shop shows, in the chosen order. -->
+        <field
+                name="man_ids"
+                type="model"
+                model="manufacturers"
+                column_value="id"
+                column_text="name"
+                input_type="list"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="MOD_ALFA_CATALOG_MAN_IDS_LBL"
+                description="MOD_ALFA_CATALOG_MAN_IDS_DESC"
+                hint="MOD_ALFA_CATALOG_MAN_IDS_HINT"
+                showon="kind:manufacturers"
+        />
+
+        <field
+                name="man_show"
+                type="list"
+                default="logo_name"
+                label="MOD_ALFA_CATALOG_MAN_SHOW_LBL"
+                description="MOD_ALFA_CATALOG_MAN_SHOW_DESC"
+                validate="options"
+                showon="kind:manufacturers"
+        >
+            <option value="logo_name">MOD_ALFA_CATALOG_MAN_SHOW_LOGO_NAME</option>
+            <option value="logo">MOD_ALFA_CATALOG_MAN_SHOW_LOGO</option>
+            <option value="name">MOD_ALFA_CATALOG_MAN_SHOW_NAME</option>
+        </field>
+
+        <field
+                name="man_link"
+                type="list"
+                default="products"
+                label="MOD_ALFA_CATALOG_MAN_LINK_LBL"
+                description="MOD_ALFA_CATALOG_MAN_LINK_DESC"
+                validate="options"
+                showon="kind:manufacturers"
+        >
+            <option value="products">MOD_ALFA_CATALOG_MAN_LINK_PRODUCTS</option>
+            <option value="page">MOD_ALFA_CATALOG_MAN_LINK_PAGE</option>
+        </field>
+
+        <field
+                name="man_ordering"
+                type="list"
+                default="name"
+                label="MOD_ALFA_CATALOG_MAN_ORDERING_LBL"
+                description="MOD_ALFA_CATALOG_MAN_ORDERING_DESC"
+                validate="options"
+                showon="kind:manufacturers"
+        >
+            <option value="name">MOD_ALFA_CATALOG_MAN_ORDERING_NAME</option>
+            <option value="ordering">MOD_ALFA_CATALOG_MAN_ORDERING_ORDERING</option>
+        </field>
+
+        <field
+                name="man_limit"
+                type="number"
+                default="0"
+                min="0"
+                max="200"
+                step="1"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_MAN_LIMIT_LBL"
+                description="MOD_ALFA_CATALOG_MAN_LIMIT_DESC"
+                showon="kind:manufacturers"
+        />
+
+        <field
+                name="man_show_count"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                filter="integer"
+                label="MOD_ALFA_CATALOG_MAN_SHOW_COUNT_LBL"
+                description="MOD_ALFA_CATALOG_MAN_SHOW_COUNT_DESC"
+                showon="kind:manufacturers"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- Every kind -->
+
+        <field
+                name="show_link"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="MOD_ALFA_CATALOG_TAB_LINK_LBL"
+                description="MOD_ALFA_CATALOG_TAB_LINK_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="card" type="cardlook" level="tab" filter="raw" addfieldprefix="Alfa\Module\AlfaCatalog\Site\Field"
+               label="MOD_ALFA_CATALOG_TAB_CARD_LBL"/>
+    </fields>
+</form>
