@@ -555,17 +555,17 @@
 
 /* Tools > Reset to default: three columns of fixed widths, so a long stored value
    wraps inside its cell (raw-value) instead of widening the table and the page. */
-:where(#alfa-app) .com-alfa-resetdefaults .changes {
+:where(#alfa-app) .resetdefaults-page .changes {
     table-layout: fixed;
     width: 100%;
 }
 
-:where(#alfa-app) .com-alfa-resetdefaults .changes th:first-child {
+:where(#alfa-app) .resetdefaults-page .changes th:first-child {
     width: 30%;
 }
 
 
-:where(#alfa-app) .com-alfa-resetdefaults .changes .values {
+:where(#alfa-app) .resetdefaults-page .changes .values {
     margin: 0.25rem 0 0;
     padding: 0;
     list-style: none;
@@ -626,7 +626,7 @@
 }
 
 #alfa-app [id]:target,
-:where(#alfa-app) .com-alfa-tools [id]:target,
+:where(#alfa-app) .tools-page [id]:target,
 :where(#alfa-app) .audit-report [id]:target {
     scroll-margin-top: var(--alfa-anchor-offset);
 }

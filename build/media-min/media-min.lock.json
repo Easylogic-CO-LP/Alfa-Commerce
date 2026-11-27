@@ -2,7 +2,7 @@
   "tools": {"css":"1","terser":"5.51.3"},
   "files": {
     "media/css/admin/action-page.css": ["79619527438ee31b75960305dba8039b6a8f9b925b068b957158308ea45126a2", "3c4bf05d0828b58b75266524bbe3162228a0c574a40fd1ebd625938276af1217"],
-    "media/css/admin/admin.css": ["612eb44a6e4dab052478f55b54b32c4e1014ba720fd623b76aac0a8d4b92439c", "7c7f31131465acb25344d9cd7f8841db719481631bbf9640d4cf5ebd91277ed8"],
+    "media/css/admin/admin.css": ["a86556726723861157df38e83bbc81d5a0c8039afec2787b89393737d53d2a1e", "a8a94c18910a5445532cc1bfc1b6701b796de8c6f9e5499acbd3579dba5853b9"],
     "media/css/admin/charts.css": ["848ce9d0455347e26bb5dd9aa31b474e82fe8745a2a4230a39dc3f0059d2ba0f", "3f7043561fa59f29d9f58bfbe5c116fefcf14fa1ef20c8efcbe3e05a64de80d8"],
     "media/css/admin/combinations.css": ["7a2c40ab066c616bf67b38241b40aa1677b5c3e2171b32c6caa08fcf444e9975", "38c29d54a51e8d3c3508e99c9eb211d9c95e6c8a1f653ab5dadc080161840b0b"],
     "media/css/admin/email-positions.css": ["e89061d6263b101b19f7b94ec59c0fef1d191de26083c3ffc22e3ec887221764", "c6fd2e610f9d09b2684f09be3d7813bdd9f5f472dc84ce6d0048b9c3144f3944"],
