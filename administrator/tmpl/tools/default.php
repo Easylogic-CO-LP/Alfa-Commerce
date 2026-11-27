@@ -134,6 +134,10 @@ $coreSurfaces = ['maintenance', 'tasks', 'security', 'extensions', 'development'
                     <span class="icon-loop" aria-hidden="true"></span>
                     <?php echo Text::_('COM_ALFA_TOOLS_BACKGROUND_BTN'); ?>
                 </a>
+                <a class="btn <?php echo (int) ($this->background['deliveries']['attention'] ?? 0) > 0 ? 'btn-warning' : 'btn-secondary'; ?>" href="<?php echo Route::_('index.php?option=com_alfa&view=outbound'); ?>">
+                    <span class="icon-out-2" aria-hidden="true"></span>
+                    <?php echo Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'); ?>
+                </a>
             </div>
         </div>
         <?php echo $renderSurface('tasks'); ?>
