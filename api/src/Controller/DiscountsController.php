@@ -51,9 +51,12 @@ class DiscountsController extends ApiController
         return [
             'categories',
             'manufacturers',
+            'items',
             'places',
             'users',
             'usergroups',
+            'excluded_items',
+            'excluded_categories',
         ];
     }
 
