@@ -617,12 +617,26 @@ tr.alfa-row-refund > * {
     }
 }
 
+/* An address with an element's id lands below the administrator's sticky toolbar, not under it: See above on the
+   Background screen, a price check section an attention tile opens, a Tools tab, the order builder's sections. The
+   offset is the toolbar's height (Atum's .subhead: 43px at least plus its padding of 8px above and below) and a gap;
+   Atum names no height of its own to read, so the figure is its stylesheet's. */
+:root {
+    --alfa-anchor-offset: calc(59px + 1.5rem);
+}
+
+#alfa-app [id]:target,
+.com-alfa-tools [id]:target,
+.com-alfa-audit [id]:target {
+    scroll-margin-top: var(--alfa-anchor-offset);
+}
+
 /* Order builder: one page of sections. Each section stands apart from the next by
    space and a rule, and an address with a section's id (the page reopens at the
    section a form posted from) lands below the sticky toolbar, not under it. */
 .alfa-builder-section {
     margin-bottom: 2rem;
-    scroll-margin-top: var(--alfa-builder-anchor-offset, 6rem);
+    scroll-margin-top: var(--alfa-anchor-offset);
 }
 
 .alfa-builder-section + .alfa-builder-section {
