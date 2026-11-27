@@ -1763,4 +1763,89 @@
             save.disabled = false;
         }
     });
+
+    // THE IMAGES TAB'S PREVIEW, in the Studio's own document: the selected card's image as stored, with its
+    // description. The first card when the tab is drawn, then the card clicked or focused; the description follows
+    // its input as it is typed; a card deleted or a new one dropped picks again. Nothing is drawn here: the aside
+    // and its figure are the layout's, this only fills them.
+    const previewAside = () => document.querySelector('[data-studio-image-preview]');
+
+    const previewCard = (card) => {
+        const aside = previewAside();
+
+        if (!aside) {
+            return;
+        }
+
+        const figure = aside.querySelector('[data-studio-image-preview-figure]');
+        const img = aside.querySelector('[data-studio-image-preview-img]');
+        const caption = aside.querySelector('[data-studio-image-preview-caption]');
+        const empty = aside.querySelector('[data-studio-image-preview-empty]');
+        const source = card ? card.querySelector('.media-preview-img') : null;
+
+        if (!card || !source || !figure || !img) {
+            if (figure) {
+                figure.hidden = true;
+            }
+
+            if (empty) {
+                empty.hidden = false;
+            }
+
+            document.querySelectorAll('.media-card.is-previewed').forEach((other) => other.classList.remove('is-previewed'));
+
+            return;
+        }
+
+        const alt = card.querySelector('input[name$="[alt]"]');
+
+        img.src = source.getAttribute('src') || '';
+        img.alt = alt ? alt.value : (source.getAttribute('alt') || '');
+
+        if (caption) {
+            caption.textContent = alt ? alt.value : '';
+        }
+
+        figure.hidden = false;
+
+        if (empty) {
+            empty.hidden = true;
+        }
+
+        document.querySelectorAll('.media-card.is-previewed').forEach((other) => other.classList.remove('is-previewed'));
+        card.classList.add('is-previewed');
+    };
+
+    const firstCard = () => document.querySelector('[data-media-grid] .media-card:not(.is-deleted)');
+
+    if (previewAside()) {
+        previewCard(firstCard());
+
+        ['click', 'focusin'].forEach((type) => document.addEventListener(type, (event) => {
+            const card = event.target.closest('.media-card');
+
+            if (card && !card.classList.contains('is-deleted') && !event.target.closest('.media-btn-delete')) {
+                previewCard(card);
+            }
+        }));
+
+        document.addEventListener('input', (event) => {
+            const alt = event.target.closest('.media-card.is-previewed input[name$="[alt]"]');
+
+            if (alt) {
+                previewCard(alt.closest('.media-card'));
+            }
+        });
+
+        const grid = document.querySelector('[data-media-grid]');
+
+        if (grid) {
+            // A card removed, marked deleted or added: the preview keeps a card that is still shown, else the first.
+            new MutationObserver(() => {
+                const shown = document.querySelector('.media-card.is-previewed:not(.is-deleted)');
+
+                previewCard(shown && grid.contains(shown) ? shown : firstCard());
+            }).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        }
+    }
 })();
