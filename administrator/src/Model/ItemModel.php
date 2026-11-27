@@ -37,6 +37,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
@@ -3115,12 +3116,14 @@ class ItemModel extends AlfaAdminModel
     }
 
     /**
-     * The posted price rows whose price or custom discount the DECIMAL(24,8) columns cannot store: not a number,
-     * more than eight decimals, or more than sixteen digits before the point. Each named by its row and what was typed.
+     * The posted price rows a save refuses, each named by its row: a price or custom discount the DECIMAL(24,8)
+     * columns cannot store (not a number, more than eight decimals, or more than sixteen digits before the point), and
+     * a period whose end is not after its start.
      *
-     * @param array $rows jform[prices].
+     * @param array $rows jform[prices] as the item screen's pre-save hook hands them, or the REST API's rows: the
+     *                    dates as stored, UTC text.
      *
-     * @return string[] One refusal per figure refused.
+     * @return string[] One refusal per figure or period refused.
      *
      * @since  2.3.0
      */
@@ -3131,15 +3134,20 @@ class ItemModel extends AlfaAdminModel
 
         foreach ($rows as $row) {
             $position++;
+            $row = \is_array($row) ? $row : [];
 
             foreach (['value', 'override_value'] as $column) {
-                $typed = \is_array($row) ? ($row[$column] ?? null) : null;
+                $typed = $row[$column] ?? null;
 
                 try {
                     StoredDecimal::ofTyped($typed);
                 } catch (InvalidArgumentException) {
                     $refusals[] = Text::sprintf('COM_ALFA_ITEM_PRICE_INVALID', $position, htmlspecialchars(\is_scalar($typed) ? (string) $typed : '', ENT_QUOTES, 'UTF-8'));
                 }
+            }
+
+            if (!PublishPeriod::endsAfterStart(start: $row['publish_up'] ?? null, end: $row['publish_down'] ?? null)) {
+                $refusals[] = Text::sprintf('COM_ALFA_PRICES_PERIOD_END_BEFORE_START', $position);
             }
         }
 

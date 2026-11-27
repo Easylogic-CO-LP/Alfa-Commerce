@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Table;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseDriver;
@@ -45,13 +46,14 @@ class DiscountTable extends Table
     }
 
     /**
-     * Enforce the discount value contract for every writer that reaches the table.
+     * Enforce the discount value contract, and the order of its period, for every writer that reaches the table.
      *
-     * The form rule says the same thing with a field-level message; this holds when
+     * The form rule says the same thing about the value with a field-level message; this holds when
      * a caller stores a row without going through Form::validate(), which is how a
      * programmatic save reaches this table. AdminModel::save() turns the refusal
      * into the model's own error, so the admin screen and the REST route both read
-     * it without a second message.
+     * it without a second message. A period whose end is not after its start would
+     * never apply, so it is refused here as the price rows and the taxes refuse it.
      *
      * @return bool True when the row may be stored.
      *
@@ -81,6 +83,12 @@ class DiscountTable extends Table
         // NULL is_amount IS the percentage reading, exactly as the engine reads it.
         if ((int) ($this->is_amount ?? 0) !== 1 && $value > 100) {
             $this->setError(Text::_('COM_ALFA_ERROR_DISCOUNT_PERCENT_RANGE'));
+
+            return false;
+        }
+
+        if (!PublishPeriod::endsAfterStart(start: $this->publish_up ?? null, end: $this->publish_down ?? null)) {
+            $this->setError(Text::_('COM_ALFA_DISCOUNT_PERIOD_END_BEFORE_START'));
 
             return false;
         }
