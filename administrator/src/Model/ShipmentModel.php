@@ -462,7 +462,7 @@ class ShipmentModel extends AlfaAdminModel
         }
 
         Factory::getApplication()->enqueueMessage(
-            Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', $leaving['count']) . ' ' . $this->productsLink(ids: $leaving['ids'], list: ItemShipments::LIST_NONE),
+            trim(Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', $leaving['count']) . ' ' . $this->productsLink(ids: $leaving['ids'], list: ItemShipments::LIST_NONE)),
             'warning',
         );
     }
@@ -658,7 +658,7 @@ class ShipmentModel extends AlfaAdminModel
         // shipped until one of their methods is published or they are given another. Said with the count.
         if ($leftWithout > 0) {
             Factory::getApplication()->enqueueMessage(
-                Text::plural('COM_ALFA_SHIPMENT_DELETE_LEAVES_NONE', $leftWithout) . ' ' . $this->productsLink(ids: [], list: ItemShipments::LIST_NONE),
+                trim(Text::plural('COM_ALFA_SHIPMENT_DELETE_LEAVES_NONE', $leftWithout) . ' ' . $this->productsLink(ids: [], list: ItemShipments::LIST_NONE)),
                 'warning',
             );
         }
@@ -688,9 +688,10 @@ class ShipmentModel extends AlfaAdminModel
     private function listRefusal(string $key, int $count, array $ids, string $list, bool $confirm = false): DeleteRefusedException
     {
         $sentence = Text::plural($key, $count);
-        $html = htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8') . ' ' . $this->productsLink(ids: $ids, list: $list);
+        $html = trim(htmlspecialchars($sentence, ENT_QUOTES, 'UTF-8') . ' ' . $this->productsLink(ids: $ids, list: $list));
 
-        if ($confirm) {
+        // The button posts the back office's own delete task: printed there alone.
+        if ($confirm && Factory::getApplication()->isClient('administrator')) {
             $html .= LayoutHelper::render('shipments.delete_confirm', ['ids' => $ids], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
         }
 
@@ -698,7 +699,8 @@ class ShipmentModel extends AlfaAdminModel
     }
 
     /**
-     * The link to the Products list filtered to the products limited to shipping methods, in every state.
+     * The link to the Products list filtered to the products limited to shipping methods, in every state; '' outside
+     * the back office.
      *
      * @param int[] $ids The shipping methods; none for every product whose list holds no published method.
      * @param string $list The kind of list (ItemShipments::LIST_*).
@@ -707,6 +709,11 @@ class ShipmentModel extends AlfaAdminModel
      */
     private function productsLink(array $ids, string $list): string
     {
+        // A link of the back office: another client (the REST API, a command line run) is told the sentence alone.
+        if (!Factory::getApplication()->isClient('administrator')) {
+            return '';
+        }
+
         $filter = ['state' => '*', 'shipment' => array_values(array_map('intval', $ids)), 'shipment_list' => $list];
 
         return HTMLHelper::_(
