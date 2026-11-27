@@ -101,7 +101,7 @@
 
         <field
                 name="usergroups"
-                type="usergrouplist"
+                type="scopeusergroups"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"
@@ -113,7 +113,7 @@
         </field>
 
         <field
-                name="users" type="sql"
+                name="users" type="scopeusers"
                 input_type="list"
                 required="false"
                 multiple="true"

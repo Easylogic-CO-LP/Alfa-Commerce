@@ -544,6 +544,9 @@ class AlfapricesField extends FormField
      * form unchanged writes it back, and the row never becomes a price for every
      * place because its option was missing.
      *
+     * A held customer group or account that was DELETED is listed the same way,
+     * for the same reason.
+     *
      * @param array $rows The editor's rows (assoc arrays or objects).
      *
      * @return array{currencies: array, places: array, usergroups: array, users: array, placeNotes: array<int, string>}
@@ -571,6 +574,14 @@ class AlfapricesField extends FormField
                 reason: CategoryPickerPolicy::placeReason(id: $id, tree: $catalogue['placeTree']),
             );
             $options['placeNotes'][$id] = $deleted ? 'COM_ALFA_PRICE_PLACE_DELETED' : 'COM_ALFA_PRICE_PLACE_NOT_ELIGIBLE';
+        }
+
+        // A held customer group or account deleted in Joomla since: listed as "#<id> (deleted)", so the select keeps
+        // the row's audience and saving the form unchanged never turns the price into one for every group or customer.
+        foreach (['usergroup_id' => 'usergroups', 'user_id' => 'users'] as $column => $list) {
+            foreach ($held($column) as $id) {
+                $options[$list][$id] ??= Text::sprintf('COM_ALFA_SCOPE_ENTITY_DELETED', $id);
+            }
         }
 
         foreach ($held('currency_id') as $id) {

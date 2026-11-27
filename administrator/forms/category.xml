@@ -72,7 +72,7 @@
                label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
 
         <field
-                name="allowedUsers" type="sql"
+                name="allowedUsers" type="scopeusers"
                 input_type="list"
                 required="false"
                 multiple="true"
@@ -84,7 +84,7 @@
 
         <field
                 name="allowedUserGroups"
-                type="usergrouplist"
+                type="scopeusergroups"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"

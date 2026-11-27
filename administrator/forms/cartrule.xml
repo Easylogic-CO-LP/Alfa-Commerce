@@ -199,7 +199,7 @@
     <fieldset name="targeting">
         <!-- Joomla identity, not the Alfa shadow rows: the engine compares these
              against the live user id and group ids. Same fields as item/category. -->
-        <field name="allowedUsers" type="sql"
+        <field name="allowedUsers" type="scopeusers"
                input_type="list" required="false" multiple="true"
                layout="joomla.form.field.list-fancy-select"
                query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
@@ -211,7 +211,7 @@
              Lowercase type on purpose: the class file is UsergrouplistField.php,
              and FormHelper builds ucfirst($type).'Field'. "UserGroupList" only
              resolves on a case-INSENSITIVE filesystem (macOS), not on Linux. -->
-        <field name="allowedUserGroups" type="usergrouplist"
+        <field name="allowedUserGroups" type="scopeusergroups"
                multiple="true" checksuperusergroup="1"
                layout="joomla.form.field.list-fancy-select"
                label="COM_ALFA_CARTRULE_ALLOWED_USERGROUPS_LBL"
