@@ -42,6 +42,7 @@ class JsonApiView extends BaseApiView
         'filterable',
         'searchable',
         'show_on_listing',
+        'placement',
         'state',
         'ordering',
         'categories',
@@ -64,6 +65,7 @@ class JsonApiView extends BaseApiView
         'filterable',
         'searchable',
         'show_on_listing',
+        'placement',
         'state',
         'ordering',
     ];

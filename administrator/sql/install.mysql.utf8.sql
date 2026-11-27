@@ -1089,6 +1089,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_fields` (
   `filterable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Expose in mod_alfa_filters',
   `searchable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Value names+aliases join keyword search',
   `show_on_listing` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Render on category cards (onItemListPrepare)',
+  `placement` varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)',
   `params` longtext DEFAULT NULL COMMENT 'JSON, plugin-specific config',
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,

@@ -26,6 +26,7 @@ use Alfa\Component\Alfa\Administrator\Plugin\PluginId;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Site\Helper\ItemField;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
 use Alfa\Component\Alfa\Site\Helper\SaleTag;
@@ -324,6 +325,17 @@ class ItemModel extends BaseItemModel
                 $this->dispatchFieldSurfaces($data);
             }
 
+            // The fields as a template reads them: by machine name, each with its label, the values the item
+            // carries and render(); every property of the definition stays on the entry.
+            $byName = [];
+
+            foreach ((array) $data->fields as $field) {
+                $name = (string) ($field->field_name ?? '');
+                $byName[$name !== '' ? $name : (string) (int) $field->id] = ItemField::of($field, $data);
+            }
+
+            $data->fields = $byName;
+
             $this->_item[$pk] = $data;
         }
 
@@ -470,7 +482,7 @@ class ItemModel extends BaseItemModel
             $slots = ReadOnlyFields::replace(
                 slots: $item->surfaces instanceof SurfaceMap ? $item->surfaces->toArray() : (array) ($item->surfaces ?? []),
                 fields: (array) $item->fields,
-                buySlots: [ItemSurface::BuyForm->value, ItemSurface::NearAddToCart->value],
+                buySlots: [ItemSurface::BuyForm->value, ItemSurface::NearAddToCart->value, ItemSurface::Manual->value],
             );
             $item->cart = ReadOnlyFields::NO_CART;
             $item->surfaces = new SurfaceMap($slots);

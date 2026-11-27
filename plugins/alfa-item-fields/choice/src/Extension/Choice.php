@@ -12,8 +12,10 @@ namespace Alfa\Plugin\AlfaItemFields\Choice\Extension;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\FieldPlacement;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceBuilder;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\ItemFieldsPlugin;
 use Alfa\Plugin\AlfaItemFields\Choice\Color\ChoiceColors;
@@ -34,6 +36,12 @@ use LogicException;
  * tmpl or of a template override; the item page never draws text.
  * Per-value swatch presentation (hex color, image) lives in the value's
  * params (declared by params/value.xml); core stores it opaquely.
+ *
+ * On the product page an informational field is drawn where the field definition's placement says
+ * (FieldPlacement, through $event->placement()): the buy box, a row of the Specifications section (spec-row), a
+ * section of its own (spec-values), under the title or the price, beside add to cart, or nowhere by itself. A
+ * selector keeps the buy form, except a field placed as Not shown automatically, whose selector goes to the manual
+ * slot for a template override to print. A card knows no placement.
  *
  * Frontend rendering / validation / filter handlers land with the site
  * stages; this class stays the single home for them.
@@ -195,8 +203,8 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      * change re-fetches the item/card), an option field an opt[] selector (a
      * change re-prices it), both in the buy form; the card's 'text' mode draws
      * the same values read-only in the buy form with no selector declared. An
-     * informational field renders its values read-only into the Specifications
-     * slot, on the product page and the card alike.
+     * informational field renders its values read-only where its placement puts
+     * them on the product page, and into the Specifications slot of the card.
      *
      * @param ItemViewEvent|ItemListPrepareEvent $event The surface event (both
      *                                                  expose getField/getItem,
@@ -225,7 +233,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
                 return;
             }
 
-            $event->buyForm()
+            self::selectorSlot($event, $field)
                 ->setLayout('item-' . $renderAs)
                 ->variantSelector($fieldId)
                 ->setData([
@@ -241,17 +249,18 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
         }
 
         // Informational field, a read-only specs surface (no selector, no input):
-        // the value(s) this item carries for the field, in the Specifications slot
-        // of the product page and of the card alike.
+        // the value(s) this item carries for the field, where the field's placement
+        // puts them on the product page, in the Specifications slot of the card.
         if (!empty($field->informational)) {
             $infoValues = self::informationalValuesFor($item, $field);
 
             if ($infoValues !== []) {
-                $event->specifications()
-                    ->setLayout('spec-default')
+                self::specificationSlot($event)
+                    ->setLayout(self::specificationLayout($event, $field))
                     ->setData([
                         'field' => $field,
                         'values' => $infoValues,
+                        'title' => $field->display_name,
                     ]);
             }
 
@@ -290,7 +299,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
             }
         }
 
-        $event->buyForm()
+        self::selectorSlot($event, $field)
             ->setLayout('item-' . $renderAs)
             ->optionSelector($fieldId)
             ->setData([
@@ -301,6 +310,60 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
                 'inStock' => $selectable,     // options aren't combination-stock gated
                 'unavailableMode' => self::DEFAULT_UNAVAILABLE_DISPLAY, // inert: options never unavailable
             ]);
+    }
+
+    /**
+     * The slot a selector is drawn in: the buy form, or the manual slot when the shop placed the field as Not
+     * shown automatically on the product page (a template override prints it). A card knows no placement.
+     *
+     * @param ItemViewEvent|ItemListPrepareEvent $event The surface event.
+     * @param object $field The field definition (->placement).
+     *
+     * @since  2.3.0
+     */
+    private static function selectorSlot($event, object $field): SurfaceBuilder
+    {
+        if ($event instanceof ItemViewEvent && FieldPlacement::of($field) === FieldPlacement::Manual) {
+            return $event->manual();
+        }
+
+        return $event->buyForm();
+    }
+
+    /**
+     * The slot an informational field's values are drawn in: the slot the field's placement names on the product
+     * page, the Specifications slot on a card.
+     *
+     * @param ItemViewEvent|ItemListPrepareEvent $event The surface event.
+     *
+     * @since  2.3.0
+     */
+    private static function specificationSlot($event): SurfaceBuilder
+    {
+        return $event instanceof ItemViewEvent ? $event->placement() : $event->specifications();
+    }
+
+    /**
+     * The layout an informational field's values are drawn with: the cells of a table row in the Specifications
+     * section, the values alone in a section of its own (the section's heading is the field's name), else the
+     * label and the values in one line.
+     *
+     * @param ItemViewEvent|ItemListPrepareEvent $event The surface event.
+     * @param object $field The field definition (->placement).
+     *
+     * @since  2.3.0
+     */
+    private static function specificationLayout($event, object $field): string
+    {
+        if (!$event instanceof ItemViewEvent) {
+            return 'spec-default';
+        }
+
+        return match (FieldPlacement::of($field)) {
+            FieldPlacement::SpecificationsSection => 'spec-row',
+            FieldPlacement::Section => 'spec-values',
+            default => 'spec-default',
+        };
     }
 
     /**

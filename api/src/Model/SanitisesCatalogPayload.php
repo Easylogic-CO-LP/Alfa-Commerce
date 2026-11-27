@@ -230,6 +230,7 @@ trait SanitisesCatalogPayload
                     'required' => (int) ($f->required ?? 0),
                     'filterable' => (int) ($f->filterable ?? 0),
                     'show_on_listing' => (int) ($f->show_on_listing ?? 0),
+                    'placement' => (string) ($f->placement ?? 'specifications'),
                     'ordering' => (int) ($f->ordering ?? 0),
                     'params' => $pick($f->params_decoded ?? $f->params ?? [], $fieldParamKeys),
                     'values' => array_values(array_filter(array_map($value, $f->values ?? []))),

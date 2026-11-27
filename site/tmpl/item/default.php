@@ -4,6 +4,26 @@
      * @author     Agamemnon Fakas <info@easylogic.gr>
      * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
      * @license    GNU General Public License version 3 or later; see LICENSE
+     *
+     * The product page. What an override of this file (html/com_alfa/item/default.php) can read:
+     *
+     *   $this->item->fields          the product's fields by machine name, each an ItemField:
+     *                                  ->label        the field's name in the page's language
+     *                                  ->value        the pool values the item carries for it (objects with
+     *                                                 display_name), [] when none
+     *                                  ->placement    where the shop placed it (a FieldPlacement value)
+     *                                  ->render()     the field as its placement draws it, with its visibility
+     *                                                 rules and any template override of the field
+     *                                  ...            every property of the definition (id, type, values, ...)
+     *                                A field placed as Not shown automatically is drawn nowhere by this file:
+     *                                  echo $this->item->fields['colour']->render();
+     *                                prints it where the override wants. Any field prints the same way.
+     *   Surface::render($this->item, ItemSurface::Title, only: ['colour'])
+     *                                one slot's contributions, or some fields of it (only / except), see Surface.
+     *   $this->item->surfaces        every slot's contributions, read-only (SurfaceMap).
+     *
+     * A single field's markup is overridden without touching this file: html/layouts/com_alfa/item/field/<field
+     * name>.php, or item/field/<field type>.php for every field of a type (see layouts/item/field.php).
      */
 
     // No direct access
@@ -68,6 +88,7 @@
         <?php echo Surface::render($this->item, ItemSurface::ShortDescription); ?>
 
         <?php echo Layout::render('item.price', ['item' => $this->item, 'settings' => $priceSettings]); //passed data as $displayData in layout ?>
+        <?php echo Surface::render($this->item, ItemSurface::Price); ?>
 
         <?php echo Layout::render('item.stock_info', ['item' => $this->item]); ?>
 

@@ -251,6 +251,9 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_item_field_values' => [
             'code' => ["varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none'", 'item_field_id'],
         ],
+        '#__alfa_item_fields' => [
+            'placement' => ["varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)'", 'show_on_listing'],
+        ],
         '#__alfa_orders' => [
             'external_source' => ["varchar(32) DEFAULT NULL COMMENT 'The other system the order came from: lower-case letters, digits, _ and -; NULL = none. Written with external_reference, once'", 'source'],
             'external_reference' => ["varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'The order id in the system external_source names, compared exactly; NULL = none. Unique with external_source'", 'external_source'],

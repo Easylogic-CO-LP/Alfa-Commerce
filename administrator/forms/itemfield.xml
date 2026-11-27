@@ -86,6 +86,21 @@
             <option value="1">JYES</option>
         </field>
 
+        <!-- Where the product page shows the field (FieldPlacement). A variation or option field stays in the buy
+             form whatever is chosen, except Not shown automatically. -->
+        <field name="placement" type="list" default="specifications"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_PLACEMENT"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_PLACEMENT"
+               validate="options">
+            <option value="specifications">COM_ALFA_ITEMFIELD_PLACEMENT_SPECIFICATIONS</option>
+            <option value="specifications-section">COM_ALFA_ITEMFIELD_PLACEMENT_SPECIFICATIONS_SECTION</option>
+            <option value="section">COM_ALFA_ITEMFIELD_PLACEMENT_SECTION</option>
+            <option value="title">COM_ALFA_ITEMFIELD_PLACEMENT_TITLE</option>
+            <option value="price">COM_ALFA_ITEMFIELD_PLACEMENT_PRICE</option>
+            <option value="near-add-to-cart">COM_ALFA_ITEMFIELD_PLACEMENT_NEAR_ADD_TO_CART</option>
+            <option value="manual">COM_ALFA_ITEMFIELD_PLACEMENT_MANUAL</option>
+        </field>
+
         <!-- Alfa CategoriesField (model-backed, language-resolved names).
              Empty selection = the field is available in ALL categories. -->
         <field name="categories" type="categories"

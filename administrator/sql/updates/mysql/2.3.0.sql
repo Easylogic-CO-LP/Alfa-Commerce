@@ -475,3 +475,12 @@ ALTER TABLE `#__alfa_item_combinations` ADD COLUMN `discount_rules` tinyint(1) D
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `new_products` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 = reaches new products; 1 = leaves out products new within the shop''s days (Options > General > Products); 2 = leaves out products new within new_days' AFTER `apply_before_tax` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `new_days` int(11) NOT NULL DEFAULT 0 COMMENT 'The rule''s own days a product counts as new for, when new_products is 2; else 0' AFTER `new_products` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_items` ADD COLUMN `created` datetime DEFAULT NULL COMMENT 'UTC: when the product was made; NULL on a product made before the date was kept, which is then never new' AFTER `created_by` /** CAN FAIL **/;
+
+-- Where the product page shows an item field
+
+-- A field definition names the place of the product page that shows it: the buy box as a specification (as before,
+-- the default), the Specifications section, a section of its own, under the title, under the price, beside add to
+-- cart, or nowhere by itself (a template override prints it). A site that ran an earlier copy of this file gets the
+-- column from script.php; the install SQL creates the same column.
+
+ALTER TABLE `#__alfa_item_fields` ADD COLUMN `placement` varchar(32) NOT NULL DEFAULT 'specifications' COMMENT 'Where the product page shows the field: specifications (the buy box), specifications-section, section (one of its own), title, price, near-add-to-cart, manual (a template override prints it)' AFTER `show_on_listing` /** CAN FAIL **/;

@@ -391,6 +391,7 @@ class HtmlView extends BaseHtmlView
             'showon' => '',
             'fieldId' => null,
             'fieldName' => null,
+            'fieldType' => null,
         ];
     }
 
