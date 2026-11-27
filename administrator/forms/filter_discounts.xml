@@ -15,7 +15,17 @@
             <option value="">JOPTION_SELECT_PUBLISHED</option>
         </field>
 
-        
+        <!-- Where the rule's period stands against the clock, in UTC as the pricing engine reads it. -->
+        <field name="period"
+               type="list"
+               label="COM_ALFA_FILTER_PERIOD"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_PERIOD</option>
+            <option value="active">COM_ALFA_RULE_PERIOD_ACTIVE</option>
+            <option value="expired">COM_ALFA_RULE_PERIOD_FILTER_EXPIRED</option>
+            <option value="upcoming">COM_ALFA_RULE_PERIOD_FILTER_UPCOMING</option>
+        </field>
 
     </fields>
 

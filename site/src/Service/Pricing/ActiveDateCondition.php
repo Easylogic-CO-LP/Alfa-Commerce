@@ -31,14 +31,26 @@ class ActiveDateCondition
      */
     public function getActiveCondition(string $startField, string $endField, ?string $referenceDate = null): string
     {
+        return $this->getStartedCondition(startField: $startField, referenceDate: $referenceDate) . ' AND '
+            . $this->getNotEndedCondition(endField: $endField, referenceDate: $referenceDate);
+    }
+
+    /**
+     * The start half of the window: a row whose start has come; an empty start ('0000-00-00 00:00:00') or none has
+     * begun. getActiveCondition() is built with it, and a list names the rules that have not started by it.
+     *
+     * @param string $startField The quoted-or-unquoted start date column name.
+     * @param string|null $referenceDate Evaluate at this moment instead of the live UTC clock.
+     *
+     * @return string The SQL condition.
+     * @since  2.3.0
+     */
+    public function getStartedCondition(string $startField, ?string $referenceDate = null): string
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
         $moment = $db->quote($referenceDate ?? self::now());
 
-        return sprintf(
-            "IFNULL({$moment} >= %s OR %s = '0000-00-00 00:00:00', 1) = 1 AND ",
-            $db->qn($startField),
-            $db->qn($startField),
-        ) . $this->getNotEndedCondition(endField: $endField, referenceDate: $referenceDate);
+        return sprintf("IFNULL({$moment} >= %s OR %s = '0000-00-00 00:00:00', 1) = 1", $db->qn($startField), $db->qn($startField));
     }
 
     /**

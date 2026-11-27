@@ -18,6 +18,7 @@ use Joomla\CMS\Session\Session;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\Actions;
 use Alfa\Component\Alfa\Administrator\Helper\Columns;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
 
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
@@ -38,6 +39,24 @@ if ($saveOrder && !empty($this->items)) {
 }
 
 $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-only folding
+
+// The period column: where each rule's period stands against the pricing engine's clock (UTC), the dates shown in
+// the user's time zone, which is named beside them.
+$timeZone = $user->getTimezone()->getName();
+$periodText = static function (object $item) use ($timeZone): string {
+    $status = RulePeriod::status(publishUp: $item->publish_up, publishDown: $item->publish_down);
+
+    return match ($status) {
+        RulePeriod::EXPIRED => Text::sprintf('COM_ALFA_RULE_PERIOD_EXPIRED_ON', HTMLHelper::_('date', $item->publish_down, Text::_('DATE_FORMAT_LC5')), $timeZone),
+        RulePeriod::UPCOMING => Text::sprintf('COM_ALFA_RULE_PERIOD_UPCOMING_ON', HTMLHelper::_('date', $item->publish_up, Text::_('DATE_FORMAT_LC5')), $timeZone),
+        default => Text::_('COM_ALFA_RULE_PERIOD_ACTIVE'),
+    };
+};
+$periodClass = static fn (object $item): string => match (RulePeriod::status(publishUp: $item->publish_up, publishDown: $item->publish_down)) {
+    RulePeriod::EXPIRED => 'badge bg-warning text-dark',
+    RulePeriod::UPCOMING => 'badge text-bg-info',
+    default => '',
+};
 
 ?>
 
@@ -81,6 +100,10 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 
                     <th class='left'>
                         <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_NAME', 'name', $listDirn, $listOrder); ?>
+                    </th>
+
+                    <th scope="col" class="left">
+                        <?php echo Text::_('COM_ALFA_DISCOUNTS_PERIOD'); ?>
                     </th>
 
                     <th scope="col" class="left">
@@ -158,7 +181,8 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 
 							
 							<td class="text-center">
-								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'discounts.', $canChange, 'cb'); ?>
+								<?php // With its dates: a published rule that has expired or has not started shows Joomla's expired or pending icon, never the green check. ?>
+								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'discounts.', $canChange, 'cb', $item->publish_up, $item->publish_down); ?>
 							</td>
 							
 							<td>
@@ -173,6 +197,15 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 												<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
 							</td>
+
+                            <td>
+                                <?php $badge = $periodClass($item); ?>
+                                <?php if ($badge !== '') : ?>
+                                    <span class="<?php echo $badge; ?>"><?php echo $this->escape($periodText($item)); ?></span>
+                                <?php else : ?>
+                                    <?php echo $this->escape($periodText($item)); ?>
+                                <?php endif; ?>
+                            </td>
 
                             <td>
                                 <?php
