@@ -443,7 +443,7 @@ class OrderModel extends AdminOrderModel
 
                 return null;
             },
-            $rows($item->history ?? null),
+            $this->getOrderActivityByEvents((int) $item->id, ['order.status_changed', 'order.email_resent']),
         )));
 
         // Buyer identity: this is a back-office endpoint, so the delivery and
