@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\ItemModel as AdminItemModel;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Api\Helper\ApiInclude;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
@@ -63,6 +64,17 @@ class ItemModel extends AdminItemModel
             }
 
             $this->attachFieldGraph($item);
+
+            // The shipping list of each combination: null as the product's (the item's shipments), [] every method,
+            // else the method ids it ships with only. Read only, as the product's.
+            $scope = ItemShipments::forItems($this->getDatabase(), [(int) $item->id])[(int) $item->id] ?? null;
+
+            foreach ($item->combinations as &$combination) {
+                $combinationId = (int) ($combination['id'] ?? 0);
+                $combination['shipments'] = isset($scope->combinations[$combinationId]) ? ItemShipments::allowed($scope, $combinationId) : null;
+            }
+
+            unset($combination);
 
             // The state of the product's own prices, which a write of its prices sends back to be refused when they
             // changed since.
