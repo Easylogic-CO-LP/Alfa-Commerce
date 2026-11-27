@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncOutcome;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -336,13 +337,17 @@ class TaxModel extends AlfaAdminModel
                 cause: PricesChangedEvent::CAUSE_TAX,
                 causeId: (int) $currentId,
             );
+            $outcome = $priceIndexSyncService->outcome();
         } catch (Throwable $syncException) {
             Log::add(
                 '[TaxModel::save] Price index sync failed for tax ' . $currentId . ': ' . ErrorText::of($syncException),
                 Log::WARNING,
                 'com_alfa',
             );
+            $outcome = PriceIndexSyncOutcome::left();
         }
+
+        $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
     }
@@ -376,6 +381,7 @@ class TaxModel extends AlfaAdminModel
         }
 
         $priceIndexSyncService = new PriceIndexSyncService();
+        $outcome = new PriceIndexSyncOutcome(products: 0, pending: false);
 
         foreach ($pks as $pk) {
             $pk = (int) $pk;
@@ -388,14 +394,18 @@ class TaxModel extends AlfaAdminModel
             // Both directions change the final_price and tax_amount in the index.
             try {
                 $priceIndexSyncService->syncByTax($pk);
+                $outcome = $outcome->with($priceIndexSyncService->outcome());
             } catch (Throwable $syncException) {
                 Log::add(
                     '[TaxModel::publish] Price index sync failed for tax ' . $pk . ': ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );
+                $outcome = $outcome->with(PriceIndexSyncOutcome::left());
             }
         }
+
+        $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
     }
@@ -504,15 +514,19 @@ class TaxModel extends AlfaAdminModel
         // Step 3: re-index the collected items now that the tax is gone.
         // PriceCalculator will compute prices without the deleted tax,
         // so final_price may drop and tax_amount will become 0.
+        $outcome = new PriceIndexSyncOutcome(products: 0, pending: false);
+
         if (!empty($affectedItemIds)) {
             try {
                 $priceIndexSyncService->syncItems($affectedItemIds, cause: PricesChangedEvent::CAUSE_TAX, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
+                $outcome = $priceIndexSyncService->outcome();
             } catch (Throwable $syncException) {
                 Log::add(
                     '[TaxModel::delete] Price index re-sync failed after deleting taxes: ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );
+                $outcome = PriceIndexSyncOutcome::left();
             }
         }
 

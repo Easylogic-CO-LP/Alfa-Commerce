@@ -19,6 +19,7 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncOutcome;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
@@ -333,13 +334,17 @@ class DiscountModel extends AlfaAdminModel
                 cause: PricesChangedEvent::CAUSE_DISCOUNT,
                 causeId: (int) $currentId,
             );
+            $outcome = $priceIndexSyncService->outcome();
         } catch (Throwable $syncException) {
             Log::add(
                 '[DiscountModel::save] Price index sync failed for discount ' . $currentId . ': ' . ErrorText::of($syncException),
                 Log::WARNING,
                 'com_alfa',
             );
+            $outcome = PriceIndexSyncOutcome::left();
         }
+
+        $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
         // return parent::save($data);
@@ -374,6 +379,7 @@ class DiscountModel extends AlfaAdminModel
         }
 
         $priceIndexSyncService = new PriceIndexSyncService();
+        $outcome = new PriceIndexSyncOutcome(products: 0, pending: false);
 
         foreach ($pks as $pk) {
             $pk = (int) $pk;
@@ -386,14 +392,18 @@ class DiscountModel extends AlfaAdminModel
             // Both directions change the final_price stored in the index.
             try {
                 $priceIndexSyncService->syncByDiscount($pk);
+                $outcome = $outcome->with($priceIndexSyncService->outcome());
             } catch (Throwable $syncException) {
                 Log::add(
                     '[DiscountModel::publish] Price index sync failed for discount ' . $pk . ': ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );
+                $outcome = $outcome->with(PriceIndexSyncOutcome::left());
             }
         }
+
+        $this->alfaSayRepriced(outcome: $outcome);
 
         return true;
     }
@@ -502,15 +512,19 @@ class DiscountModel extends AlfaAdminModel
         // Step 3: re-index the collected items now that the discount is gone.
         // PriceCalculator will compute prices without the deleted discount,
         // so final_price may rise and discount_amount may drop back to 0.
+        $outcome = new PriceIndexSyncOutcome(products: 0, pending: false);
+
         if (!empty($affectedItemIds)) {
             try {
                 $priceIndexSyncService->syncItems($affectedItemIds, cause: PricesChangedEvent::CAUSE_DISCOUNT, causeId: \count($pks) === 1 ? (int) reset($pks) : 0);
+                $outcome = $priceIndexSyncService->outcome();
             } catch (Throwable $syncException) {
                 Log::add(
                     '[DiscountModel::delete] Price index re-sync failed after deleting discounts: ' . ErrorText::of($syncException),
                     Log::WARNING,
                     'com_alfa',
                 );
+                $outcome = PriceIndexSyncOutcome::left();
             }
         }
 

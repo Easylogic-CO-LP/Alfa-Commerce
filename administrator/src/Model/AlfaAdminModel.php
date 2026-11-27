@@ -29,6 +29,7 @@ use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Plugin\AlfaPluginHelper;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncOutcome;
 use Joomla\CMS\Event\Model\AfterDeleteEvent;
 use Joomla\CMS\Event\Model\AfterSaveEvent;
 use Joomla\CMS\Event\Model\BeforeDeleteEvent;
@@ -703,6 +704,26 @@ abstract class AlfaAdminModel extends AdminModel
         }
 
         return (array) $context->data;
+    }
+
+    /**
+     * Tell the operator what a price index sync the save, the state change or the delete caused did: how many products
+     * had their catalogue prices worked out again, or that they follow with the background work. The REST API has no
+     * screen for a message.
+     *
+     * @param PriceIndexSyncOutcome $outcome What the sync did.
+     *
+     * @since  2.3.0
+     */
+    protected function alfaSayRepriced(PriceIndexSyncOutcome $outcome): void
+    {
+        $app = Factory::getApplication();
+
+        if ($app->isClient('api')) {
+            return;
+        }
+
+        $app->enqueueMessage($outcome->message(), $outcome->type());
     }
 
     /**
