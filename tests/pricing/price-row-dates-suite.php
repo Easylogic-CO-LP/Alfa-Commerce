@@ -9,16 +9,21 @@
  * the editor shows a stored value back in the operator's zone. The defect this pins against: the typed local time
  * was stored as if it were UTC, so every save shifted a row's period by the zone's offset.
  *
- *   [PD1] ★ PriceRowDates::stored(): a date typed by an operator in Europe/Athens is stored as the UTC moment; an
- *         empty date stays null.
+ * The fields follow the operator's language: each language's DATE_FORMAT_CALENDAR_DATETIME decides the order the
+ * date is shown and typed in, and DATE_FORMAT_FILTER_DATETIME how it is read back. Every arm runs twice, as an
+ * operator in English (2026-12-01 10:00:00) and as one in Greek (01-12-2026 10:00:00), both in Europe/Athens.
+ *
+ *   [PD1] ★ PriceRowDates::stored(): a date typed by an operator in Europe/Athens, in the operator's language's
+ *         order, is stored as the UTC moment; an empty date stays null.
  *   [PD2] ★ a NEW product saved through the real ItemModel after the item controller's own pre-save hook stores
  *         the UTC values of the two typed dates.
- *   [PD3] the editor shows the stored row's dates as they were typed, in the operator's zone.
+ *   [PD3] the editor shows the stored row's dates as they were typed, in the operator's zone and date order.
  *   [PD4] ★ the form posted again unchanged, with the values the editor showed, stores the identical UTC values.
  *   [T1]  every table of the schema holds exactly the rows it held, read on a second connection.
  *
- * Fixtures: one unpublished product of this run's own, written inside a transaction that is rolled back. It reads
- * one category of the shop and writes nothing that survives the run.
+ * Fixtures: one unpublished product of this run's own per language, written inside a transaction that is rolled
+ * back. It reads one category of the shop and writes nothing that survives the run. The Greek arms need the el-GR
+ * administrator language installed; without it they fail and say so.
  *
  *   cd <docroot> && php administrator/components/com_alfa/tests/pricing/price-row-dates-suite.php
  *
@@ -44,6 +49,8 @@ require_once JPATH_BASE . '/includes/framework.php';
 use Alfa\Component\Alfa\Administrator\Field\AlfapricesField;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowDates;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Language;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseFactory;
@@ -149,97 +156,114 @@ $operator = new User($super);
 $operator->setParam('timezone', 'Europe/Athens');
 $app->loadIdentity($operator);
 
-// [PD1] the conversion on its own.
-$typedUp = '2026-12-01 10:00';
-$typedDown = '2026-12-31 18:00';
+$category = (int) $db->setQuery("SELECT c.id FROM `{$p}alfa_categories` c WHERE c.state = 1 ORDER BY c.id", 0, 1)->loadResult();
 $utcUp = '2026-12-01 08:00:00';
 $utcDown = '2026-12-31 16:00:00';
 
-$stored = PriceRowDates::stored(row: ['value' => '100', 'publish_up' => $typedUp, 'publish_down' => $typedDown]);
-check('[PD1] ★ a period typed in Europe/Athens is stored as its UTC moments', [$stored['publish_up'], $stored['publish_down']], [$utcUp, $utcDown]);
+// The same moments as each operator types them, in the order of the operator's language.
+$languages = [
+    'en-GB' => ['filter' => 'Y-m-d H:i:s', 'up' => '2026-12-01 10:00:00', 'down' => '2026-12-31 18:00:00'],
+    'el-GR' => ['filter' => 'd-m-Y H:i:s', 'up' => '01-12-2026 10:00:00', 'down' => '31-12-2026 18:00:00'],
+];
 
-$empty = PriceRowDates::stored(row: ['value' => '100', 'publish_up' => '', 'publish_down' => '']);
-check('[PD1] an empty date stays null', [$empty['publish_up'], $empty['publish_down']], [null, null]);
+foreach ($languages as $tag => $typed) {
+    $language = Language::getInstance($tag);
+    Factory::$language = $language;
+    $app->loadLanguage($language);
+    $language->load('com_alfa', JPATH_ADMINISTRATOR);
+    $typedUp = $typed['up'];
+    $typedDown = $typed['down'];
 
-// [PD2] to [PD4] through the real model and the item controller's pre-save hook, as the item screen's save runs them.
-$category = (int) $db->setQuery("SELECT c.id FROM `{$p}alfa_categories` c WHERE c.state = 1 ORDER BY c.id", 0, 1)->loadResult();
-$run = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
-$result = ['error' => 'not run'];
+    echo "\nas an operator in {$tag}\n";
+    check("[{$tag}] the language's date filter format is the one the arms type in", Text::_('DATE_FORMAT_FILTER_DATETIME'), $typed['filter']);
 
-$db->transactionStart();
+    // [PD1] the conversion on its own.
+    $stored = PriceRowDates::stored(row: ['value' => '100', 'publish_up' => $typedUp, 'publish_down' => $typedDown]);
+    check("[PD1 {$tag}] ★ a period typed in Europe/Athens is stored as its UTC moments", [$stored['publish_up'], $stored['publish_down']], [$utcUp, $utcDown]);
 
-try {
-    $factory = $app->bootComponent('com_alfa')->getMVCFactory();
-    $model = $factory->createModel('Item', 'Administrator', ['ignore_request' => true]);
-    $controller = $factory->createController('Item', 'Administrator', [], $app, $app->getInput());
-    $hook = new \ReflectionMethod($controller, 'preSaveHook');
+    $empty = PriceRowDates::stored(row: ['value' => '100', 'publish_up' => '', 'publish_down' => '']);
+    check("[PD1 {$tag}] an empty date stays null", [$empty['publish_up'], $empty['publish_down']], [null, null]);
 
-    /** The item screen's save: the posted data validated, passed through the controller's hook and saved. */
-    $saveAsTheScreenDoes = static function (array $data) use ($app, $model, $controller, $hook): int {
-        $app->getInput()->post->set('jform', $data);
-        $form = $model->getForm($data, false);
-        $valid = $form ? $model->validate($form, $data) : false;
+    // [PD2] to [PD4] through the real model and the item controller's pre-save hook, as the item screen's save runs them.
+    $run = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+    $result = ['error' => 'not run'];
 
-        if ($valid === false) {
-            throw new \RuntimeException('validate refused: ' . implode(' ', array_map('strval', $model->getErrors())));
+    $db->transactionStart();
+
+    try {
+        $factory = $app->bootComponent('com_alfa')->getMVCFactory();
+        $model = $factory->createModel('Item', 'Administrator', ['ignore_request' => true]);
+        $controller = $factory->createController('Item', 'Administrator', [], $app, $app->getInput());
+        $hook = new \ReflectionMethod($controller, 'preSaveHook');
+
+        /** The item screen's save: the posted data validated, passed through the controller's hook and saved. */
+        $saveAsTheScreenDoes = static function (array $data) use ($app, $model, $controller, $hook): int {
+            $app->getInput()->post->set('jform', $data);
+            $form = $model->getForm($data, false);
+            $valid = $form ? $model->validate($form, $data) : false;
+
+            if ($valid === false) {
+                throw new \RuntimeException('validate refused: ' . implode(' ', array_map('strval', $model->getErrors())));
+            }
+
+            $valid = $hook->invoke($controller, $model, $valid);
+
+            if (!$model->save($valid)) {
+                throw new \RuntimeException('save refused: ' . $model->getError());
+            }
+
+            return (int) $model->getState('item.id');
+        };
+
+        $row = ['id' => 0, 'value' => '100.00000000', 'override_value' => '', 'override_type' => 'start', 'price_status' => '1',
+            'country_id' => 0, 'usergroup_id' => 0, 'user_id' => 0, 'currency_id' => 0, 'quantity_start' => '', 'quantity_end' => '',
+            'publish_up' => $typedUp, 'publish_down' => $typedDown];
+        $data = [
+            'id' => 0, 'state' => 0,
+            'name_en_gb' => 'PD disposable ' . $run, 'name_el_gr' => 'PD disposable ' . $run,
+            'alias_en_gb' => 'pd-disposable-' . strtolower($run), 'alias_el_gr' => 'pd-disposable-el-' . strtolower($run),
+            'id_category_default' => $category, 'categories' => [$category],
+            'prices' => [$row],
+        ];
+
+        $itemId = $saveAsTheScreenDoes($data);
+
+        if ($itemId <= 0) {
+            throw new \RuntimeException('the new product has no id');
         }
 
-        $valid = $hook->invoke($controller, $model, $valid);
+        echo 'fixture ids: alfa_items=' . $itemId . " (inside the rolled-back transaction)\n";
 
-        if (!$model->save($valid)) {
-            throw new \RuntimeException('save refused: ' . $model->getError());
-        }
+        $storedRows = $db->setQuery("SELECT * FROM `{$p}alfa_items_prices` WHERE item_id = {$itemId} AND combination_id IS NULL ORDER BY id")->loadAssocList();
+        $first = [$storedRows[0]['publish_up'] ?? null, $storedRows[0]['publish_down'] ?? null];
 
-        return (int) $model->getState('item.id');
-    };
+        // The editor, rendered for the stored rows as the item screen renders it.
+        $html = AlfapricesField::renderPrices(controlBase: 'jform[prices]', rows: $storedRows, showModify: false, itemId: $itemId);
+        $shown = [$shownDate($html, 'publish_up'), $shownDate($html, 'publish_down')];
 
-    $row = ['id' => 0, 'value' => '100.00000000', 'override_value' => '', 'override_type' => 'start', 'price_status' => '1',
-        'country_id' => 0, 'usergroup_id' => 0, 'user_id' => 0, 'currency_id' => 0, 'quantity_start' => '', 'quantity_end' => '',
-        'publish_up' => $typedUp, 'publish_down' => $typedDown];
-    $data = [
-        'id' => 0, 'state' => 0,
-        'name_en_gb' => 'PD disposable ' . $run, 'name_el_gr' => 'PD disposable ' . $run,
-        'alias_en_gb' => 'pd-disposable-' . strtolower($run), 'alias_el_gr' => 'pd-disposable-el-' . strtolower($run),
-        'id_category_default' => $category, 'categories' => [$category],
-        'prices' => [$row],
-    ];
+        // The form saved again as shown, nothing changed.
+        $again = $row;
+        $again['id'] = (int) $storedRows[0]['id'];
+        $again['publish_up'] = (string) $shown[0];
+        $again['publish_down'] = (string) $shown[1];
+        $data['id'] = $itemId;
+        $data['prices'] = [$again];
+        $saveAsTheScreenDoes($data);
 
-    $itemId = $saveAsTheScreenDoes($data);
-
-    if ($itemId <= 0) {
-        throw new \RuntimeException('the new product has no id');
+        $second = $db->setQuery("SELECT publish_up, publish_down FROM `{$p}alfa_items_prices` WHERE item_id = {$itemId} AND combination_id IS NULL ORDER BY id")->loadAssoc();
+        $result = ['first' => $first, 'shown' => $shown, 'second' => [$second['publish_up'] ?? null, $second['publish_down'] ?? null]];
+    } catch (\Throwable $e) {
+        $result = ['error' => \get_class($e) . ': ' . $e->getMessage()];
+    } finally {
+        $db->transactionRollback();
     }
 
-    echo 'fixture ids: alfa_items=' . $itemId . " (inside the rolled-back transaction)\n";
-
-    $storedRows = $db->setQuery("SELECT * FROM `{$p}alfa_items_prices` WHERE item_id = {$itemId} AND combination_id IS NULL ORDER BY id")->loadAssocList();
-    $first = [$storedRows[0]['publish_up'] ?? null, $storedRows[0]['publish_down'] ?? null];
-
-    // The editor, rendered for the stored rows as the item screen renders it.
-    $html = AlfapricesField::renderPrices(controlBase: 'jform[prices]', rows: $storedRows, showModify: false, itemId: $itemId);
-    $shown = [$shownDate($html, 'publish_up'), $shownDate($html, 'publish_down')];
-
-    // The form saved again as shown, nothing changed.
-    $again = $row;
-    $again['id'] = (int) $storedRows[0]['id'];
-    $again['publish_up'] = (string) $shown[0];
-    $again['publish_down'] = (string) $shown[1];
-    $data['id'] = $itemId;
-    $data['prices'] = [$again];
-    $saveAsTheScreenDoes($data);
-
-    $second = $db->setQuery("SELECT publish_up, publish_down FROM `{$p}alfa_items_prices` WHERE item_id = {$itemId} AND combination_id IS NULL ORDER BY id")->loadAssoc();
-    $result = ['first' => $first, 'shown' => $shown, 'second' => [$second['publish_up'] ?? null, $second['publish_down'] ?? null]];
-} catch (\Throwable $e) {
-    $result = ['error' => \get_class($e) . ': ' . $e->getMessage()];
-} finally {
-    $db->transactionRollback();
+    check("[PD2 {$tag}] ★ a NEW product saved as the item screen saves it stores the UTC values of the typed period", $result['first'] ?? $result, [$utcUp, $utcDown]);
+    check("[PD3 {$tag}] the editor shows the stored period as it was typed, in the operator's zone and date order", $result['shown'] ?? $result, [$typedUp, $typedDown]);
+    check("[PD4 {$tag}] ★ the form saved again unchanged stores the identical UTC values", $result['second'] ?? $result, $result['first'] ?? [$utcUp, $utcDown]);
 }
 
-check('[PD2] ★ a NEW product saved as the item screen saves it stores the UTC values of the typed period', $result['first'] ?? $result, [$utcUp, $utcDown]);
-check('[PD3] the editor shows the stored period as it was typed, in the operator\'s zone', $result['shown'] ?? $result, [$typedUp, $typedDown]);
-check('[PD4] ★ the form saved again unchanged stores the identical UTC values', $result['second'] ?? $result, $result['first'] ?? [$utcUp, $utcDown]);
-
+echo "\n";
 $after = $census();
 $moved = [];
 

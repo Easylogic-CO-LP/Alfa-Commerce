@@ -75,15 +75,16 @@ final class PriceRowDates
     }
 
     /**
-     * The two fields: a date and time in the user's time zone, labelled for the row's Active cell.
+     * The two fields: a date and time in the user's time zone and in the user's language's date order, labelled for
+     * the row's Active cell.
      *
      * @since  2.3.0
      */
     private static function definition(): string
     {
         return '<form>
-    <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC" hiddenLabel="true" label="COM_ALFA_PRICES_FROM"/>
-    <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC" hiddenLabel="true" label="COM_ALFA_PRICES_TO"/>
+    <field name="publish_up" type="calendar" translateformat="true" showtime="true" filter="user_utc" hiddenLabel="true" label="COM_ALFA_PRICES_FROM"/>
+    <field name="publish_down" type="calendar" translateformat="true" showtime="true" filter="user_utc" hiddenLabel="true" label="COM_ALFA_PRICES_TO"/>
 </form>';
     }
 

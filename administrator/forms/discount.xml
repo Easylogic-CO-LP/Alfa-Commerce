@@ -273,9 +273,9 @@
     <field
             name="publish_up"
             type="calendar"
+            translateformat="true"
             showtime="true"
-            format="%Y-%m-%d %H:%M"
-            filter="USER_UTC"
+            filter="user_utc"
             label="COM_ALFA_FORM_LBL_DISCOUNT_START_DATE"
             description=""
     />
@@ -283,9 +283,9 @@
     <field
             name="publish_down"
             type="calendar"
+            translateformat="true"
             showtime="true"
-            format="%Y-%m-%d %H:%M"
-            filter="USER_UTC"
+            filter="user_utc"
             label="COM_ALFA_FORM_LBL_DISCOUNT_END_DATE"
             description=""
     />
