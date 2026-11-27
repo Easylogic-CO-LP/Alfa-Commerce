@@ -12,8 +12,7 @@
  * small drop zone for a variant without one. The grid draws it for every row; the upload task draws it again for
  * the row it changed and combinations.js puts that answer in the cell's place, so no markup is made by the script.
  *
- * Layout variables
- * -----------------
+ * Layout variables:
  * @var  int          $combinationId The variant.
  * @var  int          $mediaCount    How many images the variant has.
  * @var  object|null  $first         Its first image (thumbnail_url, alt), null for none.
