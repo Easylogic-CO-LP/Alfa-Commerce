@@ -8,8 +8,9 @@
  *   R1   the shared layout form/return.php prints one hidden field, return, with the request's return value and
  *        nothing else: empty when the form was opened from its list, the value as given otherwise, base64 characters
  *        only;
- *   R2   AlfaHelper::returnPage() is the base64 of the request address as Uri gives it, and on a record form the
- *        address of the form's edit task (the one way a form is reached), which Uri::isInternal() takes;
+ *   R2   AlfaHelper::returnPage() is the base64 of the request's address as index.php with its query, no scheme or
+ *        host, and on a record form the address of the form's edit task (the one way a form is reached); both are
+ *        internal to Uri::isInternal() whatever host the request or the configuration names;
  *   R3   AlfaHelper::withReturn() appends the page, url encoded, to a link that opens a record and leaves a list link
  *        as it is; the hidden field reads back exactly what was sent;
  *   R4   every record form renders the layout beside its form token, and each passes php -l.
@@ -105,7 +106,7 @@ $input->set('return', null);
 // ── R2: the page's address ───────────────────────────────────────────────────
 echo "R2 the way back\n";
 
-$check('R2a returnPage() is the base64 of the request address, as Uri gives it', base64_decode(AlfaHelper::returnPage(), true), Uri::getInstance()->toString());
+$check('R2a returnPage() is the base64 of index.php with the request\'s query, no scheme or host', base64_decode(AlfaHelper::returnPage(), true), 'index.php?' . Uri::getInstance()->getQuery());
 $check('R2b Uri::isInternal() takes it', Uri::isInternal(base64_decode(AlfaHelper::returnPage(), true)), true);
 
 $input->set('view', 'discount');
@@ -124,7 +125,7 @@ $link = AlfaHelper::withReturn('index.php?option=com_alfa&task=item.edit&id=5');
 $check('R3a a link that opens a record carries the page, url encoded', $link, 'index.php?option=com_alfa&task=item.edit&id=5&return=' . rawurlencode(AlfaHelper::returnPage()));
 $check('R3b a given return is carried as given', AlfaHelper::withReturn('index.php?option=com_alfa&task=order.edit&id=9', 'QUJD'), 'index.php?option=com_alfa&task=order.edit&id=9&return=QUJD');
 $check('R3c a list link is left as it is', AlfaHelper::withReturn('index.php?option=com_alfa&view=items&filter[stock]=out'), 'index.php?option=com_alfa&view=items&filter[stock]=out');
-$check('R3d the field reads back what the link sent', base64_decode(rawurldecode(substr($link, strpos($link, 'return=') + 7)), true), Uri::getInstance()->toString());
+$check('R3d the field reads back what the link sent', base64_decode(rawurldecode(substr($link, strpos($link, 'return=') + 7)), true), 'index.php?' . Uri::getInstance()->getQuery());
 
 // ── R4: every record form ────────────────────────────────────────────────────
 echo "R4 the record forms\n";

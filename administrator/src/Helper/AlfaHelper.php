@@ -1357,9 +1357,10 @@ class AlfaHelper
 
     /**
      * The address a record's form goes back to on Close and Save & Close when the record is opened from this page: the
-     * page's own address, base64 encoded, as Joomla's form controller reads a return value. A record form is itself
-     * reached only through its edit task, so a form page gives its edit task's address
-     * (index.php?option=com_alfa&task=<view>.edit&id=<id>); every other page gives its request address as it is.
+     * page's own address, base64 encoded, as Joomla's form controller reads a return value. The address is relative,
+     * index.php with the request's query and no scheme or host, so the controller takes it as internal whatever host
+     * the request or the configuration names. A record form is itself reached only through its edit task, so a form
+     * page gives its edit task's address (index.php?option=com_alfa&task=<view>.edit&id=<id>).
      *
      * @since  2.3.0
      */
@@ -1373,7 +1374,9 @@ class AlfaHelper
             return base64_encode('index.php?option=com_alfa&task=' . $view . '.edit&id=' . $id);
         }
 
-        return base64_encode(Uri::getInstance()->toString());
+        $query = Uri::getInstance()->getQuery();
+
+        return base64_encode($query === '' ? 'index.php' : 'index.php?' . $query);
     }
 
     /**
