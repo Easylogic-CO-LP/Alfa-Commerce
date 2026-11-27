@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -21,6 +22,7 @@ use Joomla\CMS\Language\Multilanguage;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\Database\DatabaseInterface;
 
 /**
  * View class for a single Category.
@@ -111,6 +113,19 @@ class HtmlView extends FormView
                 itemId:        (int) ($this->item->id ?? 0),
                 combinationId: RequestScalar::int($input, 'combination_id'),
             );
+
+            // The variant's own shipping list (none: as the product), the choice the window shows for it, and the
+            // published methods it may name.
+            $itemId = (int) ($this->item->id ?? 0);
+            $combinationId = RequestScalar::int($input, 'combination_id');
+            $scope = ItemShipments::forItems(Factory::getContainer()->get(DatabaseInterface::class), [$itemId])[$itemId] ?? null;
+            $own = $scope?->combinations[$combinationId] ?? null;
+
+            $this->studioShipments = [
+                'choice'  => ItemShipments::combinationChoice($own),
+                'ids'     => array_map('intval', $own ?? []),
+                'methods' => AlfaHelper::getShipmentMethods(),
+            ];
         }
     }
 

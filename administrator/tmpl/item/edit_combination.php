@@ -96,6 +96,7 @@ $galleryForm->bind([
         'escaper' => $this,
         'item' => $this->item,
         'galleryForm' => $galleryForm,
+        'shipping' => $this->studioShipments ?? null,
     ]); ?>
 
     <input type="hidden" name="task" value="">

@@ -1632,4 +1632,19 @@
             save.disabled = false;
         }
     });
+
+    // The variant's shipping list in the Studio: the methods select shows while the chosen methods are the choice.
+    document.addEventListener('change', (event) => {
+        const scope = event.target.closest('[data-studio-shipping-scope]');
+
+        if (!scope) {
+            return;
+        }
+
+        const only = scope.closest('[data-studio-shipping]')?.querySelector('[data-studio-shipping-only]');
+
+        if (only) {
+            only.hidden = scope.value !== 'only';
+        }
+    });
 })();
