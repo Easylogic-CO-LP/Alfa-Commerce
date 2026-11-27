@@ -25,19 +25,17 @@ use Joomla\Database\DatabaseInterface;
  * the shoppers, not the products, so they are not part of the counts.
  *
  * Two rules stack on a product when both reach it and both combine or compound (behaviour 1 or 2): a rule set to
- * "only this" replaces the rules before it and ends the chain, so it stacks with none. The published rules in their
- * period are compared, the first COMPARE_CAP of them in their order; the rest are counted as not compared.
+ * "only this" replaces the rules before it and ends the chain, so it stacks with none. Every other published rule in
+ * its period that combines is compared, in one statement grouped by rule over the products this rule reaches.
+ *
+ * Asked for on demand from the form (its own action), never while the form renders: the counts scan the catalogue's
+ * links once for the reach, once for the products outside, once for every other rule together, and once for the
+ * exclusions.
  *
  * @since  2.3.0
  */
 final class DiscountReach
 {
-    /**
-     * The most other rules compared for stacking, in their order: one count query each.
-     *
-     * @since  2.3.0
-     */
-    public const COMPARE_CAP = 20;
 
     /**
      * @param DatabaseInterface $db The connection.
@@ -53,7 +51,7 @@ final class DiscountReach
      *
      * @param int $discountId The rule.
      *
-     * @return array{id: int, published: bool, period: string, behavior: int, reaches: int, url: string, outside: int|null, outside_url: string, stacks: list<array{id: int, name: string, count: int, url: string}>, compared: int, more: int, cap: int, exclusions: array{by_rule: int, own: int}}|null
+     * @return array{id: int, published: bool, period: string, behavior: int, reaches: int, url: string, outside: int|null, outside_url: string, stacks: list<array{id: int, name: string, count: int, url: string}>, compared: int, exclusions: array{by_rule: int, own: int}}|null
      *                                                                                                                                                                                                                                 Null when the rule does not exist.
      *
      * @since  2.3.0
@@ -110,26 +108,36 @@ final class DiscountReach
 
         $stacks = [];
         $compared = 0;
-        $more = 0;
 
-        // A rule set to "only this" stacks with none; the others are compared with every other combining rule in its period.
+        // A rule set to "only this" stacks with none; the others are compared with every other combining rule in its
+        // period, all in one statement: the products this rule reaches, joined to each other rule that reaches them,
+        // counted by rule.
         if ((int) $rule->behavior !== 0) {
             $others = $this->combiningRules(except: $discountId);
-            $more = max(0, \count($others) - self::COMPARE_CAP);
+            $compared = \count($others);
 
-            foreach (\array_slice($others, 0, self::COMPARE_CAP) as $other) {
-                $compared++;
-                $both = RuleReach::productSql(kind: RuleReach::DISCOUNT, ruleId: (string) (int) $other->id, itemId: $db->quoteName('a.id'));
-                $count = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $items . ' WHERE ' . $published . ' AND ' . $own . ' AND ' . $both)->loadResult();
+            if ($others !== []) {
+                $otherIds = array_map(static fn (object $other): int => (int) $other->id, $others);
+                $both = RuleReach::productSql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'));
+                $counts = $db->setQuery(
+                    'SELECT ' . $db->quoteName('d.id') . ', COUNT(*) AS n FROM ' . $db->quoteName('#__alfa_discounts', 'd')
+                    . ' INNER JOIN ' . $items . ' ON ' . $published . ' AND ' . $own . ' AND ' . $both
+                    . ' WHERE ' . $db->quoteName('d.id') . ' IN (' . implode(',', $otherIds) . ')'
+                    . ' GROUP BY ' . $db->quoteName('d.id'),
+                )->loadAssocList('id', 'n') ?: [];
 
-                if ($count > 0) {
-                    $stacks[] = [
-                        'id' => (int) $other->id,
-                        'name' => (string) $other->name,
-                        'count' => $count,
-                        // The rule opens with this form as its way back: its own edit task, as a form is reached.
-                        'url' => Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&task=discount.edit&id=' . (int) $other->id), false),
-                    ];
+                foreach ($others as $other) {
+                    $count = (int) ($counts[(int) $other->id] ?? 0);
+
+                    if ($count > 0) {
+                        $stacks[] = [
+                            'id' => (int) $other->id,
+                            'name' => (string) $other->name,
+                            'count' => $count,
+                            // The rule opens with this form as its way back: its own edit task, as a form is reached.
+                            'url' => Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&task=discount.edit&id=' . (int) $other->id), false),
+                        ];
+                    }
                 }
             }
         }
@@ -145,8 +153,6 @@ final class DiscountReach
             'outside_url' => $outsideUrl,
             'stacks' => $stacks,
             'compared' => $compared,
-            'more' => $more,
-            'cap' => self::COMPARE_CAP,
             // The products the scope takes in and the rule never reaches: excluded by the rule, and on their own.
             'exclusions' => (new DiscountExclusions(db: $db))->counts(discountId: $discountId),
         ];

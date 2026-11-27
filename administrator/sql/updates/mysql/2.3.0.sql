@@ -524,3 +524,5 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
 ALTER TABLE `#__alfa_items` ADD COLUMN `label_settings` text DEFAULT NULL COMMENT 'JSON: the product''s own label (own: its name by language, colours, class, where it shows, its period) and its choice for the automatic New label (new: shown 0 or 1, corner); NULL = no own label and the New label as the shop shows it' AFTER `discount_rules` /** CAN FAIL **/;
 
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right' AFTER `tag_class` /** CAN FAIL **/;
+
+ALTER TABLE `#__alfa_meta` MODIFY `value` mediumtext NOT NULL COMMENT 'Its value, e.g. 2.0.0, the download store path, the store protection result or the price check''s stored findings as JSON' /** CAN FAIL **/;

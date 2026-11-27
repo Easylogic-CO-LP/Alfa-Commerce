@@ -13,30 +13,57 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAuditStore;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 
 /**
- * The price check page's report: the catalogue's prices read by the price audit.
- *
- * Read only. The report is taken inside one consistent, read-only snapshot, so every figure it compares was read at
- * the same moment while the shop keeps selling, and the snapshot is rolled back whatever happens. It changes nothing:
- * every finding links to the screen where it is put right.
+ * The price check page's data: the stored result of the check's last complete run and where the check stands, read
+ * from the store (PriceAuditStore). Nothing is computed here: the check is the job's, and the page shows what it kept.
  *
  * @since  2.3.0
  */
 class PriceauditModel extends BaseDatabaseModel
 {
     /**
-     * Read the report.
+     * Where the check stands: its state, the last complete summary, the job running, the failure, the next run.
      *
-     * Opens its own transaction on the model's connection, so it must not run inside a caller's transaction.
-     *
-     * @return array The report (PriceAudit::report()).
+     * @return array See PriceAuditStore::status().
      *
      * @since  2.3.0
      */
-    public function getReport(): array
+    public function getStatus(): array
     {
-        return PriceAudit::read(db: TransactionState::driver(db: $this->getDatabase()));
+        return $this->store()->status();
+    }
+
+    /**
+     * One page of a section's stored findings, the products named.
+     *
+     * @param string $section The section.
+     * @param int $start The rows before the page.
+     * @param int $limit The page's rows.
+     *
+     * @return array{rows: list<array>, total: int, start: int, limit: int}
+     *
+     * @since  2.3.0
+     */
+    public function getPage(string $section, int $start, int $limit): array
+    {
+        $page = $this->store()->rows(section: $section, offset: $start, limit: $limit);
+
+        return [
+            'rows' => PriceAudit::named(db: TransactionState::driver(db: $this->getDatabase()), rows: $page['rows']),
+            'total' => (int) $page['total'],
+            'start' => max(0, $start),
+            'limit' => max(1, $limit),
+        ];
+    }
+
+    /**
+     * @since  2.3.0
+     */
+    private function store(): PriceAuditStore
+    {
+        return new PriceAuditStore(db: TransactionState::driver(db: $this->getDatabase()));
     }
 }

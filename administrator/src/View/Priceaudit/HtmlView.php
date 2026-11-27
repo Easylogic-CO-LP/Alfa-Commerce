@@ -12,17 +12,20 @@ namespace Alfa\Component\Alfa\Administrator\View\Priceaudit;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Service\Pricing\PriceAudit;
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Access\Exception\NotAllowed;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
- * The price check page: what the catalogue's prices say that a shop owner would not want them to say, one folded
- * section per kind of finding with its count, every row a link to the product, the price row, the discount or the tax
- * it is about, and the counters of the price index check last.
+ * The price check page: what the catalogue's prices say that a shop owner would not want them to say, as the check's
+ * job last stored it, one folded section per kind of finding with its count and a page of its rows, every row a link to
+ * the product, the price row, the discount or the tax it is about, and the counters of the price index check last.
+ * First where the check stands: when it ran, whether it is out of date, running (followed on the page) or failed, and
+ * when it runs next; "Check again" queues the same job.
  *
  * Super Users only. The report is rendered from a fixed-path partial, not through the overridable template system, so
  * a template override cannot hide or fake a finding; the template only echoes the rendered string.
@@ -52,13 +55,31 @@ class HtmlView extends BaseHtmlView
     ];
 
     /**
-     * The price audit's report.
+     * Where the check stands (PriceAuditStore::status()): its state, the last complete summary, the job running, the
+     * failure of the last run, the moment the result went out of date, the next scheduled run.
      *
      * @var array
      *
      * @since  2.3.0
      */
-    public array $report = [];
+    public array $status = [];
+
+    /**
+     * One page of each section's stored findings, by section: rows (the products named), total, start, limit. Every
+     * section shows its first page; the section asked for (&section=) shows the page asked for (&limitstart=).
+     *
+     * @var array<string, array{rows: list<array>, total: int, start: int, limit: int}>
+     *
+     * @since  2.3.0
+     */
+    public array $pages = [];
+
+    /**
+     * The section whose pages are walked, '' for none.
+     *
+     * @since  2.3.0
+     */
+    public string $section = '';
 
     /**
      * The report, rendered from the fixed-path partial in {@see self::display()}.
@@ -75,7 +96,7 @@ class HtmlView extends BaseHtmlView
     public Currency $currency;
 
     /**
-     * Render the page for a Super User.
+     * Render the page for a Super User: the stored result and where the check stands, nothing computed here.
      *
      * @param string|null $tpl The template name.
      *
@@ -89,18 +110,29 @@ class HtmlView extends BaseHtmlView
             throw new NotAllowed(message: Text::_('JERROR_ALERTNOAUTHOR'), code: 403);
         }
 
-        $this->report = $this->getModel()->getReport();
+        $app = Factory::getApplication();
+        $model = $this->getModel();
+        $this->status = $model->getStatus();
         $this->currency = Currency::getDefault();
+        $input = $app->getInput();
+        $section = $input->getCmd('section', '');
+        $this->section = \in_array($section, PriceAudit::SECTIONS, true) ? $section : '';
+        // The page's rows: Joomla's list limit, the one every list of the back office pages by.
+        $limit = max(1, (int) $app->get('list_limit', 20));
+        $start = max(0, $input->getInt('limitstart', 0));
+
+        if ($this->status['summary'] !== null) {
+            foreach (PriceAudit::SECTIONS as $key) {
+                $this->pages[$key] = $model->getPage(section: $key, start: $key === $this->section ? $start : 0, limit: $limit);
+            }
+        }
 
         // The report is a fixed-path partial, so its stylesheet is the view's to load, not the template's.
         $this->getDocument()->getWebAssetManager()->useStyle('com_alfa.admin');
-
         ob_start();
         include __DIR__ . '/_report.php';
         $this->reportHtml = (string) ob_get_clean();
-
         $this->addToolbar();
-
         parent::display(tpl: $tpl);
     }
 

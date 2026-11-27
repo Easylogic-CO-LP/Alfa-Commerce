@@ -1686,6 +1686,7 @@ class com_alfaInstallerScript extends InstallerScript
         $this->addMissingColumns();
         $this->addMissingKeys();
         $this->exactPriceValues();
+        $this->wideMetaValues();
         $this->migratePriceIndex(type: $type);
         $this->recordSchemaVersion();
         $this->seedPriceWindowsCursor();
@@ -3042,6 +3043,47 @@ class com_alfaInstallerScript extends InstallerScript
             }
         } catch (\Throwable $e) {
             \Joomla\CMS\Log\Log::add('Alfa Commerce: the pause of the job runner could not be ended; it expires within ten minutes: ' . $e->getMessage(), \Joomla\CMS\Log\Log::WARNING, 'jerror');
+        }
+    }
+
+    /**
+     * The facts beside the data hold the price check's stored findings: #__alfa_meta.value becomes MEDIUMTEXT on every
+     * install and update where it is still TEXT (the database's shape decides, never the version recorded). A failure
+     * is said, never a failed install.
+     *
+     * @return  void
+     * @since   2.3.0
+     */
+    private function wideMetaValues(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $table = $db->replacePrefix('#__alfa_meta');
+
+        try {
+            $type = (string) $db->setQuery(
+                'SELECT ' . $db->quoteName('DATA_TYPE') . ' FROM ' . $db->quoteName('information_schema.COLUMNS')
+                . ' WHERE ' . $db->quoteName('TABLE_SCHEMA') . ' = DATABASE() AND ' . $db->quoteName('TABLE_NAME') . ' = ' . $db->quote($table)
+                . ' AND ' . $db->quoteName('COLUMN_NAME') . ' = ' . $db->quote('value'),
+            )->loadResult();
+
+            if ($type === '' || strtolower($type) === 'mediumtext' || strtolower($type) === 'longtext') {
+                return;
+            }
+
+            $db->setQuery(
+                'ALTER TABLE ' . $db->quoteName($table) . ' MODIFY ' . $db->quoteName('value')
+                . " mediumtext NOT NULL COMMENT 'Its value, e.g. 2.0.0, the download store path, the store protection result or the price check''s stored findings as JSON'",
+            )->execute();
+            self::maintenanceLog(
+                line: sprintf('Update to %s: %s holds its values as MEDIUMTEXT.', self::SCHEMA_VERSION, $table),
+                priority: \Joomla\CMS\Log\Log::INFO,
+            );
+        } catch (\Throwable $e) {
+            Factory::getApplication()->enqueueMessage($this->installerText(
+                key:      'COM_ALFA_INSTALL_META_VALUES_FAILED',
+                fallback: 'Alfa Commerce %1$s could not widen the facts table for the price check\'s stored findings: %2$s Install the package again.',
+                values:   [$this->packageVersion, $e->getMessage()],
+            ), 'warning');
         }
     }
 

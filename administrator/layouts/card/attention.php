@@ -25,15 +25,17 @@
  *
  * A tile may carry lines instead of its sentence: one fact a line, each a link of its own (the kinds of a finding,
  * each leading to its own section). Such a tile is a block whose lines and verb are the links, never an anchor around
- * anchors; with more than two lines it takes the whole row of the grid, the grid's own span, no new mechanism.
+ * anchors; with more than two lines it takes the whole row of the grid, the grid's own span, no new mechanism. Such a
+ * tile may also carry one action: a form posting to the task named, with the form token, the button its label.
  *
  * @var array $displayData One resolved card. data:
- *   ['rows' => [['severity', 'kind', 'value', 'text', 'go', 'url', 'lines' => [['text', 'url']]]]]
+ *   ['rows' => [['severity', 'kind', 'value', 'text', 'go', 'url', 'lines' => [['text', 'url']], 'action' => ['url', 'label']]]]
  */
 
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Session\Session;
 
 $data = (array) ($displayData['data'] ?? []);
 $rows = (array) ($data['rows'] ?? []);
@@ -73,6 +75,13 @@ $e = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                 </ul>
                 <?php if ($url !== '') : ?>
                     <a class="attention-go" href="<?php echo $e($url); ?>"><?php echo $e((string) ($row['go'] ?? '')); ?></a>
+                <?php endif; ?>
+                <?php $action = (array) ($row['action'] ?? []); ?>
+                <?php if ((string) ($action['url'] ?? '') !== '') : ?>
+                    <form method="post" action="<?php echo $e((string) $action['url']); ?>" class="attention-action">
+                        <input type="hidden" name="<?php echo Session::getFormToken(); ?>" value="1">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"><?php echo $e((string) ($action['label'] ?? '')); ?></button>
+                    </form>
                 <?php endif; ?>
             </div>
             <?php continue; ?>

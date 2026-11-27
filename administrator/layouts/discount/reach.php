@@ -8,70 +8,30 @@
  */
 
 /**
- * The Reach card of a saved discount rule: how many published products its categories and manufacturers take in
- * (the product list narrowed to them), the products of its manufacturers its categories leave out, the rules it
- * stacks with on a product, each with the count, and the products of its scope it never reaches (excluded by the rule,
- * or on their own). Read only; counted from the saved rule by DiscountReach.
+ * The Reach card of a saved discount rule: a frame with one button, "Count the reach", which asks the rule's own action
+ * (task=discount.reach) for the counts and puts the answer, rendered by discount.reach_counts on the server, in the
+ * frame. Nothing is counted while the form renders. Read only.
  *
  * @var array $displayData
- *   - array $reach What DiscountReach::of() answered.
+ *   - int    $id    The saved rule.
+ *   - string $url   The action's address.
+ *   - string $token The form token's name.
  */
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
-$reach = (array) $displayData['reach'];
 $e = static fn (string $text): string => htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-$products = Text::plural('COM_ALFA_DISCOUNT_REACH_PRODUCTS', (int) $reach['reaches']);
+Factory::getApplication()->getDocument()->getWebAssetManager()->useScript('com_alfa.admin.discount-reach');
 ?>
-<fieldset class="adminform" id="discount-reach">
+<fieldset class="adminform" id="discount-reach" data-discount-reach data-id="<?php echo (int) $displayData['id']; ?>" data-url="<?php echo $e((string) $displayData['url']); ?>"
+    data-token="<?php echo $e((string) $displayData['token']); ?>" data-failed="<?php echo $e(Text::_('COM_ALFA_DISCOUNT_REACH_FAILED')); ?>"
+    data-counting="<?php echo $e(Text::_('COM_ALFA_DISCOUNT_REACH_COUNTING')); ?>">
     <legend><?php echo Text::_('COM_ALFA_DISCOUNT_REACH'); ?></legend>
-    <ul class="list-unstyled mb-0 small">
-        <li class="mb-2">
-            <?php if ((int) $reach['reaches'] > 0) : ?>
-                <a href="<?php echo $e((string) $reach['url']); ?>"><?php echo $e($products); ?></a>
-            <?php else : ?>
-                <?php echo $e($products); ?>
-            <?php endif; ?>
-            <?php if (!$reach['published']) : ?>
-                <span class="d-block text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_UNPUBLISHED'); ?></span>
-            <?php elseif ($reach['period'] === RulePeriod::EXPIRED) : ?>
-                <span class="d-block text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_EXPIRED'); ?></span>
-            <?php elseif ($reach['period'] === RulePeriod::UPCOMING) : ?>
-                <span class="d-block text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_UPCOMING'); ?></span>
-            <?php endif; ?>
-        </li>
-
-        <?php if ($reach['outside'] !== null && (int) $reach['outside'] > 0) : ?>
-            <li class="mb-2">
-                <a href="<?php echo $e((string) $reach['outside_url']); ?>"><?php echo $e(Text::plural('COM_ALFA_DISCOUNT_REACH_OUTSIDE', (int) $reach['outside'])); ?></a>
-            </li>
-        <?php endif; ?>
-
-        <?php if ((int) $reach['behavior'] === 0) : ?>
-            <li class="mb-2 text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_ONLY_THIS'); ?></li>
-        <?php elseif ($reach['stacks'] === []) : ?>
-            <li class="mb-2 text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_STACKS_NONE'); ?></li>
-        <?php else : ?>
-            <?php foreach ($reach['stacks'] as $stack) : ?>
-                <li class="mb-2">
-                    <?php echo $e(Text::plural('COM_ALFA_DISCOUNT_REACH_STACKS', (int) $stack['count'], (string) $stack['name'])); ?>
-                    <a href="<?php echo $e((string) $stack['url']); ?>"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_OPEN_RULE'); ?></a>
-                </li>
-            <?php endforeach; ?>
-        <?php endif; ?>
-
-        <?php if ((int) $reach['more'] > 0) : ?>
-            <li class="mb-2 text-muted"><?php echo $e(Text::sprintf('COM_ALFA_DISCOUNT_REACH_MORE_RULES', (int) $reach['more'], (int) $reach['cap'])); ?></li>
-        <?php endif; ?>
-
-        <?php $exclusions = (array) ($reach['exclusions'] ?? []); ?>
-        <?php if ((int) ($exclusions['by_rule'] ?? 0) > 0 || (int) ($exclusions['own'] ?? 0) > 0) : ?>
-            <li class="mb-2" id="discount-exclusions"><?php echo $e(Text::sprintf('COM_ALFA_DISCOUNT_EXCLUSIONS_COUNTS', (int) $exclusions['by_rule'], (int) $exclusions['own'])); ?></li>
-        <?php endif; ?>
-
-        <li class="text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_NOTE'); ?></li>
-    </ul>
+    <div data-reach-body>
+        <p class="small text-muted mb-2"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_ASK_DESC'); ?></p>
+        <button type="button" class="btn btn-sm btn-secondary" data-reach-ask><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_ASK'); ?></button>
+    </div>
 </fieldset>

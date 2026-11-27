@@ -957,6 +957,17 @@
                 <option value="0">JNO</option>
                 <option value="1">JYES</option>
             </field>
+            <field
+                    name="price_audit_large_share"
+                    type="number"
+                    default="50"
+                    min="1"
+                    max="99"
+                    step="1"
+                    filter="integer"
+                    label="COM_ALFA_CONFIG_PRICE_AUDIT_LARGE_SHARE_LABEL"
+                    description="COM_ALFA_CONFIG_PRICE_AUDIT_LARGE_SHARE_DESC"
+            />
         </fieldset>
 
         <field name="spacer_unit_display_precision" type="spacer" hr="true" />

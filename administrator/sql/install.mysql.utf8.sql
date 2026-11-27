@@ -22,7 +22,7 @@
 
 CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
   `name` varchar(64) NOT NULL COMMENT 'The fact, e.g. schema_version',
-  `value` text NOT NULL COMMENT 'Its value, e.g. 2.0.0, the download store path, or the store protection result as JSON',
+  `value` mediumtext NOT NULL COMMENT 'Its value, e.g. 2.0.0, the download store path, the store protection result or the price check''s stored findings as JSON',
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
