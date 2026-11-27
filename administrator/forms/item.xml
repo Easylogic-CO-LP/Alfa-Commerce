@@ -119,6 +119,34 @@
                 min="0"
         />
 
+        <!-- Shipping methods
+             Every method the shop offers, or the chosen ones only; a cart is
+             offered what every product in it allows (ItemShipments). -->
+        <field name="shipments_scope" type="radio"
+               class="btn-group"
+               showon="is_virtual:0"
+               label="COM_ALFA_FORM_LBL_ITEM_SHIPMENTS"
+               description="COM_ALFA_FORM_DESC_ITEM_SHIPMENTS"
+               default="all">
+            <option value="all">COM_ALFA_ITEM_SHIPMENTS_ALL</option>
+            <option value="only">COM_ALFA_ITEM_SHIPMENTS_ONLY</option>
+        </field>
+
+        <field
+                name="shipments" type="model"
+                model="shipments"
+                state="1"
+                column_value="id"
+                column_text="name"
+                input_type="list"
+                required="false"
+                multiple="true"
+                showon="is_virtual:0[AND]shipments_scope:only"
+                label="COM_ALFA_FORM_LBL_ITEM_SHIPMENTS_ONLY"
+                description="COM_ALFA_FORM_DESC_ITEM_SHIPMENTS_ONLY"
+                layout="joomla.form.field.list-fancy-select"
+        />
+
         <field name="rule_limits" type="spacer" hr="true" class="alfa-group-rule"/>
 
         <!-- Purchase limits: what a shopper may put in the cart

@@ -413,3 +413,20 @@ ALTER TABLE `#__alfa_order_items` MODIFY `tax_name` text NOT NULL DEFAULT ('') C
 ALTER TABLE `#__alfa_order_shipments` MODIFY `shipping_tax_chain` text NOT NULL DEFAULT ('[]') COMMENT 'The tax rates the charge was calculated with, in the order they apply, each an exact decimal text with the name of the tax rule that applied it, whole (a JSON list, e.g. [{"rate":"10","name":"VAT"},{"rate":"5","name":"Eco levy"}]; a chain frozen before rule names were kept holds the rates alone, e.g. ["10","5"]); [] = untaxed. shipping_tax_rate is their combined rate, for display and reconciliation only.';
 ALTER TABLE `#__alfa_document_items` MODIFY `tax_name` text NOT NULL DEFAULT ('') COMMENT 'The applied tax rule name frozen at issue, whole: from the order line or the shipping tax chain, on a credit from the corrected document line; empty on a document issued before names were frozen';
 ALTER TABLE `#__alfa_task_slots` MODIFY `name` varchar(32) NOT NULL COMMENT 'heavy, and any later concurrency class';
+
+-- Shipping methods per product and per variant
+
+-- The shipping methods a product, or one of its combinations, is shipped with (ItemShipments, the one reader).
+-- A product with no row ships with every method; one with rows ships with those only. A combination with no row
+-- ships as its product does; its wildcard row (shipment 0) means every method, whatever the product says; its
+-- method rows mean those only. A cart is offered the methods every line allows. The item delete removes the rows
+-- of a deleted product and the combination delete those of a deleted combination. The install SQL creates the same
+-- table; this runs again harmlessly over it.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_items_shipments` (
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `combination_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The product''s combination the row is for; 0 for the product itself',
+  `shipment_id` int(11) UNSIGNED NOT NULL COMMENT 'A shipping method the unit ships with; 0 on a combination row: every method, whatever the product says',
+  PRIMARY KEY (`item_id`, `combination_id`, `shipment_id`),
+  KEY `idx_shipment_id` (`shipment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The shipping methods a product or one of its combinations ships with only; no row = every method (a combination: as its product)';

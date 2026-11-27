@@ -45,7 +45,8 @@ class ModelField extends ListField
 
         $this->options = parent::getOptions();
 
-        $cacheKey = $componentName . '|' . $modelName . '|' . $columnValue . '|' . $columnText . '|' . $orderBy . '|' . $orderDir;
+        $cacheKey = $componentName . '|' . $modelName . '|' . $columnValue . '|' . $columnText . '|' . $orderBy . '|' . $orderDir
+            . '|' . (string) $this->getAttribute('state', '*');
         $items = $this->loadModelRows();
 
         if ($items === null) {
@@ -129,7 +130,8 @@ class ModelField extends ListField
             // (especially list.limit, which falls back to the component default: 20).
             $model->getState('list.ordering');
 
-            $model->setState('filter.state', '*');
+            // The records of one state when the field asks (state="1": the published ones); every record otherwise.
+            $model->setState('filter.state', (string) $this->getAttribute('state', '*'));
             $model->setState('filter.search', '');
             $model->setState('list.limit', 0);
             $model->setState('list.start', 0);
