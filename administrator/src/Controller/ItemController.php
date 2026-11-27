@@ -1433,6 +1433,81 @@ class ItemController extends FormController
     }
 
     /**
+     * Store one image dropped on a variant's Image cell of the grid as the variant's own image, through the path the
+     * Images tab and the variant window store a dropped file by (MediaHelper::saveMedia(), origin combination): the
+     * file lands in the shop's media folder with its thumbnail and its row at once, so a reload shows it. Nothing
+     * else of the product changes and the product form is not saved.
+     *
+     * @return void Emits JSON {count: N, html: the cell drawn again} and closes the application.
+     *
+     * @since  2.3.0
+     */
+    public function uploadCombinationImage(): void
+    {
+        $this->checkToken();
+        $app = Factory::getApplication();
+
+        if (!AlfaHelper::can(section: 'items', action: 'edit', user: $app->getIdentity())) {
+            throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
+        }
+
+        $itemId = RequestScalar::int($this->input, 'id');
+        $combinationId = RequestScalar::int($this->input, 'combination_id');
+        $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $app->sendHeaders();
+
+        try {
+            $combination = ItemFieldsAdminHelper::getCombination(itemId: $itemId, combinationId: $combinationId);
+
+            if ($combination === null) {
+                throw new RuntimeException(Text::_('COM_ALFA_COMBINATION_NOT_FOUND'));
+            }
+
+            $file = (array) $this->input->files->get('file', [], 'array');
+
+            if ((string) ($file['tmp_name'] ?? '') === '' || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                throw new RuntimeException(Text::_('COM_ALFA_COMBINATION_IMAGE_NOT_RECEIVED'));
+            }
+
+            $before = \count(MediaHelper::getMediaData(origin: 'combination', itemIDs: $combinationId));
+            $app->getMessageQueue(true);
+
+            // One dropped tile after the images the variant has; its thumbnail is made from the dropped file.
+            MediaHelper::saveMedia(
+                mediaData:    ['new-0' => ['source' => 'blob:dropped', 'thumbnail' => 'blob:dropped', 'alt' => '', 'type' => 'image', 'position' => $before]],
+                droppedMedia: [$file],
+                itemId:       $combinationId,
+                mediaOrigin:  'combination',
+            );
+
+            $gallery = MediaHelper::getMediaData(origin: 'combination', itemIDs: $combinationId);
+
+            if (\count($gallery) <= $before) {
+                // The store refused it (not an image of an allowed type, a plugin's refusal): its words.
+                $refusals = array_column($app->getMessageQueue(true), 'message');
+
+                throw new RuntimeException($refusals !== [] ? implode(' ', $refusals) : Text::_('COM_ALFA_COMBINATION_IMAGE_FAILED'));
+            }
+
+            echo new JsonResponse([
+                'count' => \count($gallery),
+                'html'  => LayoutHelper::render('combinations.image', [
+                    'combinationId' => $combinationId,
+                    'mediaCount'    => \count($gallery),
+                    'first'         => $gallery[0] ?? null,
+                    'label'         => (string) ($combination->label ?? ''),
+                ], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'),
+            ]);
+        } catch (ExecutionFailureException | ConnectionFailureException $e) {
+            echo $this->databaseRefused(endpoint: 'uploadCombinationImage', itemId: $itemId, failure: $e);
+        } catch (RuntimeException $e) {
+            echo new JsonResponse($e);
+        }
+
+        $app->close();
+    }
+
+    /**
      * The answer of a combinations popup whose work the database refused: one plain sentence for the page, the
      * detail in the log with the endpoint and the item (category com_alfa.items). A database exception's own text (a
      * failed query's SQL, the schema's and the tables' names) never reaches the administrator; the refusals the

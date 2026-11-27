@@ -649,6 +649,95 @@ body:has(.alfa-studio) {
   color: var(--alfa-ink-soft);
 }
 
+/* Image column: the variant's first image with how many more it has, or a small drop zone for a variant
+   without one. One fixed size, so the row stays one line high. */
+.alfa-combinations .variant-image-cell {
+  width: 3.75rem;
+}
+
+.alfa-combinations .variant-image {
+  position: relative;
+  width: 44px;
+}
+
+.alfa-combinations .variant-image-open {
+  display: block;
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--alfa-line);
+  border-radius: 4px;
+  background: var(--alfa-paper);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.alfa-combinations .variant-image-open:focus-visible {
+  outline: 2px solid var(--alfa-gold);
+  outline-offset: 1px;
+}
+
+.alfa-combinations .variant-image-open img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.alfa-combinations .variant-image-more {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.4rem;
+  padding: 0 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.1rem;
+  color: var(--alfa-paper);
+  background: var(--alfa-ink);
+  border-radius: 0.55rem;
+}
+
+.alfa-combinations .variant-image-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 1px dashed var(--alfa-line);
+  border-radius: 4px;
+  color: var(--alfa-ink-soft);
+  background: var(--alfa-canvas);
+  cursor: pointer;
+}
+
+.alfa-combinations .variant-image-drop .icon-upload {
+  font-size: 0.9rem;
+}
+
+.alfa-combinations .variant-image-drop-text {
+  font-size: 0.5rem;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.alfa-combinations .variant-image-drop:hover,
+.alfa-combinations .variant-image-drop.is-over,
+.alfa-combinations .variant-image-drop:focus-within {
+  border-color: var(--alfa-gold);
+  background: var(--alfa-gold-soft);
+  color: var(--alfa-ink);
+}
+
+.alfa-combinations .variant-image.is-uploading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* Tighter SKU + stock so the price/final controls fit on one line. */
 .alfa-combinations td input[name$="[sku]"] {
   width: 8rem;
