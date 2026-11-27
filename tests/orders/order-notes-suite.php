@@ -28,7 +28,10 @@
  *   [T1] every table touched holds exactly the rows it held.
  *
  * Fixtures: one disposable guest order of this run's own, with no lines, whose customer address is
- * host@easylogic.gr; it and every row written about it are removed before the census. No shop stock is touched.
+ * host@easylogic.gr; it and every row written about it are removed before the census: its history, its singles, the
+ * staff notice its failed singles raised when none stood before. A pending status e-mail single of an order that no
+ * longer exists (what a run that ended before its teardown leaves) is removed before the opening census and named.
+ * No shop stock is touched.
  * Mail is off for the run unless --mail is given AND the site sends mail: only then is the e-mail really sent, to
  * host@easylogic.gr alone.
  *
@@ -60,6 +63,7 @@ use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskAttention;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Application\AdministratorApplication;
 use Joomla\CMS\Factory;
@@ -151,6 +155,25 @@ $census = static function () use ($db, $p, $tables): array {
 
     return $counts;
 };
+
+// A status e-mail single still pending for an order that no longer exists is what an earlier run of this suite left
+// when it ended before its teardown: removed before the census, and named. A single of an order the shop has is
+// never touched.
+$stale = array_map('intval', $db->setQuery(
+    "SELECT t.id FROM `{$p}alfa_tasks` t LEFT JOIN `{$p}alfa_orders` o ON o.id = t.subject_id"
+    . " WHERE t.subject_type = 'order' AND t.handler = " . $db->quote(OrderStatusEmail::NAME) . " AND t.state = 'pending' AND o.id IS NULL",
+)->loadColumn() ?: []);
+
+if ($stale !== []) {
+    $db->setQuery("DELETE FROM `{$p}alfa_tasks` WHERE id IN (" . implode(',', $stale) . ')')->execute();
+    echo '  removed ', \count($stale), ' stale status e-mail single(s) of orders that no longer exist: #', implode(', #', $stale), "\n\n";
+}
+
+// The staff notice a failed single raises (one row, by its key): when it does not stand before this run, the run's own
+// failed singles raise it, and it is removed with them.
+$attentionBefore = (int) $db->setQuery(
+    "SELECT COUNT(*) FROM `{$p}alfa_notifications` WHERE dedup_key = " . $db->quote(TaskAttention::KEY),
+)->loadResult();
 
 $opening = $census();
 
@@ -452,6 +475,11 @@ try {
         $db->setQuery("DELETE FROM `{$p}alfa_inventory_operations` WHERE source_type = 'order' AND source_id = {$orderId}")->execute();
         OrderNotifications::forget($db, [$orderId]);
         $db->setQuery("DELETE FROM `{$p}alfa_orders` WHERE id = {$orderId}")->execute();
+
+        // The staff notice this run's failed singles raised, when none stood before; a notice that stood stays.
+        if ($attentionBefore === 0) {
+            $db->setQuery("DELETE FROM `{$p}alfa_notifications` WHERE dedup_key = " . $db->quote(TaskAttention::KEY))->execute();
+        }
     }
 
     $app->loadIdentity(new User(0));
