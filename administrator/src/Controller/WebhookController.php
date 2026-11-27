@@ -22,8 +22,8 @@ use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Router\Route;
 
 /**
- * A webhook's edit screen, and its test: one change of topic ping posted to its address, signed as every request, the
- * answer shown.
+ * A webhook's edit screen; New secret, a save that replaces the signing secret; and its test: one change of topic
+ * ping posted to its address, signed as every request, the answer shown.
  *
  * @since  2.3.0
  */
@@ -39,6 +39,26 @@ class WebhookController extends FormController
      * @since  2.3.0
      */
     protected $view_list = 'webhooks';
+
+    /**
+     * Save the webhook as Apply does, with a new signing secret: the model makes it and shows it once in the message,
+     * and the screen stays open. The Webhooks edit permission, as every save.
+     *
+     * @since  2.3.0
+     */
+    public function newsecret(): bool
+    {
+        $this->checkToken();
+
+        $data = $this->input->post->get('jform', [], 'array');
+        $data['new_secret'] = 1;
+        $this->input->post->set('jform', $data);
+
+        // The save reads the task to choose where the screen goes next: Apply keeps it open.
+        $this->task = 'apply';
+
+        return $this->save();
+    }
 
     /**
      * Send the webhook a test: POST with the form token, the Webhooks edit permission.
