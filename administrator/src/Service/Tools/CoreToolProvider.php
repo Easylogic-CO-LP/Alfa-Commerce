@@ -530,8 +530,10 @@ final class CoreToolProvider
      * then the list prices waiting (a step of the oldest waiting set's job, as Prepare waiting list prices does). Each
      * kind runs through its own path with its own locks, batches and time limits, so a job another process holds (the
      * cron) is not run twice: that kind stops and its records count as still pending. A kind that fails is counted as
-     * an error and the kinds after it still run. The plan queues what the single actions queue and counts what is
-     * pending; the last step says what the run did ({@see PendingRun::message()}), and the page loads itself again.
+     * an error and the kinds after it still run. The plan queues the drain and the waiting price sets as the single
+     * actions do, but brings no failed stock movement forward (only Apply pending stock movements does), and counts
+     * what is pending; the last step says what the run did ({@see PendingRun::message()}), and the page loads itself
+     * again.
      *
      * @param ExecuteToolActionEvent $event The tool request.
      *
@@ -542,7 +544,8 @@ final class CoreToolProvider
         try {
             if ($event->isPlanning()) {
                 PendingRun::start();
-                InventoryEffectOutbox::reopenFailed();
+                // Only what is pending: a movement that failed waits for its own next try, which Apply pending stock
+                // movements alone brings forward.
                 StockEffectsDrainJob::enqueue();
                 (new PriceIndexSyncService())->queueWaitingContexts();
                 $event->setTotal(max(1, Tasks::dueCount() + InventoryEffectOutbox::outstandingCount() + self::pricesWaiting()));
