@@ -828,6 +828,34 @@
             </field>
         </fieldset>
 
+        <field name="spacer_price_audit" type="spacer" hr="true" />
+
+        <!-- The price check (view=priceaudit, the dashboard card and the daily job): what it reports besides the defects. -->
+        <fieldset name="price_audit" label="COM_ALFA_CONFIG_PRICE_AUDIT_LABEL">
+            <field
+                    name="price_audit_zero"
+                    type="radio"
+                    layout="joomla.form.field.radio.switcher"
+                    default="1"
+                    label="COM_ALFA_CONFIG_PRICE_AUDIT_ZERO_LABEL"
+                    description="COM_ALFA_CONFIG_PRICE_AUDIT_ZERO_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+            <field
+                    name="price_audit_open_sale"
+                    type="radio"
+                    layout="joomla.form.field.radio.switcher"
+                    default="1"
+                    label="COM_ALFA_CONFIG_PRICE_AUDIT_OPEN_SALE_LABEL"
+                    description="COM_ALFA_CONFIG_PRICE_AUDIT_OPEN_SALE_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+        </fieldset>
+
         <field name="spacer_unit_display_precision" type="spacer" hr="true" />
 
         <field

@@ -1091,14 +1091,14 @@ class AlfaHelper
      * Admin screens whose own display() checks a permission of its own: Tools, its media screen and
      * its API routes page (alfa.tools), Notifications (alfa.notifications.view), a plugin panel (its
      * menu entry's action), the plugin action popup (the section the action works on), the inventory
-     * audit (core.admin), Reset to default (alfa.tools with core.admin), Clear everything
-     * (alfa.data.clear) and Tools > Extensions (alfa.tools; its actions check theirs).
+     * audit and the price check (core.admin), Reset to default (alfa.tools with core.admin), Clear
+     * everything (alfa.data.clear) and Tools > Extensions (alfa.tools; its actions check theirs).
      *
      * @var string[]
      *
      * @since  2.0.0
      */
-    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'apiroutes', 'notifications', 'panel', 'action', 'inventoryaudit', 'resetdefaults', 'cleardata', 'extensions'];
+    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'apiroutes', 'notifications', 'panel', 'action', 'inventoryaudit', 'priceaudit', 'resetdefaults', 'cleardata', 'extensions'];
 
     /**
      * What each standard Joomla list and record task does, as a permission verb. Alfa's own tasks

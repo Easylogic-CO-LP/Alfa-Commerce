@@ -158,7 +158,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
     ];
 };
 ?>
-<div class="com-alfa-inventory-audit">
+<div class="com-alfa-inventory-audit com-alfa-audit">
     <p class="text-muted">
         <?php echo Text::sprintf('COM_ALFA_INVENTORY_AUDIT_SCANNED', (int) $scanned['units'], (int) $scanned['rows']); ?>
     </p>
