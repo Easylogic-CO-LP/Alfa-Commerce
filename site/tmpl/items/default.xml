@@ -15,10 +15,8 @@
                 label="COM_ALFA_MENU_ITEMS_CATEGORY_LABEL">
             <field
                     name="category_id"
-                    type="model"
-                    model="categories"
-                    column_value="id"
-                    column_text="name"
+                    type="categories"
+                    showPath="true"
                     label="COM_ALFA_MENU_ITEMS_CATEGORY_LABEL"
                     description="COM_ALFA_MENU_ITEMS_CATEGORY_DESC">
                 <option value="">JGLOBAL_SELECT_AN_OPTION</option>
