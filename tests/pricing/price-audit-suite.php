@@ -544,7 +544,7 @@ if (isset($result['error'])) {
     check('[PA1] ★ a sale above the price it replaces is a finding naming its row', [\count($above), $above[0]['row_id'] ?? null, $above[0]['detail']['sale_price'] ?? null, $above[0]['detail']['replaced_price'] ?? null], [1, $result['aboveRow'], $unit('80.00000000'), $unit('60.00000000')]);
     check('[PA1] a sale above the price is not also a large one', $result['aboveNotLarge'], []);
     $large = $result['large'];
-    check('[PA1] ★ a sale below half the price is a finding with its share', [\count($large), $large[0]['detail']['share_percent'] ?? null], [1, 90.0]);
+    check('[PA1] ★ a sale below half the price is a finding with its share', [\count($large), (float) ($large[0]['detail']['share_percent'] ?? -1)], [1, 90.0]);
     check('[PA1] ★ a sale without an end date is a finding by option', \count($result['largeOpen']), 1);
     check('[PA2] ★ a discount published after its end is a finding, expired', [\count($result['expiredDiscount']), $result['expiredDiscount'][0]['detail']['status'] ?? null], [1, RulePeriod::EXPIRED]);
     check('[PA2] ★ a discount published before its start is a finding, not started', [\count($result['upcomingDiscount']), $result['upcomingDiscount'][0]['detail']['status'] ?? null], [1, RulePeriod::UPCOMING]);
