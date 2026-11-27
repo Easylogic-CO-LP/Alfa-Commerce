@@ -25,7 +25,7 @@ use Joomla\CMS\Language\Text;
  * A webhook's edit model: the address (https, a public host, checked when it is saved), the topics, whether it
  * delivers, and its secret. The secret is made by the shop (32 random bytes as hex) when the webhook is created and
  * whenever staff ask for a new one; it is shown once, in the message after that save, and never again: no read of
- * this model, no list and no REST route returns it.
+ * this model, no list and no REST route returns it. The form is handed a mask that says only whether one is set.
  *
  * @since  2.3.0
  */
@@ -55,6 +55,15 @@ class WebhookModel extends AlfaAdminModel
     private const PROTECTED_COLUMNS = ['kind', 'plugin', 'secret', 'last_attempt_at', 'last_ok', 'last_result', 'created', 'created_by', 'modified', 'modified_by'];
 
     /**
+     * The fields of the form that are not columns: the ask for a new secret, and the mask that stands for the secret.
+     *
+     * @var string[]
+     *
+     * @since  2.3.0
+     */
+    private const FORM_ONLY = ['new_secret', 'secret_mask'];
+
+    /**
      * Build the edit form.
      *
      * @param array $data Data for the form.
@@ -72,7 +81,8 @@ class WebhookModel extends AlfaAdminModel
     }
 
     /**
-     * Load the data for the form (edited record or saved user state), never the secret.
+     * Load the data for the form (edited record or saved user state), never the secret: a kept post is handed the
+     * record's mask, since a post carries none.
      *
      * @return mixed
      *
@@ -88,13 +98,16 @@ class WebhookModel extends AlfaAdminModel
 
         if (\is_array($data)) {
             unset($data['secret']);
+            $item = $this->getItem();
+            $data['secret_mask'] = \is_object($item) ? (string) $item->secret_mask : '';
         }
 
         return $data;
     }
 
     /**
-     * One webhook, its topics as a list, without its secret; a plugin consumer's row is not a webhook.
+     * One webhook, its topics as a list, without its secret (a mask stands for it when one is set); a plugin
+     * consumer's row is not a webhook.
      *
      * @param int|null $pk The webhook.
      *
@@ -119,6 +132,7 @@ class WebhookModel extends AlfaAdminModel
         $item->topics = OutboundTopics::parse(topics: (string) ($item->topics ?? ''));
         $item->has_secret = (string) ($item->secret ?? '') !== '';
         unset($item->secret);
+        $item->secret_mask = $item->has_secret ? str_repeat("\u{2022}", 16) : '';
         $item->new_secret = 0;
 
         return $item;
@@ -171,7 +185,10 @@ class WebhookModel extends AlfaAdminModel
         $user = $this->getCurrentUser();
         $now = Factory::getDate()->toSql();
         $secret = $id === 0 || !empty($data['new_secret']) ? WebhookSignature::newSecret() : null;
-        unset($data['new_secret']);
+
+        foreach (self::FORM_ONLY as $field) {
+            unset($data[$field]);
+        }
 
         $data['topics'] = implode(',', $topics);
         $data['kind'] = OutboundConsumers::KIND_WEBHOOK;

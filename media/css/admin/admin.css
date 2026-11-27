@@ -667,3 +667,13 @@ tr.alfa-row-refund > * {
         transition: none;
     }
 }
+
+/* The webhook form's Topics tab: one box under the other, the line that says when the topic is told right under its
+   name. */
+.alfa-topics .form-check + .form-check {
+    margin-top: 0.75rem;
+}
+
+.alfa-topics .form-text {
+    margin-top: 0;
+}

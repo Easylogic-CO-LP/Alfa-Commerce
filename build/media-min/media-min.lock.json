@@ -2,7 +2,7 @@
   "tools": {"css":"1","terser":"5.51.3"},
   "files": {
     "media/css/admin/action-page.css": ["8654482e3fb7edad1dfc3b1f4ef5c1a880e157ea3abdfaa5cb67a2c60086aeec", "9032c95cd0f233c871c46d35494fb75413c6012fbc16732f6be172afdf356649"],
-    "media/css/admin/admin.css": ["28285dec56f3c9c61167f3f80aee4d011f2ffced0b02296e99d5657ed393ec32", "a9c740a826183ca99f54c269290262b7b8dfa59bc2c457edeafa7ebbefb3fb20"],
+    "media/css/admin/admin.css": ["22a7559bebf5efc8169a390702b14a37fad68d59b567ef26d217e66c444466d3", "0ef8381e92c04aca56dfb9be033788b4e193e669f684a0d26aead5279ad17ce1"],
     "media/css/admin/charts.css": ["fa3383e2de1b03d172745a046b62887974c5e0fc4a5478b6229182c3bc88112a", "6de9e171b701939a35aa365a4210134d19441794e019c6df3050dba063b6bf74"],
     "media/css/admin/combinations.css": ["1684a7e47e18998c714f96ecc3a29f28cda6a328bc2d593fd667b2bd8c5b1595", "77ead798c6b95999bddba0ab08ba9613aa5e04a9b50197afefe91f649f37cea1"],
     "media/css/admin/email-positions.css": ["4d3c264006bc02ae7451268405b1b6bbfe8644e00ab426b0cfb403afa07dfb01", "4b9d40e8070dbadbdcc33b2683d7bf4b5221978c262eb9d71aa2fbba338b4e1a"],

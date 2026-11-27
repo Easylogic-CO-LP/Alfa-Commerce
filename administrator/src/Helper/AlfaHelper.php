@@ -1176,6 +1176,7 @@ class AlfaHelper
         'item.executefieldaction' => ['items', 'edit'],
         'notifications.panel' => ['notifications', 'view'],
         'webhook.test' => ['webhooks', 'edit'],
+        'webhook.newsecret' => ['webhooks', 'edit'],
     ];
 
     /**

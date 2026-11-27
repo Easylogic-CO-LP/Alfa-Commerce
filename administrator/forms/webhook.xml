@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     A webhook: the https address the shop posts its changes to, signed with the webhook's secret, and the topics it
-    is told of. The secret is made by the shop, shown once after the save that made it, and never shown again.
+    is told of; one fieldset a tab. The secret is made by the shop, shown once after the save that made it, and never
+    shown again: the form shows only whether one is set (secret_mask, never saved), and new_secret, set by the New
+    secret button, asks the save for another.
 -->
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
-    <fieldset name="webhook">
+    <fieldset name="general" label="COM_ALFA_WEBHOOK_FIELDSET_GENERAL">
 
         <field
                 name="name"
@@ -29,32 +31,6 @@
         />
 
         <field
-                name="topics"
-                type="checkboxes"
-                required="true"
-                label="COM_ALFA_WEBHOOK_FIELD_TOPICS"
-                description="COM_ALFA_WEBHOOK_FIELD_TOPICS_DESC"
-        >
-            <option value="stock">COM_ALFA_OUTBOUND_TOPIC_STOCK</option>
-            <option value="price">COM_ALFA_OUTBOUND_TOPIC_PRICE</option>
-            <option value="order.created">COM_ALFA_OUTBOUND_TOPIC_ORDER_CREATED</option>
-            <option value="order.status">COM_ALFA_OUTBOUND_TOPIC_ORDER_STATUS</option>
-            <option value="order.dispute">COM_ALFA_OUTBOUND_TOPIC_ORDER_DISPUTE</option>
-        </field>
-
-        <field
-                name="new_secret"
-                type="radio"
-                layout="joomla.form.field.radio.switcher"
-                default="0"
-                label="COM_ALFA_WEBHOOK_FIELD_NEW_SECRET"
-                description="COM_ALFA_WEBHOOK_FIELD_NEW_SECRET_DESC"
-        >
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
-
-        <field
                 name="state"
                 type="list"
                 label="JSTATUS"
@@ -66,6 +42,60 @@
             <option value="0">COM_ALFA_WEBHOOK_STATE_PAUSED</option>
         </field>
 
-        <field name="id" type="hidden"/>
+        <field
+                name="about"
+                type="note"
+                class="alert alert-info"
+                description="COM_ALFA_WEBHOOK_NOTE_ABOUT"
+        />
     </fieldset>
+
+    <fieldset name="topics" label="COM_ALFA_WEBHOOK_FIELDSET_TOPICS">
+
+        <field
+                name="topics"
+                type="checkboxes"
+                layout="form.field.topics"
+                layoutIncludePath="administrator/components/com_alfa/layouts"
+                required="true"
+                label="COM_ALFA_WEBHOOK_FIELD_TOPICS"
+                description="COM_ALFA_WEBHOOK_FIELD_TOPICS_DESC"
+        >
+            <option value="stock">COM_ALFA_OUTBOUND_TOPIC_STOCK</option>
+            <option value="price">COM_ALFA_OUTBOUND_TOPIC_PRICE</option>
+            <option value="order.created">COM_ALFA_OUTBOUND_TOPIC_ORDER_CREATED</option>
+            <option value="order.status">COM_ALFA_OUTBOUND_TOPIC_ORDER_STATUS</option>
+            <option value="order.dispute">COM_ALFA_OUTBOUND_TOPIC_ORDER_DISPUTE</option>
+        </field>
+    </fieldset>
+
+    <fieldset name="security" label="COM_ALFA_WEBHOOK_FIELDSET_SECURITY">
+
+        <field
+                name="secret_mask"
+                type="text"
+                readonly="true"
+                filter="unset"
+                autocomplete="off"
+                label="COM_ALFA_WEBHOOK_FIELD_SECRET"
+                description="COM_ALFA_WEBHOOK_FIELD_SECRET_DESC"
+                hint="COM_ALFA_WEBHOOK_SECRET_UNSET"
+        />
+
+        <field
+                name="secret_note"
+                type="note"
+                class="alert alert-info"
+                description="COM_ALFA_WEBHOOK_NOTE_SECRET"
+        />
+
+        <field
+                name="new_secret"
+                type="hidden"
+                default="0"
+                filter="integer"
+        />
+    </fieldset>
+
+    <field name="id" type="hidden"/>
 </form>
