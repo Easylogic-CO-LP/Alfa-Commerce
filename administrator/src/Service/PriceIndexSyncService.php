@@ -137,6 +137,7 @@ use Throwable;
  *   syncItemsOrFail($itemIds)      - the same, a failure reaching the caller (the projection manager, the catalogue job)
  *   syncByDiscount($discountId)    - the products a discount can reach (its publish)
  *   syncByTax($taxId)              - the products a tax can reach (its publish)
+ *   outcome()                      - what the last of those three did: the products worked out now, what was left
  *   syncGroupSets()                - the contexts brought in line with the data (sets, currencies, places, customers)
  *   syncAll()                      - every published product
  *   deleteForItem(s)($itemIds)     - remove the products' rows (unpublished, trashed, removed)
@@ -280,6 +281,12 @@ class PriceIndexSyncService
 
     /** The contexts the last alignment requested. */
     private int $lastRequested = 0;
+
+    /** The products whose rows the last sync an operator caused wrote now (outcome()). */
+    private int $handledProducts = 0;
+
+    /** Whether that sync left any product to the background work (outcome()). */
+    private bool $handlingPending = false;
 
     /**
      * The products each named customer's rules touch, for this write: by user id.
@@ -434,6 +441,8 @@ class PriceIndexSyncService
      */
     public function syncItems(array $itemIds, string $cause = PricesChangedEvent::CAUSE_REBUILD, int $causeId = 0): int
     {
+        $this->beginOutcome();
+
         return self::announcing(cause: $cause, causeId: $causeId, work: function () use ($itemIds, $cause): int {
             // Not strict: a chunk whose calculation failed is rolled back, logged and owed; the others are written.
             try {
@@ -448,6 +457,7 @@ class PriceIndexSyncService
                 return $this->rebuildItems(itemIds: $itemIds, strict: false);
             } catch (Throwable $e) {
                 $this->logWarning('syncItems() failed: ' . ErrorText::of($e));
+                $this->handlingPending = true;
                 ProjectionManager::owe(itemIds: $itemIds);
 
                 return 0;
@@ -509,6 +519,8 @@ class PriceIndexSyncService
      */
     public function syncByDiscount(int $discountId): int
     {
+        $this->beginOutcome();
+
         if ($discountId <= 0) {
             return 0;
         }
@@ -527,6 +539,8 @@ class PriceIndexSyncService
      */
     public function syncByTax(int $taxId): int
     {
+        $this->beginOutcome();
+
         if ($taxId <= 0) {
             return 0;
         }
@@ -560,6 +574,7 @@ class PriceIndexSyncService
             return $ids === [] ? 0 : $this->writeIndexRows(itemIds: $ids, contexts: $contexts);
         } catch (Throwable $e) {
             $this->logWarning("{$label} failed: " . ErrorText::of($e));
+            $this->handlingPending = true;
             $this->oweAfterFailure(itemIds: $ids);
 
             return 0;
@@ -1979,6 +1994,7 @@ class PriceIndexSyncService
             }
 
             ProjectionManager::owe(itemIds: $refused);
+            $this->handlingPending = $this->handlingPending || $refused !== [];
 
             if ($granted === []) {
                 continue;
@@ -1999,6 +2015,7 @@ class PriceIndexSyncService
 
             if ($chunkWritten !== null) {
                 $written += $chunkWritten;
+                $this->handledProducts += \count($granted);
 
                 continue;
             }
@@ -2007,6 +2024,7 @@ class PriceIndexSyncService
                 throw new RuntimeException('Price index: a calculation failed for item(s) ' . implode(', ', $granted) . '; their rows were kept as they were.');
             }
 
+            $this->handlingPending = true;
             ProjectionManager::owe(itemIds: $granted);
         }
 
@@ -3810,7 +3828,43 @@ class PriceIndexSyncService
         // started again, so the products its preparation passed are priced with the change too.
         $ids = array_values(array_unique(array_merge($this->regenerate(liveIds: $live), $this->restartPreparing(ids: null))));
 
-        return $this->prepareNow(ids: $ids, seconds: self::GENERATION_SECONDS);
+        $written = $this->prepareNow(ids: $ids, seconds: self::GENERATION_SECONDS);
+
+        // Every published product is priced again in each context switched whole; one context still preparing leaves
+        // every product's price in it to its job.
+        foreach ($ids as $id) {
+            if ($this->contextWaits(contextId: (int) $id)) {
+                $this->handlingPending = true;
+
+                return $written;
+            }
+        }
+
+        $this->handledProducts += $this->publishedItemCount();
+
+        return $written;
+    }
+
+    /**
+     * What the last syncItems(), syncByDiscount() or syncByTax() of this instance did: the products whose catalogue
+     * prices were worked out now, and whether any were left to the background work.
+     *
+     * @since  2.3.0
+     */
+    public function outcome(): PriceIndexSyncOutcome
+    {
+        return new PriceIndexSyncOutcome(products: $this->handledProducts, pending: $this->handlingPending);
+    }
+
+    /**
+     * A sync an operator caused begins: nothing handled, nothing pending.
+     *
+     * @since  2.3.0
+     */
+    private function beginOutcome(): void
+    {
+        $this->handledProducts = 0;
+        $this->handlingPending = false;
     }
 
     /**
