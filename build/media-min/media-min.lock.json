@@ -88,7 +88,7 @@
     "modules/mod_alfa_cart/media/css/cart.css": ["67ae691e2940dce3b1fade506cb38ca533989de724beafcee11b200c6f3326ad", "cc8d871c19edc24c64384f1156db8d47ee8078de70353937c75d9f61320a4834"],
     "modules/mod_alfa_cart/media/js/cart.js": ["9f478da8fd50740a7cbfb33e3b2d5ff3413cb07d1045455d6cc57823bfac7c96", "0527b31b53047646eeb701e80a3982436519d80fde2688a70263e081f5c7c387"],
     "modules/mod_alfa_categories/media/css/categories.css": ["fd48a0897dad4024bda96bb3a4d1ebb4d9c14369a57a69da39d144a140513b6e", "9cfaae1ad999b2cf97cab32856a41b65c3ed4bf53224959930d5af36ae182dfc"],
-    "modules/mod_alfa_filters/media/css/filters.css": ["81a50d385fbc7cbec3e6dfedc2c574f6d041aa3d252272cfe0c2887986ea4b8b", "80ba45e57e943edeca742770e180ee80542d5b43783f892b6388c366856be3ee"],
+    "modules/mod_alfa_filters/media/css/filters.css": ["cc24b96b46d4e2d196572189b780a99dc3fe832738fc924a2dc8fd2d7f788866", "2e05da1f805853251257c17e4f9e0d0318504442b1f9500306fb37ef88fc5800"],
     "modules/mod_alfa_filters/media/css/sections-admin.css": ["761ecf0c82ab2a090808db69aed8ed2eac49bc4abaa33f7540bdf4c5232034ee", "5395a4bc256b8745392976bbeedf52fb6b6f2758f47ff81449cfe637835266f0"],
     "modules/mod_alfa_filters/media/js/filters.js": ["1f14d6432a9cbf0fabb630df02a40082c5c3ea23847be7536fb615171c44b0ce", "941331d29436b3b7a2e46e2ff7844ddfc2af82282b594b8c24381c39e0e29e29"],
     "modules/mod_alfa_filters/media/js/sections-admin.js": ["af37032e0bcfb47ca3b19969b71345a8f82d92b7c72d1936c82091c27f80577a", "82d9e0d584798774e6b5d6435e2c56e8e195e1f9c60e6fd0e6b309aa3c079a9c"],

@@ -68,6 +68,7 @@ final class FilterSections
         'ordering',
         'limit',
         'on_sale',
+        'new',
         'discount_amount',
         'discount_percent',
     ];
@@ -96,6 +97,7 @@ final class FilterSections
         'ordering' => 'MOD_ALFAFILTERS_FILTER_ORDERING_LABEL',
         'limit' => 'MOD_ALFAFILTERS_FILTER_LIST_LIMIT_LABEL',
         'on_sale' => 'MOD_ALFAFILTERS_FILTER_ON_SALE_LABEL',
+        'new' => 'MOD_ALFAFILTERS_FILTER_NEW_LABEL',
         'discount_amount' => 'MOD_ALFAFILTERS_FILTER_DISCOUNT_AMOUNT_MIN_LABEL',
         'discount_percent' => 'MOD_ALFAFILTERS_FILTER_DISCOUNT_PERCENT_MIN_LABEL',
     ];

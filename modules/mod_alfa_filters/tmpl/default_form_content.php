@@ -198,6 +198,14 @@ foreach ($sectionOrder as $sectionKey) {
         </div>
         <?php break; ?>
 
+    <?php case 'new': ?>
+        <?php // New arrivals: the shop's days decide (NewProducts); the same two-way radio as On sale. ?>
+        <div class="af-onsale af-new">
+            <span><?= Text::_('MOD_ALFAFILTERS_FILTER_NEW_LABEL') ?></span>
+            <?= $form_fields['new']; ?>
+        </div>
+        <?php break; ?>
+
     <?php case 'discount_amount': ?>
         <div class="af-discount-amount">
             <label for="filter_alfa_filters_discount_amount_min_<?= $moduleId ?>">

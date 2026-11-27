@@ -129,6 +129,22 @@
             <option value="1">COM_ALFA_FILTER_ON_SALE_YES</option>
         </field>
 
+        <!-- New arrivals -->
+        <!--
+            When set to 1: only the products NewProducts counts as new (the shop's days and counted-from setting,
+            Options > General > Products). With no days the filter matches nothing. Empty value = show all items.
+        -->
+        <field
+                name="new"
+                type="radio"
+                label="COM_ALFA_FILTER_NEW_LBL"
+                class="btn-group"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_NEW_ALL</option>
+            <option value="1">COM_ALFA_FILTER_NEW_YES</option>
+        </field>
+
         <!-- Minimum discount amount -->
         <!--
             Maps to: WHERE pf.discount_amount >= X

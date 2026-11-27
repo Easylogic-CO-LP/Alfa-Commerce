@@ -57,6 +57,7 @@ final class AlfaItemsHelper
 {
     public const SOURCE_ITEMS = 'items';
     public const SOURCE_ON_SALE = 'on_sale';
+    public const SOURCE_NEW = 'new';
     public const SOURCE_BEST_SELLERS = 'best_sellers';
     public const SOURCE_RECENTLY_VIEWED = 'recently_viewed';
 
@@ -298,6 +299,10 @@ final class AlfaItemsHelper
             $url .= '&filter[on_sale]=1';
         }
 
+        if ($source === self::SOURCE_NEW) {
+            $url .= '&filter[new]=1';
+        }
+
         // A tab of labelled products carries its labels: the page lists what the tab lists.
         foreach ($labelIds as $labelId) {
             $url .= '&filter[label][]=' . (int) $labelId;
@@ -363,6 +368,11 @@ final class AlfaItemsHelper
         switch ($source) {
             case self::SOURCE_ON_SALE:
                 $model->setState('filter.on_sale', 1);
+                self::order($model, $ordering);
+                break;
+
+            case self::SOURCE_NEW:
+                $model->setState('filter.new', 1);
                 self::order($model, $ordering);
                 break;
 
@@ -1149,6 +1159,7 @@ final class AlfaItemsHelper
         return \in_array($source, [
             self::SOURCE_ITEMS,
             self::SOURCE_ON_SALE,
+            self::SOURCE_NEW,
             self::SOURCE_BEST_SELLERS,
             self::SOURCE_RECENTLY_VIEWED,
         ], true) ? $source : self::SOURCE_ITEMS;

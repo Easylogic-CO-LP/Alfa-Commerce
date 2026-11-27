@@ -23,6 +23,7 @@
         >
             <option value="items">MOD_ALFA_ITEMS_SOURCE_ITEMS</option>
             <option value="on_sale">MOD_ALFA_ITEMS_SOURCE_ON_SALE</option>
+            <option value="new">MOD_ALFA_ITEMS_SOURCE_NEW</option>
             <option value="best_sellers">MOD_ALFA_ITEMS_SOURCE_BEST_SELLERS</option>
             <option value="recently_viewed">MOD_ALFA_ITEMS_SOURCE_RECENTLY_VIEWED</option>
         </field>

@@ -324,11 +324,13 @@ class AlfaFiltersHelper
         $filterForm->setFieldAttribute('fullordering', 'onchange', '', 'list');
         $filterForm->setFieldAttribute('limit', 'onchange', '', 'list');
         $filterForm->setFieldAttribute('on_sale', 'onchange', '', 'filter');
+        $filterForm->setFieldAttribute('new', 'onchange', '', 'filter');
 
         // 2. Set unique IDs using the module ID
         $filterForm->setFieldAttribute('fullordering', 'id', 'alfa_filters_ordering_' . $moduleId, 'list');
         $filterForm->setFieldAttribute('limit', 'id', 'alfa_filters_limit_' . $moduleId, 'list');
         $filterForm->setFieldAttribute('on_sale', 'id', 'alfa_filters_on_sale_' . $moduleId, 'filter');
+        $filterForm->setFieldAttribute('new', 'id', 'alfa_filters_new_' . $moduleId, 'filter');
         $filterForm->setFieldAttribute('discount_amount_min', 'id', 'alfa_filters_discount_amount_min_' . $moduleId, 'filter');
         $filterForm->setFieldAttribute('discount_percent_min', 'id', 'alfa_filters_discount_percent_min_' . $moduleId, 'filter');
 
@@ -342,6 +344,7 @@ class AlfaFiltersHelper
         $orderingHtml = $render('fullordering', 'list');
         $limitHtml = $render('limit', 'list');
         $onSaleHtml = $render('on_sale', 'filter');
+        $newHtml = $render('new', 'filter');
         $discountAmountMinHtml = $render('discount_amount_min', 'filter');
         $discountPercentMinHtml = $render('discount_percent_min', 'filter');
 
@@ -349,6 +352,7 @@ class AlfaFiltersHelper
             'ordering' => $orderingHtml,
             'limit' => $limitHtml,
             'on_sale' => $onSaleHtml,
+            'new' => $newHtml,
             'discount_amount_min' => $discountAmountMinHtml,
             'discount_percent_min' => $discountPercentMinHtml,
         ];

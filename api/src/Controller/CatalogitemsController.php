@@ -82,6 +82,11 @@ class CatalogitemsController extends ApiController
             $this->modelState->set('filter.manufacturer', [RequestScalar::member($apiFilterInfo, 'manufacturer', 'INT', 'filter')]);
         }
 
+        // New arrivals: filter[new]=1 lists only the products the shop counts as new (NewProducts).
+        if (\array_key_exists('new', $apiFilterInfo)) {
+            $this->modelState->set('filter.new', (int) (bool) RequestScalar::member($apiFilterInfo, 'new', 'INT', 'filter'));
+        }
+
         // The products that tick any of the labels: filter[label][]=3&filter[label][]=5, or one id.
         if (\array_key_exists('label', $apiFilterInfo)) {
             $this->modelState->set('filter.label', array_values(array_filter(array_map('intval', (array) $apiFilterInfo['label']))));

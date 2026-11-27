@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Catalog\Labels;
+use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Alfa\Component\Alfa\Site\Service\Facet\FacetGroupResolver;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBag;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
@@ -86,6 +87,8 @@ use Throwable;
  *   filter.price_min           float   Minimum final_price (range slider left)
  *   filter.price_max           float   Maximum final_price (range slider right)
  *   filter.on_sale             bool    Only items with discount_amount > 0
+ *   filter.new                 bool    Only the products the shop counts as new (NewProducts: the days and
+ *                                      counted-from setting of the Options; no days = nothing)
  *   filter.discount_amount_min float   Save at least €X  (e.g. >= 10), the saving on the basis the
  *                                      visitor's card shows it ({@see self::savingExpression()})
  *   filter.discount_percent_min float  Save at least X%  (e.g. >= 20)
@@ -1399,6 +1402,13 @@ class ItemsModel extends UrlListModel
 
         if ($onSale) {
             $query->where($sellsOnline ? 'pf.discount_amount > 0' : '0 = 1');
+        }
+
+        // New arrivals filter: the products new at this moment by the shop's days and counted-from setting, the one
+        // answer NewProducts gives everywhere; a shop that counts no product as new (0 days) matches nothing.
+        if ((bool) $this->getState('filter.new')) {
+            $newDays = NewProducts::days();
+            $query->where($newDays > 0 ? NewProducts::withinSql(itemAlias: 'a', daysSql: (string) $newDays, momentSql: $db->quote(ActiveDateCondition::now())) : '0 = 1');
         }
 
         // Availability
@@ -2724,6 +2734,7 @@ class ItemsModel extends UrlListModel
             'filter.price_min',
             'filter.price_max',
             'filter.on_sale',
+            'filter.new',
             'filter.discount_amount_min',
             'filter.discount_percent_min',
         ]);
@@ -3990,6 +4001,7 @@ class ItemsModel extends UrlListModel
             'filter.price_min',
             'filter.price_max',
             'filter.on_sale',
+            'filter.new',
             'filter.discount_amount_min',
             'filter.discount_percent_min',
             'filter.stock',
