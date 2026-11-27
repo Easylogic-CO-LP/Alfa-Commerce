@@ -154,9 +154,13 @@ $ruleNames = implode(', ', array_map(
     static fn (array $d): string => (string) $d['name'] . ((float) ($d['percent'] ?? 0) > 0 ? ' −' . rtrim(rtrim(number_format((float) $d['percent'], 2, '.', ''), '0'), '.') . '%' : ''),
     array_map(static fn ($d): array => (array) $d, $appliedDiscounts),
 ));
+// The product's own switch comes first: excluded from every discount rule, whatever the rules say.
+$rulesExcluded = !empty($preview['excluded']);
 $rulesNote = '';
 
-if ($ruleNames !== '') {
+if ($rulesExcluded) {
+    $rulesNote = Text::_('COM_ALFA_PRICES_RULES_EXCLUDED');
+} elseif ($ruleNames !== '') {
     $rulesNote = ($mode === 'price' && $override !== '' && $value !== '')
         ? Text::sprintf('COM_ALFA_PRICES_SALE_REPLACES_RULES', $ruleNames, $money(max(0.0, ((float) $value * $calcA) + $calcB), $decimals))
         : Text::sprintf('COM_ALFA_PRICES_RULES_APPLIED', $ruleNames);
@@ -308,12 +312,13 @@ $calendarForm = PriceRowDates::form(control: $base, row: $row);
                 <div class="chip-line">
                     <output class="fw-bold" id="<?php echo $esc($idBase . '_current'); ?>" data-price-current><?php echo $esc($discountedValue); ?></output>
                 </div>
-                <div class="override-hint" data-price-rules-note data-rule-names="<?php echo $esc($ruleNames); ?>" <?php echo $rulesNote === '' ? 'hidden' : ''; ?>><?php echo $esc($rulesNote); ?></div>
             </div>
 
-            <!-- The product's own switch: excluded from every discount rule, so no rule reaches this row. -->
-            <div class="price-cell" data-price-rules-excluded <?php echo !empty($preview['excluded']) ? '' : 'hidden'; ?>>
-                <span class="override-hint text-warning"><?php echo Text::_('COM_ALFA_PRICES_RULES_EXCLUDED'); ?></span>
+            <!-- The sentence on the rules: which apply now, which the sale replaces, or that the product's own switch
+                 excludes it from every rule. Its own cell, so it shows when no rule reaches the row. -->
+            <div class="price-cell" data-price-rules-note data-rule-names="<?php echo $esc($ruleNames); ?>"
+                 data-rules-excluded="<?php echo $rulesExcluded ? '1' : ''; ?>" <?php echo $rulesNote === '' ? 'hidden' : ''; ?>>
+                <span class="override-hint<?php echo $rulesExcluded ? ' text-warning' : ''; ?>" data-price-rules-text><?php echo $esc($rulesNote); ?></span>
             </div>
 
             <!-- Custom discount: replaces every regular discount with one

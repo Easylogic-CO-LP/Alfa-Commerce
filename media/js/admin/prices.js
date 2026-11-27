@@ -105,8 +105,20 @@
     // preview and are kept on the note; the server renders the first sentence the same way.
     const updateRulesNote = (row, net) => {
         const note = row.querySelector('[data-price-rules-note]');
+        const text = note?.querySelector('[data-price-rules-text]');
 
-        if (!note) {
+        if (!note || !text) {
+            return;
+        }
+
+        // The product's own switch: excluded from every discount rule, whatever the rules say.
+        const excluded = note.dataset.rulesExcluded === '1';
+        text.classList.toggle('text-warning', excluded);
+
+        if (excluded) {
+            text.textContent = Joomla.Text._('COM_ALFA_PRICES_RULES_EXCLUDED');
+            note.hidden = false;
+
             return;
         }
 
@@ -114,7 +126,7 @@
 
         if (names === '') {
             note.hidden = true;
-            note.textContent = '';
+            text.textContent = '';
 
             return;
         }
@@ -125,7 +137,7 @@
         const rowNet = net ?? parseFloat(row.querySelector('[data-price-value]')?.value);
         const replaced = rowMode(row) === 'price' && (type === 'start' || type === 'final') && !Number.isNaN(sale) && !Number.isNaN(rowNet);
 
-        note.textContent = replaced
+        text.textContent = replaced
             ? Joomla.Text._('COM_ALFA_PRICES_SALE_REPLACES_RULES')
                 .replace('%1$s', names)
                 .replace('%2$s', Math.max(0, (rowNet * c.a) + c.b).toFixed(c.dec))
@@ -399,11 +411,13 @@
             ...discounts.filter((d) => (d.timing || 'before_tax') === 'after_tax').map(discountChip),
         );
 
-        // The rules the sentence under the figure names, as the preview lists them now.
+        // The rules the sentence under the figure names, as the preview lists them now, and whether the product's own
+        // switch excludes it from them all.
         const note = row.querySelector('[data-price-rules-note]');
 
         if (note) {
             note.dataset.ruleNames = discounts.map(ruleLabel).join(', ');
+            note.dataset.rulesExcluded = preview.excluded ? '1' : '';
         }
 
         // Today's selling price (only meaningful while discounts run).
@@ -412,13 +426,6 @@
         if (discountCell) {
             discountCell.hidden = !discounts.length;
             refreshCurrent(row);
-        }
-
-        // The product's own switch: excluded from every discount rule.
-        const excludedCell = row.querySelector('[data-price-rules-excluded]');
-
-        if (excludedCell) {
-            excludedCell.hidden = !preview.excluded;
         }
     };
 

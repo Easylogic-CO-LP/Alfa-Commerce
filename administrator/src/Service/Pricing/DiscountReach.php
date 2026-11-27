@@ -18,7 +18,8 @@ use Joomla\Database\DatabaseInterface;
 /**
  * What a saved discount rule reaches, for its form's Reach card: how many published products its categories and
  * manufacturers take in, with the product list narrowed to them; how many products of its manufacturers its categories
- * leave out, when it names both; and the other rules it combines with on a product, each with the count. Counted over
+ * leave out, when it names both; the other rules it combines with on a product, each with the count; and how many
+ * products of its scope it never reaches, excluded by the rule or on their own (DiscountExclusions). Counted over
  * the catalogue's scope links, never by pricing a product: the places, customer groups and customers of a rule narrow
  * the shoppers, not the products, so they are not part of the counts.
  *
@@ -51,7 +52,7 @@ final class DiscountReach
      *
      * @param int $discountId The rule.
      *
-     * @return array{id: int, published: bool, period: string, behavior: int, reaches: int, url: string, outside: int|null, outside_url: string, stacks: list<array{id: int, name: string, count: int, url: string}>, compared: int, more: int, cap: int}|null
+     * @return array{id: int, published: bool, period: string, behavior: int, reaches: int, url: string, outside: int|null, outside_url: string, stacks: list<array{id: int, name: string, count: int, url: string}>, compared: int, more: int, cap: int, exclusions: array{by_rule: int, own: int}}|null
      *                                                                                                                                                                                                                                 Null when the rule does not exist.
      *
      * @since  2.3.0
@@ -144,6 +145,8 @@ final class DiscountReach
             'compared' => $compared,
             'more' => $more,
             'cap' => self::COMPARE_CAP,
+            // The products the scope takes in and the rule never reaches: excluded by the rule, and on their own.
+            'exclusions' => (new DiscountExclusions(db: $db))->counts(discountId: $discountId),
         ];
     }
 

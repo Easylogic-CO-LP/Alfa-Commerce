@@ -165,6 +165,7 @@ class AlfapricesField extends FormField
         Text::script('COM_ALFA_PRICES_SALE_PERCENT');
         Text::script('COM_ALFA_PRICES_RULES_APPLIED');
         Text::script('COM_ALFA_PRICES_SALE_REPLACES_RULES');
+        Text::script('COM_ALFA_PRICES_RULES_EXCLUDED');
 
         $layout = new FileLayout('prices.editor', JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
 
