@@ -48,9 +48,11 @@ if ($name === '') {
 <article class="item-card" data-look="<?php echo $esc($place); ?>" data-item-id="<?php echo (int) $item->id; ?>">
     <?php if (!empty($item->medias[0]->thumbnail)) : ?>
         <div class="item-card-image">
-            <?php // The name's destination again, for the mouse only: one link per card in the tab order and for a screen reader.?>
+            <?php // The name's destination again, for the mouse only: one link per card in the tab order and for a screen
+                  // reader. The image says what it shows, its own description else the name, for image search and for a
+                  // browser that cannot draw it.?>
             <a href="<?php echo $esc($link); ?>" tabindex="-1" aria-hidden="true">
-                <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt="" loading="lazy">
+                <img src="<?php echo $esc((string) $item->medias[0]->thumbnail_url); ?>" alt="<?php echo $esc(trim((string) ($item->medias[0]->alt ?? '')) ?: $name); ?>" loading="lazy">
             </a>
             <?php echo Surface::render(owner: $item, slot: ItemListSurface::Image); ?>
         </div>

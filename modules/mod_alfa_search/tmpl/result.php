@@ -69,9 +69,9 @@ endif;
         <a class="search-product-item"
            href="<?php echo htmlspecialchars($product->link, ENT_QUOTES, 'UTF-8'); ?>" tabindex="0">
             <div class="search-image-container">
-                <?php /* The first picture as the catalogue's card reads it (its thumbnail, or the shop's placeholder when it has none and the shop shows one); decorative, the title names it. */ ?>
+                <?php /* The first picture as the catalogue's card reads it (its thumbnail, or the shop's placeholder when it has none and the shop shows one), named as the card names it: its own description, else the product's name. */ ?>
                 <?php if (!empty($product->medias[0]->thumbnail)): ?>
-                <img src="<?php echo htmlspecialchars($product->medias[0]->thumbnail_url, ENT_QUOTES, 'UTF-8'); ?>" alt="">
+                <img src="<?php echo htmlspecialchars($product->medias[0]->thumbnail_url, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars(trim((string) ($product->medias[0]->alt ?? '')) ?: (string) $product->name, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php endif; ?>
             </div>
             <div class="search-info-container">

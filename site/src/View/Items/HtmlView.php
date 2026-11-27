@@ -636,6 +636,40 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
+     * The name a card shows for its product: the name in the active language, else the SKU, else the id, so the
+     * card's link and its image always say what they lead to (an item never translated into the active language
+     * has no row to read a name from).
+     *
+     * @param object $item The listing row
+     *
+     * @since  2.3.0
+     */
+    public function cardItemName(object $item): string
+    {
+        $name = trim((string) ($item->name ?? ''));
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return trim((string) ($item->sku ?? '')) ?: Text::sprintf('COM_ALFA_ITEM_UNNAMED', (int) $item->id);
+    }
+
+    /**
+     * The alt of a card's image: the image's own description when the merchant wrote one, else the product's name
+     * as the card shows it. No card image is nameless, for image search and for a browser that cannot draw it.
+     *
+     * @param object $item  The listing row
+     * @param object $media One of the row's medias
+     *
+     * @since  2.3.0
+     */
+    public function cardImageAlt(object $item, object $media): string
+    {
+        return trim((string) ($media->alt ?? '')) ?: $this->cardItemName($item);
+    }
+
+    /**
      * The menu item's or the Options' choice of the cards' images, for the rows that set none of their own: the
      * sub-template of the "card_images" slot and how many images its slider shows (0 for all). The listing then
      * declares the slider's script: a card a filter or a variant change swaps in may be a slider card on a page that
