@@ -16,7 +16,6 @@ use Alfa\Component\Alfa\Administrator\Event\Tools\ExecuteToolActionEvent;
 use Alfa\Component\Alfa\Administrator\Event\Tools\GetToolActionsEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
@@ -152,8 +151,13 @@ final class CoreToolProvider
      *
      * EVERY TOOL THAT WRITES SAYS SO. A tool changes state unless it declares itself
      * read-only, and the endpoint then demands a POST with a one-time key instead of a
-     * replayable URL. Every tool here writes, the setup checklist's re-run included: its
-     * evaluation reconciles the setup notification.
+     * replayable URL. Every tool here writes, except the price index check, which reads
+     * only.
+     *
+     * THE SURFACE IS THE TOOLS TAB the card lands on: maintenance (the media tools first,
+     * then the database sync tools in run order, the guided tours last), background (the
+     * Background screen's own toolbar, not a card) and development (for whoever changes
+     * the code).
      *
      * @param GetToolActionsEvent $event The collection event.
      *
@@ -162,18 +166,6 @@ final class CoreToolProvider
      */
     public function onGetToolActions(GetToolActionsEvent $event): void
     {
-        // The setup checklist's manual re-run: an unknown surface id opens its own
-        // Tools tab (ToolRegistry::extraSurfaces), so "Setup" appears without the
-        // Tools template learning anything.
-        $event->add(self::ID, 'setup.checklist', 'COM_ALFA_TOOLS_SETUP_TITLE')
-            ->icon('checkbox')
-            ->mutating()
-            ->css('btn-secondary')
-            ->priority(500)
-            ->meta('surface', 'setup')
-            ->meta('surface_label', 'COM_ALFA_TOOLS_TAB_SETUP')
-            ->meta('description', 'COM_ALFA_TOOLS_SETUP_DESC');
-
         // The guided-tour pipeline: reseed makes the DB match the shipped JSON files
         // (what postflight does, on demand and forced); export writes the DB back to
         // the files: author visually in Guided Tours, export, commit.
@@ -181,9 +173,8 @@ final class CoreToolProvider
             ->icon('map-signs')
             ->mutating()
             ->css('btn-secondary')
-            ->priority(400)
-            ->meta('surface', 'setup')
-            ->meta('surface_label', 'COM_ALFA_TOOLS_TAB_SETUP')
+            ->priority(50)
+            ->meta('surface', 'maintenance')
             ->meta('description', 'COM_ALFA_TOOLS_TOURS_RESEED_DESC');
 
         $event->add(self::ID, 'tours.export', 'COM_ALFA_TOOLS_TOURS_EXPORT_TITLE')
@@ -191,8 +182,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-secondary')
             ->priority(300)
-            ->meta('surface', 'setup')
-            ->meta('surface_label', 'COM_ALFA_TOOLS_TAB_SETUP')
+            ->meta('surface', 'development')
             ->meta('description', 'COM_ALFA_TOOLS_TOURS_EXPORT_DESC');
 
         $event->add(self::ID, 'tools.users', 'COM_ALFA_TOOLS_USERS_TITLE')
@@ -200,7 +190,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-secondary')
             ->priority(400)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'maintenance')
             ->meta('description', 'COM_ALFA_TOOLS_USERS_DESC');
 
         $event->add(self::ID, 'tools.languages', 'COM_ALFA_TOOLS_LANG_SCHEMA_TITLE')
@@ -208,7 +198,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-primary')
             ->priority(300)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'maintenance')
             ->meta('description', 'COM_ALFA_TOOLS_LANG_SCHEMA_DESC');
 
         $event->add(self::ID, 'tools.backfill', 'COM_ALFA_TOOLS_BACKFILL_TITLE')
@@ -216,7 +206,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-warning')
             ->priority(200)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'maintenance')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_BACKFILL_DESC');
 
@@ -225,7 +215,7 @@ final class CoreToolProvider
             ->mutating()
             ->css('btn-warning')
             ->priority(100)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'maintenance')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_PROJECTIONS_DESC');
 
@@ -243,19 +233,19 @@ final class CoreToolProvider
             ->icon('search')
             ->css('btn-secondary')
             ->priority(96)
-            ->meta('surface', 'dbsync')
+            ->meta('surface', 'maintenance')
             ->meta('description', 'COM_ALFA_TOOLS_PRICE_INDEX_CHECK_DESC');
 
-        // THE GALLERY'S THUMBNAILS RECREATED: one job, two modes, on the Media tab. "Missing" first, the
-        // everyday and safer one, for the images that have none, whose thumbnail is the full image, or whose thumbnail is
-        // smaller than the size allows; "all" after a change of the thumbnail size, asked first. Each
-        // button queues the job and opens its progress page.
+        // THE GALLERY'S THUMBNAILS RECREATED: one job, two modes, first on the Maintenance tab, under the media
+        // card. "Missing" first, the everyday and safer one, for the images that have none, whose thumbnail is the full
+        // image, or whose thumbnail is smaller than the size allows; "all" after a change of the thumbnail size, asked
+        // first. Each button queues the job and opens its progress page.
         $event->add(self::ID, 'media.thumbnails.missing', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_TITLE')
             ->icon('images')
             ->mutating()
             ->css('btn-secondary')
-            ->priority(200)
-            ->meta('surface', 'media')
+            ->priority(900)
+            ->meta('surface', 'maintenance')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_MISSING_DESC');
 
@@ -264,8 +254,8 @@ final class CoreToolProvider
             ->mutating()
             ->confirm('COM_ALFA_TOOLS_THUMBNAILS_ALL_CONFIRM')
             ->css('btn-secondary')
-            ->priority(190)
-            ->meta('surface', 'media')
+            ->priority(890)
+            ->meta('surface', 'maintenance')
             ->meta('chunked', true)
             ->meta('description', 'COM_ALFA_TOOLS_THUMBNAILS_ALL_DESC');
 
@@ -375,7 +365,7 @@ final class CoreToolProvider
                 ->mutating()
                 ->css($owed ? 'btn-warning' : 'btn-secondary')
                 ->priority(90)
-                ->meta('surface', 'dbsync')
+                ->meta('surface', 'maintenance')
                 ->meta('chunked', true)
                 ->meta('description', 'COM_ALFA_SEARCH_REBUILD_DESC');
 
@@ -414,7 +404,6 @@ final class CoreToolProvider
             'inventory.effects' => $this->applyStockEffects($event),
             'tasks.run' => $this->runOutstandingTasks($event),
             'tasks.prune' => $this->pruneFinishedTasks($event),
-            'setup.checklist' => $this->refreshSetupChecklist($event),
             'tours.reseed' => $this->reseedTours($event),
             'tours.export' => $this->exportTours($event),
             default => null,
@@ -1092,32 +1081,6 @@ final class CoreToolProvider
         } catch (Throwable $e) {
             // A refresh that fails must not fail the backfill that triggered it; the
             // next save or rebuild self-heals what this pass missed.
-        }
-    }
-
-    /**
-     * Re-evaluate the setup checklist right now: bypasses the 6h cache and, through
-     * the evaluation itself, reconciles the `alfa.setup` notification.
-     *
-     * @param ExecuteToolActionEvent $event The execution event.
-     *
-     *
-     * @since  2.0.0
-     */
-    private function refreshSetupChecklist(ExecuteToolActionEvent $event): void
-    {
-        try {
-            $status = SetupHelper::status(fresh: true);
-            $counts = $status['counts'] ?? [];
-
-            $event->setMessage(Text::sprintf(
-                'COM_ALFA_TOOLS_SETUP_DONE',
-                (int) ($counts['done'] ?? 0),
-                (int) ($counts['total'] ?? 0),
-                (int) ($counts['required_missing'] ?? 0),
-            ));
-        } catch (Throwable $e) {
-            $event->setError(ErrorText::of($e));
         }
     }
 

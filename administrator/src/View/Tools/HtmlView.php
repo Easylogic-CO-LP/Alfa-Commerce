@@ -116,9 +116,9 @@ class HtmlView extends BaseHtmlView
     public array $apiSummary = ['addresses' => 0, 'plugins' => 0, 'accounts' => 0, 'superUsers' => 0, 'unreadable' => false];
 
     /**
-     * The Tasks tab's card: how much background work is in each state (running, waiting, needs attention, finished)
-     * and how many outgoing notifications wait or were given up, as the Background screen lists them; unreadable when
-     * the tables could not be read (logged).
+     * The Background tab's card: how much background work is in each state (running, waiting, needs attention,
+     * finished) and how many outgoing notifications wait or were given up, as the Background screen lists them;
+     * unreadable when the tables could not be read (logged).
      *
      * @var array{work: array<string, int>, deliveries: array<string, int>, unreadable: bool}
      * @since  2.3.0
@@ -126,8 +126,8 @@ class HtmlView extends BaseHtmlView
     public array $background = ['work' => [], 'deliveries' => [], 'unreadable' => false];
 
     /**
-     * The Tasks tab's runner card: the last tick (runner.last_tick), the cron command, the web-cron address without
-     * its key, and whether a key is kept.
+     * The Background tab's runner card: the last tick (runner.last_tick), the cron command, the web-cron address
+     * without its key, and whether a key is kept.
      *
      * @var array{lastTick: array<string, mixed>|null, cli: string, cron: string, keyKept: bool}
      * @since  2.2.0
@@ -183,9 +183,9 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * The counts of the Tasks tab's card: the background work in each state and the outgoing notifications waiting
-     * or given up. Tables that cannot be read (an update whose SQL did not run, a restore) cost this card only: the rest
-     * of Tools, its repair tools included, stays usable.
+     * The counts of the Background tab's card: the background work in each state and the outgoing notifications
+     * waiting or given up. Tables that cannot be read (an update whose SQL did not run, a restore) cost this card only:
+     * the rest of Tools, its repair tools included, stays usable.
      *
      * @return array{work: array<string, int>, deliveries: array<string, int>, unreadable: bool}
      *
