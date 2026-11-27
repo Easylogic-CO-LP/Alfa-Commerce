@@ -60,8 +60,8 @@ class OutboundModel extends AlfaListModel
     }
 
     /**
-     * The list's state: waiting first by default (running while its job runs), then given up and finished, oldest
-     * first within each (the stored rank's index); the date window against the moment the change was recorded.
+     * The list's state: waiting first by default (running while its job runs), then given up and finished, newest
+     * first within each; the date window against the moment the change was recorded.
      *
      * @param string $ordering The default ordering.
      * @param string $direction The default direction.
@@ -184,13 +184,20 @@ class OutboundModel extends AlfaListModel
 
         $ordering = (string) $this->getState('list.ordering', 'rank');
         $direction = strtoupper((string) $this->getState('list.direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
-        $query->order(match ($ordering) {
-            // The stored rank with the id, one direction: the index the table keeps for this order.
-            'rank' => $db->quoteName('d.rank') . ' ' . $direction . ', ' . $db->quoteName('d.id') . ' ' . $direction,
-            'finished' => 'COALESCE(' . $db->quoteName('d.sent_at') . ', ' . $db->quoteName('d.dead_at') . ') ' . $direction,
-            default => $db->quoteName($ordering) . ' ' . $direction,
-        });
-        $this->orderByKeyLast($query, $ordering, $direction, 'd.id');
+        // The states in their order (the stored rank), the newest first within each: the id ends the order, so it is
+        // total. The two directions differ, so neither engine reads this order from idx_rank_id (rank, id), except
+        // within the one state a filter keeps (the rank then equal, the id read backwards), and the rows the filters
+        // keep are sorted for the page; the table is bounded by its retention (OutboundDelivery::SENT_KEEP_DAYS,
+        // OutboundDelivery::DEAD_KEEP_DAYS, the waiting sent by their consumer's job).
+        if ($ordering === 'rank') {
+            $query->order($db->quoteName('d.rank') . ' ' . $direction . ', ' . $db->quoteName('d.id') . ' DESC');
+        } else {
+            $query->order(match ($ordering) {
+                'finished' => 'COALESCE(' . $db->quoteName('d.sent_at') . ', ' . $db->quoteName('d.dead_at') . ') ' . $direction,
+                default => $db->quoteName($ordering) . ' ' . $direction,
+            });
+            $this->orderByKeyLast($query, $ordering, $direction, 'd.id');
+        }
 
         return $query;
     }

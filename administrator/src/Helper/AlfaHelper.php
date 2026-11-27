@@ -25,6 +25,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
+use Joomla\Input\Input;
 
 /**
  * Alfa helper.
@@ -1398,6 +1399,21 @@ class AlfaHelper
         }
 
         return $url . '&return=' . rawurlencode($return !== '' ? $return : self::returnPage());
+    }
+
+    /**
+     * The page a request names to go back to (return, base64 encoded as {@see self::returnPage()} gives it), decoded,
+     * when it is an internal address; '' when the request names none or an address elsewhere.
+     *
+     * @param Input $input The request.
+     *
+     * @since  2.3.0
+     */
+    public static function returnAddress(Input $input): string
+    {
+        $address = base64_decode((string) RequestScalar::read($input, 'return', '', 'base64'), true);
+
+        return \is_string($address) && $address !== '' && Uri::isInternal($address) ? $address : '';
     }
 
     /**

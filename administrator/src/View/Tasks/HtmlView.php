@@ -243,21 +243,26 @@ class HtmlView extends BaseHtmlView
 
         $group = $toolbar->dropdownButton('run-group')->toggleSplit(true)->toggleButtonClass('btn ' . $actions['tasks.pending']->class);
         $bar = $group->getChildToolbar();
-        $button = function (PluginAction $action, string $label, string $confirm = '') use ($bar): void {
+        // The main part is a button in the action's own class. An entry of the list sets no class of its own, so Joomla
+        // renders it as it renders its own dropdown entries: a plain dropdown item.
+        $button = function (PluginAction $action, string $label, string $confirm = '', bool $main = false) use ($bar): void {
             $attributes = ToolButton::attributes(action: $action, progress: self::PROGRESS_ID);
 
             if ($confirm !== '') {
                 $attributes['data-confirm-message'] = Text::_($confirm);
             }
 
-            $bar->basicButton('tool-' . str_replace('.', '-', $action->id), $label)
+            $entry = $bar->basicButton('tool-' . str_replace('.', '-', $action->id), $label)
                 ->icon('icon-' . $action->icon)
-                ->buttonClass('btn ' . $action->class . ' tool-btn')
                 ->attributes($attributes);
+
+            if ($main) {
+                $entry->buttonClass('btn ' . $action->class);
+            }
         };
 
         // The main part, then each kind on its own, in the order the run takes them.
-        $button($actions['tasks.pending'], Text::_('COM_ALFA_TASKS_RUN_PENDING'));
+        $button($actions['tasks.pending'], Text::_('COM_ALFA_TASKS_RUN_PENDING'), main: true);
         $kinds = ['tasks.run' => 'COM_ALFA_TASKS_RUN_JOBS', 'inventory.effects' => 'COM_ALFA_TASKS_APPLY_STOCK', 'pricing.groupsets' => 'COM_ALFA_TASKS_UPDATE_PRICES'];
 
         foreach ($kinds as $id => $label) {
@@ -297,7 +302,7 @@ class HtmlView extends BaseHtmlView
             ->listCheck(true);
 
         // The outgoing notifications, listed on their own screen; its way back is this page.
-        $toolbar->link(Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'), AlfaHelper::withReturn('index.php?option=com_alfa&view=outbound'))
+        $toolbar->link(Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'), 'index.php?option=com_alfa&view=outbound&return=' . rawurlencode(AlfaHelper::returnPage()))
             ->icon('icon-out-2');
 
         if ($user->authorise('core.admin', 'com_alfa')) {

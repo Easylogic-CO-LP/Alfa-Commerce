@@ -49,7 +49,7 @@ $ended = [
         <div class="col-md-12">
             <div id="j-main-container" class="j-main-container">
                 <p class="text-muted"><?php echo Text::_('COM_ALFA_OUTBOUND_DESC'); ?></p>
-                <?php echo LayoutHelper::render('tasks.outbound', $this->consumers, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+                <?php echo LayoutHelper::render('tasks.outbound', $this->consumers + ['return' => $this->returnAddress === '' ? '' : base64_encode($this->returnAddress)], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
                 <?php echo LayoutHelper::render('joomla.searchtools.default', ['view' => $this]); ?>
 
@@ -139,9 +139,7 @@ $ended = [
                 <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>
 
-                <input type="hidden" name="task" value=""/>
-                <input type="hidden" name="boxchecked" value="0"/>
-                <?php echo HTMLHelper::_('form.token'); ?>
+                <?php echo $this->filterForm->renderControlFields(); ?>
             </div>
         </div>
     </div>

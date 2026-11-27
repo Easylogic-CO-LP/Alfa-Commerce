@@ -195,8 +195,8 @@ final class TaskStaff
 
     /**
      * The column that ranks a row for the Background screen's order: the stored rank of its state (running 0, waiting 1,
-     * needs attention 2, finished 3), indexed with the id, so the order reads the index instead of sorting the table. A
-     * waiting job being driven shows as running but ranks with the waiting.
+     * needs attention 2, finished 3), indexed with the id, so the queue's order (rank, then the oldest first) reads the
+     * index instead of sorting the table. A waiting job being driven shows as running but ranks with the waiting.
      *
      * @param DatabaseDriver $db The connection.
      * @param string $alias The tasks table's alias in the query, '' for none.
