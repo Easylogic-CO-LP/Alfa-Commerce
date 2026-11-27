@@ -211,6 +211,18 @@ $named = static function (string $base, string $alias) use ($tags): array {
     return $data;
 };
 
+// A rule has a name in each language and no alias: the language schema follows the keys posted, so an alias key would
+// ask for a column the rule's tables do not have.
+$ruleNamed = static function (string $base) use ($tags): array {
+    $data = [];
+
+    foreach ($tags as $tag) {
+        $data['name_' . MultilingualHelper::normaliseTag(tag: (string) $tag)] = $base;
+    }
+
+    return $data;
+};
+
 $factory = $app->bootComponent('com_alfa')->getMVCFactory();
 $itemModel = $factory->createModel('Item', 'Administrator', ['ignore_request' => true]);
 $itemController = $factory->createController('Item', 'Administrator', [], $app, $app->getInput());
@@ -258,8 +270,8 @@ $row = static fn (string $value, string $sale = '', string $pins = 'start', stri
 ];
 
 /** A discount or a tax saved through its model, as its form posts it. */
-$saveRule = static function (string $kind, array $data) use ($app, $factory, $named, $run): int {
-    $data += ['id' => 0, 'state' => 1, 'places' => [0], 'usergroups' => [0], 'users' => [0]] + $named('PA disposable ' . $kind . ' ' . ($data['tag'] ?? '') . ' ' . $run, 'pa-' . $kind . '-' . $run);
+$saveRule = static function (string $kind, array $data) use ($app, $factory, $ruleNamed, $run): int {
+    $data += ['id' => 0, 'state' => 1, 'places' => [0], 'usergroups' => [0], 'users' => [0]] + $ruleNamed('PA disposable ' . $kind . ' ' . ($data['tag'] ?? '') . ' ' . $run);
     unset($data['tag']);
     $app->getInput()->post->set('jform', $data);
     $model = $factory->createModel(ucfirst($kind), 'Administrator', ['ignore_request' => true]);

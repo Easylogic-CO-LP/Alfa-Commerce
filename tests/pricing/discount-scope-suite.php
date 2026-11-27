@@ -192,6 +192,18 @@ $named = static function (string $base, string $alias) use ($tags): array {
     return $data;
 };
 
+// A rule has a name in each language and no alias: the language schema follows the keys posted, so an alias key would
+// ask for a column the rule's tables do not have.
+$ruleNamed = static function (string $base) use ($tags): array {
+    $data = [];
+
+    foreach ($tags as $tag) {
+        $data['name_' . MultilingualHelper::normaliseTag(tag: (string) $tag)] = $base;
+    }
+
+    return $data;
+};
+
 $itemModel = $factory->createModel('Item', 'Administrator', ['ignore_request' => true]);
 $itemController = $factory->createController('Item', 'Administrator', [], $app, $app->getInput());
 $hook = new \ReflectionMethod($itemController, 'preSaveHook');
@@ -229,9 +241,9 @@ $product = static function (string $tag, int $category, int $rules = 1) use ($sa
     ] + $named('DS disposable ' . $tag . ' ' . $run, 'ds-disposable-' . $tag . '-' . $run));
 };
 
-$saveRule = static function (array $data) use ($app, $factory, $named, $run): int {
+$saveRule = static function (array $data) use ($app, $factory, $ruleNamed, $run): int {
     $data += ['id' => 0, 'state' => 1, 'is_amount' => 0, 'behavior' => 1, 'apply_before_tax' => 1, 'manufacturers' => [0], 'places' => [0], 'usergroups' => [0], 'users' => [0]]
-        + $named('DS disposable rule ' . ($data['tag'] ?? '') . ' ' . $run, 'ds-rule-' . strtolower((string) ($data['tag'] ?? '')) . '-' . $run);
+        + $ruleNamed('DS disposable rule ' . ($data['tag'] ?? '') . ' ' . $run);
     unset($data['tag']);
     $app->getInput()->post->set('jform', $data);
     $model = $factory->createModel('Discount', 'Administrator', ['ignore_request' => true]);
