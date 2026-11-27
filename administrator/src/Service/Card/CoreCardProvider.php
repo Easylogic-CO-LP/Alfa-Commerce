@@ -448,7 +448,7 @@ final class CoreCardProvider
                         $money,
                     ),
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_ITEM'),
-                    'url' => $canEditItems ? Route::_('index.php?option=com_alfa&task=item.edit&id=' . (int) $extra['id'], false) : '',
+                    'url' => $canEditItems ? Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&task=item.edit&id=' . (int) $extra['id']), false) : '',
                 ],
                 'outofstock' => [
                     'severity' => 'info',
@@ -470,7 +470,7 @@ final class CoreCardProvider
                         $finding['count'],
                     ),
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_CARTRULE'),
-                    'url' => $canEditCartrules ? Route::_('index.php?option=com_alfa&task=cartrule.edit&id=' . (int) $extra['id'], false) : '',
+                    'url' => $canEditCartrules ? Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&task=cartrule.edit&id=' . (int) $extra['id']), false) : '',
                 ],
                 'refunds' => [
                     'severity' => 'warning',
@@ -742,7 +742,7 @@ final class CoreCardProvider
                 'status' => (string) ($row->name ?? ''),
                 'color' => (string) ($row->color ?? ''),
                 'bg_color' => (string) ($row->bg_color ?? ''),
-                'url' => $canEditOrders ? Route::_('index.php?option=com_alfa&task=order.edit&id=' . (int) $row->id, false) : '',
+                'url' => $canEditOrders ? Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&task=order.edit&id=' . (int) $row->id), false) : '',
             ];
         }
 

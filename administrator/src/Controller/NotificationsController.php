@@ -94,7 +94,8 @@ class NotificationsController extends BaseController
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();
 
-        echo NotificationHelper::renderBadge((bool) RequestScalar::int($this->input, 'open'));
+        // The page the bell is on, handed by its script, so a record a notification opens goes back there.
+        echo NotificationHelper::renderBadge((bool) RequestScalar::int($this->input, 'open'), (string) RequestScalar::read($this->input, 'return', '', 'base64'));
 
         // Then, when work is due, the bell's tick: the request every Alfa Commerce page already
         // makes, so the background work keeps running while Alfa Sync is disabled. The badge is answered first and the

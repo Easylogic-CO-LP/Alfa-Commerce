@@ -10,6 +10,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\Actions;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\Columns;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
@@ -24,6 +25,7 @@ $user = $this->getCurrentUser();
 // Dismissing changes the row for every administrator; offered only to who may do it.
 $canChange = NotificationHelper::canChangeState(user: $user);
 
+$return = AlfaHelper::returnPage();
 $severityLabels = [
     'success' => 'COM_ALFA_NOTIFY_SEVERITY_SUCCESS',
     'info'    => 'COM_ALFA_NOTIFY_SEVERITY_INFO',
@@ -64,7 +66,8 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             <?php
                             // Every row is one the reader may see: the model's query holds the view rules.
                             $severity = \in_array($item->severity, ['success', 'info', 'warning', 'danger'], true) ? $item->severity : 'info';
-                            $safeUrl  = NotificationHelper::safeUrl((string) $item->url);
+                            // A record the notification opens goes back to this list.
+                            $safeUrl  = AlfaHelper::withReturn(NotificationHelper::safeUrl((string) $item->url), $return);
                             $hasLink  = $safeUrl !== '' && NotificationHelper::canUseLink($item, $user);
                             // In the reader's language: the key, else the snapshot; literal text as written.
                             $title    = NotificationText::title($item);

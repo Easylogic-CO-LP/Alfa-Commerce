@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Pricing;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 
@@ -126,7 +127,8 @@ final class DiscountReach
                         'id' => (int) $other->id,
                         'name' => (string) $other->name,
                         'count' => $count,
-                        'url' => Route::_('index.php?option=com_alfa&task=discount.edit&id=' . (int) $other->id, false),
+                        // The rule opens with this form as its way back: its own edit task, as a form is reached.
+                        'url' => Route::_(AlfaHelper::withReturn('index.php?option=com_alfa&task=discount.edit&id=' . (int) $other->id), false),
                     ];
                 }
             }
