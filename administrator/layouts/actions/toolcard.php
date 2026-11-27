@@ -10,6 +10,10 @@
  * ({@see ToolButton}), on a Tools card as on the Background screen's toolbar, so an extension never ships JavaScript
  * merely to draw a progress bar.
  *
+ * A tool that is a page of its own names it (meta 'link'): its card is a plain link there, nothing is run from the
+ * card and it has no progress. A card may say where its tool stands in one line (meta 'status'), read from what is
+ * stored, never computed for the card.
+ *
  * Available $displayData:
  *   - action   (PluginAction)  The action definition
  *
@@ -41,6 +45,8 @@ $attrs = ToolButton::html(ToolButton::attributes(action: $action, progress: $pro
 
 $description = (string) ($action->metadata['description'] ?? '');
 $notice      = (string) ($action->metadata['notice'] ?? '');
+$status      = (string) ($action->metadata['status'] ?? '');
+$link        = (string) ($action->metadata['link'] ?? '');
 
 // TRANSLATIONS ARE EMITTED RAW. Joomla language strings are authored as HTML:
 // "Users &amp; groups", "Options &rarr; Search", so escaping them again renders the
@@ -62,17 +68,29 @@ $buttonLabel = ToolButton::label($action);
                 <?php echo Text::_($notice); ?></div>
         <?php endif; ?>
 
-        <button class="btn <?php echo $e($action->class); ?> tool-btn"<?php echo $attrs; ?>>
-            <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
-            <?php echo $buttonLabel; ?>
-        </button>
+        <?php // The status is a finished text that may carry a stored reason, so it is escaped. ?>
+        <?php if ($status !== '') : ?>
+            <p class="mb-3"><?php echo $e($status); ?></p>
+        <?php endif; ?>
 
-        <div class="tool-progress mt-3" id="<?php echo $e($progressId); ?>" style="display:none;">
-            <div class="progress" style="height:1.5rem;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
-                     style="width:0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>
+        <?php if ($link !== '') : ?>
+            <a class="btn <?php echo $e($action->class); ?>" href="<?php echo $e($link); ?>">
+                <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
+                <?php echo $buttonLabel; ?>
+            </a>
+        <?php else : ?>
+            <button class="btn <?php echo $e($action->class); ?> tool-btn"<?php echo $attrs; ?>>
+                <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
+                <?php echo $buttonLabel; ?>
+            </button>
+
+            <div class="tool-progress mt-3" id="<?php echo $e($progressId); ?>" style="display:none;">
+                <div class="progress" style="height:1.5rem;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                         style="width:0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>
+                </div>
+                <p class="small text-muted mt-2 mb-0" data-status></p>
             </div>
-            <p class="small text-muted mt-2 mb-0" data-status></p>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
