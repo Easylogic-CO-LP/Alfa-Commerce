@@ -107,14 +107,25 @@ final class OutboundDelivery
     private readonly Closure $vet;
 
     /**
-     * @param WebhookClient $client The client that posts a webhook's request.
-     * @param Closure|null $vet How an address is vetted; null for OutboundAddressGuard::vet().
+     * How a webhook's request is posted: the client's post() unless another is given (a suite's stand in).
+     *
+     * @var Closure(string, array, string, array): array{status: int, body: string, error: string, retryAfter: int|null}
      *
      * @since  2.3.0
      */
-    public function __construct(private readonly WebhookClient $client = new WebhookClient(), ?Closure $vet = null)
+    private readonly Closure $post;
+
+    /**
+     * @param WebhookClient $client The client that posts a webhook's request.
+     * @param Closure|null $vet How an address is vetted; null for OutboundAddressGuard::vet().
+     * @param Closure|null $post How a request is posted; null for the client's post().
+     *
+     * @since  2.3.0
+     */
+    public function __construct(private readonly WebhookClient $client = new WebhookClient(), ?Closure $vet = null, ?Closure $post = null)
     {
         $this->vet = $vet ?? static fn (string $url): array => OutboundAddressGuard::vet(url: $url);
+        $this->post = $post ?? fn (string $url, array $vetted, string $body, array $headers): array => $this->client->post(url: $url, vetted: $vetted, body: $body, headers: $headers);
     }
 
     /**
@@ -189,7 +200,7 @@ final class OutboundDelivery
         $url = (string) $consumer->url;
         $vetted = ($this->vet)($url);
 
-        return $this->client->post(url: $url, vetted: $vetted, body: $body, headers: [
+        return ($this->post)($url, $vetted, $body, [
             'Content-Type' => 'application/json',
             'User-Agent' => self::USER_AGENT,
             'X-Alfa-Delivery' => $deliveryId,
