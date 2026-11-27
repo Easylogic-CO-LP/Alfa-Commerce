@@ -9,8 +9,10 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
+use Joomla\CMS\Language\Text;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use RuntimeException;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -242,12 +244,33 @@ final class ItemShipments
      * @param int $combinationId The combination, 0 for the product itself.
      * @param int[]|null $shipmentIds The rows to hold, null or [] for none.
      *
+     * @throws RuntimeException When a method the rows name does not exist; nothing is written.
+     *
      * @since  2.3.0
      */
     public static function replace(DatabaseInterface $db, int $itemId, int $combinationId, ?array $shipmentIds): void
     {
         if ($itemId <= 0) {
             return;
+        }
+
+        $rows = array_values(array_unique(array_map('intval', $shipmentIds ?? [])));
+        $methods = self::methodIds($rows);
+
+        // The methods the list will name must exist, read under a shared lock held to the end of the save's
+        // transaction, before any row of the list is touched: a delete of one of them locks its row first, so the
+        // two never pass each other. A list is never written naming a method that is gone, and never emptied
+        // because one went: nothing is saved.
+        if ($methods !== []) {
+            $existing = array_map('intval', $db->setQuery(
+                'SELECT ' . $db->quoteName('id') . ' FROM ' . $db->quoteName('#__alfa_shipments')
+                . ' WHERE ' . $db->quoteName('id') . ' IN (' . implode(',', $methods) . ') LOCK IN SHARE MODE',
+            )->loadColumn() ?: []);
+            $gone = array_values(array_diff($methods, $existing));
+
+            if ($gone !== []) {
+                throw new RuntimeException(Text::sprintf('COM_ALFA_ITEM_SHIPMENTS_METHOD_GONE', implode(', ', $gone)));
+            }
         }
 
         $db->setQuery(
@@ -258,8 +281,6 @@ final class ItemShipments
                 ->bind(':itemId', $itemId, ParameterType::INTEGER)
                 ->bind(':combinationId', $combinationId, ParameterType::INTEGER),
         )->execute();
-
-        $rows = array_values(array_unique(array_map('intval', $shipmentIds ?? [])));
 
         if ($rows === []) {
             return;
@@ -433,52 +454,29 @@ final class ItemShipments
     }
 
     /**
-     * Remove deleted shipping methods from every product's and combination's list, and count the units that were
-     * limited to those methods alone. With no row left such a product ships with every method and such a combination
-     * as its product does, so the caller tells the operator how many there are.
-     *
-     * Two statements over the list table by its method index, whatever the catalogue's size: the count, then the
-     * delete. Called inside the method delete's transaction, so a failure leaves every list as it was.
+     * Remove deleted shipping methods from every product's and combination's list. Called inside the method
+     * delete's transaction, after it judged that no list names these methods alone
+     * ({@see self::countLimitedTo()}): a list that loses a method here keeps another, so no restricted unit becomes
+     * an unrestricted one.
      *
      * @param DatabaseInterface $db The database.
      * @param int[] $shipmentIds The deleted shipping methods.
      *
-     * @return array{items: int, combinations: int} The products and the combinations whose list ended.
-     *
      * @since  2.3.0
      */
-    public static function forgetMethods(DatabaseInterface $db, array $shipmentIds): array
+    public static function forgetMethods(DatabaseInterface $db, array $shipmentIds): void
     {
-        $ids = array_values(array_unique(array_filter(array_map('intval', $shipmentIds), static fn (int $id): bool => $id > 0)));
+        $ids = self::methodIds($shipmentIds);
 
         if ($ids === []) {
-            return ['items' => 0, 'combinations' => 0];
+            return;
         }
-
-        $list = implode(',', $ids);
-        $table = $db->quoteName('#__alfa_items_shipments');
-
-        // A unit's list ends when it names one of the methods and no other row: a combination's "every method" row
-        // (0) is a row that stays.
-        $ended = $db->setQuery(
-            'SELECT COALESCE(SUM(CASE WHEN ' . $db->quoteName('u.combination_id') . ' = 0 THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('items')
-            . ', COALESCE(SUM(CASE WHEN ' . $db->quoteName('u.combination_id') . ' > 0 THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('combinations')
-            . ' FROM (SELECT DISTINCT ' . $db->quoteName('d.item_id') . ', ' . $db->quoteName('d.combination_id')
-            . ' FROM ' . $table . ' AS ' . $db->quoteName('d')
-            . ' WHERE ' . $db->quoteName('d.shipment_id') . ' IN (' . $list . ')'
-            . ' AND NOT EXISTS (SELECT 1 FROM ' . $table . ' AS ' . $db->quoteName('k')
-            . ' WHERE ' . $db->quoteName('k.item_id') . ' = ' . $db->quoteName('d.item_id')
-            . ' AND ' . $db->quoteName('k.combination_id') . ' = ' . $db->quoteName('d.combination_id')
-            . ' AND ' . $db->quoteName('k.shipment_id') . ' NOT IN (' . $list . '))) AS ' . $db->quoteName('u'),
-        )->loadAssoc() ?: [];
 
         $db->setQuery(
             $db->getQuery(true)
-                ->delete($table)
+                ->delete($db->quoteName('#__alfa_items_shipments'))
                 ->whereIn($db->quoteName('shipment_id'), $ids),
         )->execute();
-
-        return ['items' => (int) ($ended['items'] ?? 0), 'combinations' => (int) ($ended['combinations'] ?? 0)];
     }
 
     /**
