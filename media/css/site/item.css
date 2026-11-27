@@ -7,7 +7,7 @@
 
 .item-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: 20px;
 }
 
@@ -278,7 +278,7 @@
 /* MANUFACTURERS CATEGORIES */
 .item-list-inner {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
     gap: 1.5rem;
     margin: 1rem 0;
 }

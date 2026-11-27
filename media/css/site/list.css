@@ -11,7 +11,7 @@
 .list-container {
     display: grid;
     grid-gap: 1rem;
-    grid-template-columns: repeat(auto-fill,minmax(300px,1fr));
+    grid-template-columns: repeat(auto-fill,minmax(min(300px, 100%), 1fr));
 }
 
 /* The subcategory strip keeps the same distance from what follows it (the search and filter bar) as its own cards
@@ -221,7 +221,7 @@
 
 :where(.js-stools-container-filters-visible) {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
     gap: 0.5rem 0.75rem;
 }
 

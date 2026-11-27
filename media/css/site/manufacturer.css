@@ -9,7 +9,7 @@
    pinned into the right half of an empty two-column grid. */
 .manufacturer-container article {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     column-gap: 3rem;
     row-gap: 1rem;
 }
