@@ -13,7 +13,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseDriver;
 use LogicException;
 
@@ -41,6 +44,16 @@ use LogicException;
  * is published. A discount or tax keeps its scope while any row of it names
  * something outside the set, the 0 row included.
  *
+ * A payment method and a shipping method are scoped the same way on categories,
+ * manufacturers and places, and the same rule holds for them: an entity that is
+ * the last one a method names on its axis is not deleted from under it. A method
+ * left with no row there serves nothing until it is saved, and the save of a part
+ * with nothing chosen stores "every one": the last entry is never removed
+ * silently. A shipping method's "categories not delivered" is an exclusion like a
+ * discount's: a category that still links products as their second category can
+ * be deleted, and the products would then be delivered through their other
+ * categories, so every row of it refuses.
+ *
  * It runs inside the transaction that deletes, and reads the rows it judges
  * with an exclusive lock held until the delete commits: a rule editor rewriting
  * a scope or a condition waits for it (or the delete waits for the editor and
@@ -62,6 +75,12 @@ final class RuleScopeGuard
     /** @var string Products: #__alfa_discount_items. @since 2.3.0 */
     public const AXIS_ITEM = 'item';
 
+    /** @var string Joomla's user groups, as the customer groups of a discount, tax, payment or shipping method. @since 2.3.0 */
+    public const AXIS_USERGROUP = 'usergroup';
+
+    /** @var string Joomla's accounts, as the customers of a discount, tax, payment or shipping method. @since 2.3.0 */
+    public const AXIS_USER = 'user';
+
     /**
      * Per axis: the entity table and column, the refusal's language keys, the
      * rule pivots as kind => [pivot table, rule column], and the cart-rule
@@ -76,26 +95,34 @@ final class RuleScopeGuard
             'column' => 'category_id',
             'refusal' => 'COM_ALFA_CATEGORY_DELETE_LAST_RULE_SCOPE',
             'excludes' => 'COM_ALFA_CATEGORY_DELETE_CART_RULE_EXCLUDES',
+            'methodRefusal' => 'COM_ALFA_CATEGORY_DELETE_LAST_METHOD_SCOPE',
             'pivots' => [
                 'discount' => ['#__alfa_discount_categories', 'discount_id'],
                 'tax' => ['#__alfa_tax_categories', 'tax_id'],
+                'payment' => ['#__alfa_payment_categories', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_categories', 'shipment_id'],
             ],
             'conditionType' => 'categories',
             // A rule's exclusions: deleting a category a rule excludes would let the rule reach its products through
             // their other categories, so every row counts, not only the last.
             'exclusionPivots' => [
                 'discount' => ['#__alfa_discount_excluded_categories', 'discount_id'],
+                'shipment' => ['#__alfa_shipment_excluded_categories', 'shipment_id'],
             ],
             'excludedBy' => 'COM_ALFA_CATEGORY_DELETE_RULE_EXCLUDES',
+            'methodExcludedBy' => 'COM_ALFA_CATEGORY_DELETE_METHOD_EXCLUDES',
         ],
         self::AXIS_PLACE => [
             'table' => '#__alfa_places',
             'column' => 'place_id',
             'refusal' => 'COM_ALFA_PLACE_DELETE_LAST_RULE_SCOPE',
             'excludes' => null,
+            'methodRefusal' => 'COM_ALFA_PLACE_DELETE_LAST_METHOD_SCOPE',
             'pivots' => [
                 'discount' => ['#__alfa_discount_places', 'discount_id'],
                 'tax' => ['#__alfa_tax_places', 'tax_id'],
+                'payment' => ['#__alfa_payment_places', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_places', 'shipment_id'],
             ],
             'conditionType' => null,
         ],
@@ -104,9 +131,12 @@ final class RuleScopeGuard
             'column' => 'manufacturer_id',
             'refusal' => 'COM_ALFA_MANUFACTURER_DELETE_LAST_RULE_SCOPE',
             'excludes' => 'COM_ALFA_MANUFACTURER_DELETE_CART_RULE_EXCLUDES',
+            'methodRefusal' => 'COM_ALFA_MANUFACTURER_DELETE_LAST_METHOD_SCOPE',
             'pivots' => [
                 'discount' => ['#__alfa_discount_manufacturers', 'discount_id'],
                 'tax' => ['#__alfa_tax_manufacturers', 'tax_id'],
+                'payment' => ['#__alfa_payment_manufacturers', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_manufacturers', 'shipment_id'],
             ],
             'conditionType' => 'manufacturers',
         ],
@@ -119,6 +149,37 @@ final class RuleScopeGuard
             'excludes' => null,
             'pivots' => [
                 'discount' => ['#__alfa_discount_items', 'discount_id'],
+            ],
+            'conditionType' => null,
+        ],
+        // A group or an account is Joomla's, deleted in Joomla: the users plugin event asks this before a group is
+        // deleted, which Joomla lets a plugin refuse; an account's delete cannot be refused there, so its rules are
+        // named to staff afterwards (named()).
+        self::AXIS_USERGROUP => [
+            'table' => '#__usergroups',
+            'column' => 'usergroup_id',
+            'refusal' => 'COM_ALFA_USERGROUP_DELETE_LAST_RULE_SCOPE',
+            'excludes' => null,
+            'methodRefusal' => 'COM_ALFA_USERGROUP_DELETE_LAST_METHOD_SCOPE',
+            'pivots' => [
+                'discount' => ['#__alfa_discount_usergroups', 'discount_id'],
+                'tax' => ['#__alfa_tax_usergroups', 'tax_id'],
+                'payment' => ['#__alfa_payment_usergroups', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_usergroups', 'shipment_id'],
+            ],
+            'conditionType' => null,
+        ],
+        self::AXIS_USER => [
+            'table' => '#__users',
+            'column' => 'user_id',
+            'refusal' => 'COM_ALFA_USER_DELETE_LAST_RULE_SCOPE',
+            'excludes' => null,
+            'methodRefusal' => 'COM_ALFA_USER_DELETE_LAST_METHOD_SCOPE',
+            'pivots' => [
+                'discount' => ['#__alfa_discount_users', 'discount_id'],
+                'tax' => ['#__alfa_tax_users', 'tax_id'],
+                'payment' => ['#__alfa_payment_users', 'payment_id'],
+                'shipment' => ['#__alfa_shipment_users', 'shipment_id'],
             ],
             'conditionType' => null,
         ],
@@ -136,20 +197,45 @@ final class RuleScopeGuard
             'langColumn' => 'id_discount',
             'named' => 'COM_ALFA_SCOPE_RULE_DISCOUNT',
             'unnamed' => 'COM_ALFA_SCOPE_RULE_DISCOUNT_UNNAMED',
+            'edit' => 'discount.edit',
         ],
         'tax' => [
             'table' => '#__alfa_taxes',
             'langColumn' => 'id_tax',
             'named' => 'COM_ALFA_SCOPE_RULE_TAX',
             'unnamed' => 'COM_ALFA_SCOPE_RULE_TAX_UNNAMED',
+            'edit' => 'tax.edit',
         ],
         'cart_rule' => [
             'table' => '#__alfa_cart_rules',
             'langColumn' => 'id_cart_rule',
             'named' => 'COM_ALFA_SCOPE_RULE_CART_RULE',
             'unnamed' => 'COM_ALFA_SCOPE_RULE_CART_RULE_UNNAMED',
+            'edit' => 'cartrule.edit',
+        ],
+        'payment' => [
+            'table' => '#__alfa_payments',
+            'langColumn' => 'id_payment',
+            'named' => 'COM_ALFA_SCOPE_METHOD_PAYMENT',
+            'unnamed' => 'COM_ALFA_SCOPE_METHOD_PAYMENT_UNNAMED',
+            'edit' => 'payment.edit',
+        ],
+        'shipment' => [
+            'table' => '#__alfa_shipments',
+            'langColumn' => 'id_shipment',
+            'named' => 'COM_ALFA_SCOPE_METHOD_SHIPMENT',
+            'unnamed' => 'COM_ALFA_SCOPE_METHOD_SHIPMENT_UNNAMED',
+            'edit' => 'shipment.edit',
         ],
     ];
+
+    /**
+     * The kinds that are methods: their refusal is its own sentence, in a method's words.
+     *
+     * @var list<string>
+     * @since 2.3.0
+     */
+    private const METHODS = ['payment', 'shipment'];
 
     /**
      * The entities of a request that exist, in the order asked, locked until the
@@ -198,9 +284,10 @@ final class RuleScopeGuard
     }
 
     /**
-     * Refuse the delete of these entities when it would leave any discount or tax
-     * rule with no scope row on their axis, or take products out of a cart
-     * rule's "is NOT one of" condition.
+     * Refuse the delete of these entities when it would leave any discount, tax,
+     * payment method or shipping method with no scope row on their axis, take
+     * products out of a cart rule's "is NOT one of" condition, or take a category
+     * off a discount's exclusions or a shipping method's categories not delivered.
      *
      * Must run inside the transaction that then deletes the entities and their
      * pivot rows: the rows it reads stay locked until that transaction ends.
@@ -313,25 +400,24 @@ final class RuleScopeGuard
         }
 
         $rules = self::describe(db: $db, refused: $refused);
-        $scoped = array_values(array_filter($rules, static fn (array $rule): bool => $rule['kind'] !== 'cart_rule'));
-        $excluding = array_values(array_filter($rules, static fn (array $rule): bool => $rule['kind'] === 'cart_rule'));
         $excluders = self::describe(db: $db, refused: $excludedBy);
+        $isMethod = static fn (array $rule): bool => \in_array($rule['kind'], self::METHODS, true);
         $message = [];
         $plain = [];
 
-        if ($scoped !== []) {
-            $message[] = Text::sprintf($spec['refusal'], implode(', ', array_column($scoped, 'label')));
-            $plain[] = Text::sprintf($spec['refusal'], implode(', ', array_column($scoped, 'plainLabel')));
-        }
-
-        if ($excluding !== []) {
-            $message[] = Text::sprintf($spec['excludes'], implode(', ', array_column($excluding, 'label')));
-            $plain[] = Text::sprintf($spec['excludes'], implode(', ', array_column($excluding, 'plainLabel')));
-        }
-
-        if ($excluders !== []) {
-            $message[] = Text::sprintf($spec['excludedBy'], implode(', ', array_column($excluders, 'label')));
-            $plain[] = Text::sprintf($spec['excludedBy'], implode(', ', array_column($excluders, 'plainLabel')));
+        // One sentence a reason, each naming what it concerns: the rules left without scope, the methods left
+        // without scope, the cart rules that exclude, the rules that exclude, the methods that do not deliver.
+        foreach ([
+            [$spec['refusal'], array_filter($rules, static fn (array $rule): bool => $rule['kind'] !== 'cart_rule' && !$isMethod($rule))],
+            [$spec['methodRefusal'] ?? null, array_filter($rules, $isMethod)],
+            [$spec['excludes'], array_filter($rules, static fn (array $rule): bool => $rule['kind'] === 'cart_rule')],
+            [$spec['excludedBy'] ?? null, array_filter($excluders, static fn (array $rule): bool => !$isMethod($rule))],
+            [$spec['methodExcludedBy'] ?? null, array_filter($excluders, $isMethod)],
+        ] as [$key, $named]) {
+            if ($key !== null && $named !== []) {
+                $message[] = Text::sprintf($key, implode(', ', array_column($named, 'label')));
+                $plain[] = Text::sprintf($key, implode(', ', array_column($named, 'plainLabel')));
+            }
         }
 
         throw new ScopeDeleteRefusedException(
@@ -340,6 +426,47 @@ final class RuleScopeGuard
             message: implode(' ', $message),
             plain: implode(' ', $plain),
         );
+    }
+
+    /**
+     * The rules and methods whose scope on an axis names any of these entities, with their names: what is said to
+     * staff when an entity was deleted where no delete could be refused, and its rows now name nothing. One read a
+     * pivot by its entity index, no lock: nothing is judged or written here.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param string $axis One of the AXIS_* constants.
+     * @param int[] $ids The entities.
+     *
+     * @return array<int, array{kind: string, id: int, name: string, label: string, plainLabel: string}>
+     *
+     * @throws LogicException When the axis is unknown.
+     *
+     * @since   2.3.0
+     */
+    public static function named(DatabaseDriver $db, string $axis, array $ids): array
+    {
+        $spec = self::AXES[$axis] ?? throw new LogicException('Unknown rule scope axis: ' . $axis);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $naming = [];
+
+        foreach ($spec['pivots'] as $kind => [$pivot, $ruleColumn]) {
+            $ruleIds = array_values(array_unique(array_map('intval', (array) $db->setQuery(
+                'SELECT r.' . $db->quoteName('id') . ' FROM ' . $db->quoteName($pivot) . ' AS p'
+                . ' INNER JOIN ' . $db->quoteName(self::KINDS[$kind]['table']) . ' AS r ON r.' . $db->quoteName('id') . ' = p.' . $db->quoteName($ruleColumn)
+                . ' WHERE p.' . $db->quoteName($spec['column']) . ' IN (' . implode(',', $ids) . ') ORDER BY r.' . $db->quoteName('id'),
+            )->loadColumn())));
+
+            if ($ruleIds !== []) {
+                $naming[$kind] = $ruleIds;
+            }
+        }
+
+        return self::describe(db: $db, refused: $naming);
     }
 
     /**
@@ -379,6 +506,7 @@ final class RuleScopeGuard
     private static function describe(DatabaseDriver $db, array $refused): array
     {
         $rules = [];
+        $linked = Factory::getApplication()->isClient('administrator');
 
         foreach (self::KINDS as $kind => $spec) {
             $ids = $refused[$kind] ?? [];
@@ -398,13 +526,20 @@ final class RuleScopeGuard
             foreach ($ids as $id) {
                 $name = trim((string) ($records[$id]['name'] ?? ''));
 
+                $label = $name === ''
+                    ? Text::sprintf($spec['unnamed'], $id)
+                    : Text::sprintf($spec['named'], $id, htmlspecialchars($name, ENT_QUOTES, 'UTF-8'));
+
+                // In the back office the name opens the rule or the method, where its scope is changed.
+                if ($linked) {
+                    $label = HTMLHelper::_('link', Route::_('index.php?option=com_alfa&task=' . $spec['edit'] . '&id=' . $id), $label);
+                }
+
                 $rules[] = [
                     'kind' => $kind,
                     'id' => $id,
                     'name' => $name,
-                    'label' => $name === ''
-                        ? Text::sprintf($spec['unnamed'], $id)
-                        : Text::sprintf($spec['named'], $id, htmlspecialchars($name, ENT_QUOTES, 'UTF-8')),
+                    'label' => $label,
                     'plainLabel' => $name === ''
                         ? Text::sprintf($spec['unnamed'], $id)
                         : Text::sprintf($spec['named'], $id, $name),

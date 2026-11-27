@@ -27,8 +27,8 @@ final class ScopeDeleteRefusedException extends DeleteRefusedException
 {
     /**
      * @param string $axis 'category', 'place' or 'manufacturer'.
-     * @param array $rules The rules the delete would widen, each
-     *                     ['kind' => 'discount'|'tax'|'cart_rule', 'id' => int, 'name' => string].
+     * @param array $rules The rules and methods the delete would widen, each
+     *                     ['kind' => 'discount'|'tax'|'cart_rule'|'payment'|'shipment', 'id' => int, 'name' => string].
      * @param string $message The translated refusal, safe to print as HTML.
      * @param string $plain The same refusal as text, for the REST answer.
      *
