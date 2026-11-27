@@ -526,7 +526,7 @@ class PriceComputationEngine
             // reference above: readable, never re-applied.
             //
             // BOTH HALVES EMPTY, and the pair is load-bearing. hasDiscount()
-            // tests the summary's TOTAL; SaleTag and the price-matrix editor
+            // tests the summary's TOTAL; Labels and the price-matrix editor
             // read the applied LIST. A zero total with the catalogue list left
             // in place would satisfy every money consumer and still badge a
             // negotiated line as if it were on promotion.
@@ -934,6 +934,7 @@ class PriceComputationEngine
                     tagBg: (string) ($discount->tag_bg ?? ''),
                     tagColor: (string) ($discount->tag_color ?? ''),
                     tagClass: (string) ($discount->tag_class ?? ''),
+                    tagCorner: (string) ($discount->tag_corner ?? 'top-left'),
                     // "Only this" applies ALONE, as an ordinary single rule and
                     // never as a pool of one; pooling is about how rules share a
                     // base, and an exclusive rule has no one to share with.
@@ -961,6 +962,7 @@ class PriceComputationEngine
                     tagBg: (string) ($discount->tag_bg ?? ''),
                     tagColor: (string) ($discount->tag_color ?? ''),
                     tagClass: (string) ($discount->tag_class ?? ''),
+                    tagCorner: (string) ($discount->tag_corner ?? 'top-left'),
                     // 1 = Combined (pools); anything else = Sequential, which is
                     // the reading this else-branch has always given an
                     // unrecognised value.

@@ -107,6 +107,7 @@ $wa->useScript('keepalive')
                 <?php echo $this->form->renderField('tag_bg'); ?>
                 <?php echo $this->form->renderField('tag_color'); ?>
                 <?php echo $this->form->renderField('tag_class'); ?>
+                <?php echo $this->form->renderField('tag_corner'); ?>
             </fieldset>
         </div>
     </div>

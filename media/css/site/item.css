@@ -17,24 +17,37 @@
     overflow-wrap: anywhere;
 }
 
-/* Sale-tag badge (a flagged discount's name, contributed to a surface slot by
-   SaleTag). Plain names, scoped under the alfa root shell; layout is overridable.
-   Context modifiers: .sale-tag--list (cards) / .sale-tag--item (product page). */
-.sale-tag {
+/* Labels: a discount's sale tag, the New label, the shop's predefined labels and a product's own label wear one
+   badge (the item.label layout, contributed by Labels). The colours come from the label; a label without colours
+   wears the label tokens, a sale tag the sale tokens. The kind rides on data-kind (sale, new, predefined, custom),
+   the context on data-context (list for cards, item for the product page), the key on data-label. */
+.item-label {
     display: inline-block;
     padding: 3px 8px;
     font-size: 0.72rem;
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: 0.02em;
-    color: var(--alfa-sale-color);
-    background: var(--alfa-sale-bg);
+    color: var(--alfa-label-color);
+    background: var(--alfa-label-bg);
     border-radius: var(--alfa-radius);
     white-space: nowrap;
 }
 
-/* In the IMAGE slot the badge overlays the image corner; the image container is
-   made the positioning context. Other slots (title, buy-form, ...) flow inline. */
+.item-label[data-kind="sale"] {
+    color: var(--alfa-sale-color);
+    background: var(--alfa-sale-bg);
+}
+
+/* A slot's labels stand in a row (the item.labels layout, one per slot). */
+.item-labels {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* In the IMAGE slot a badge overlays the image; the image container is the positioning context. Other slots (title,
+   buy-form, ...) flow inline. */
 .item-image,
 .item-images-wrapper {
     position: relative;
@@ -46,6 +59,40 @@
     left: 8px;
     z-index: 2;
     pointer-events: none;
+}
+
+/* Labels in the image slot: their wrapper spans the image, and each corner's labels stack one under the other in
+   that corner (one item.labels per corner). */
+.item-field-surface[data-surface="image"]:has(> .item-labels) {
+    inset: 0;
+}
+
+.item-labels[data-corner] {
+    position: absolute;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.item-labels[data-corner="top-left"] {
+    top: 8px;
+    left: 8px;
+}
+
+.item-labels[data-corner="top-right"] {
+    top: 8px;
+    right: 8px;
+    align-items: flex-end;
+}
+
+.item-labels[data-corner="bottom-left"] {
+    bottom: 8px;
+    left: 8px;
+}
+
+.item-labels[data-corner="bottom-right"] {
+    bottom: 8px;
+    right: 8px;
+    align-items: flex-end;
 }
 
 /* PRODUCT AMOUNT */

@@ -672,7 +672,7 @@ class PriceDataLoader
             // portability trap that would surface as a fatal on a customer's host.
             // The place of the scope row that matched rides along, for the order (RulePrecedence): a rule that matches
             // through two places of the chain comes twice and is kept once, at its nearest place.
-            ->select('DISTINCT d.id, d.ordering, d.value, d.is_amount, d.behavior, d.apply_before_tax, d.tag_list_show, d.tag_list_slot, d.tag_item_show, d.tag_item_slot, d.tag_bg, d.tag_color, d.tag_class, ic.item_id, dp.place_id AS matched_place')
+            ->select('DISTINCT d.id, d.ordering, d.value, d.is_amount, d.behavior, d.apply_before_tax, d.tag_list_show, d.tag_list_slot, d.tag_item_show, d.tag_item_slot, d.tag_bg, d.tag_color, d.tag_class, d.tag_corner, ic.item_id, dp.place_id AS matched_place')
             ->from('#__alfa_discounts AS d')
 
             // Scope 1: Category

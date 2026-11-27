@@ -42,9 +42,9 @@ use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
-use Alfa\Component\Alfa\Site\Helper\SaleTag;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
+use Alfa\Component\Alfa\Site\Service\Catalog\Labels;
 use Alfa\Component\Alfa\Site\Service\Facet\FacetGroupResolver;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBag;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
@@ -1873,6 +1873,9 @@ class ItemsModel extends UrlListModel
             VariantHelper::warmOverlay($activeCombinationIds);
         }
 
+        // The page's label rows, one query for every card (Labels::of() below then reads them without one).
+        Labels::warm(itemIds: $productIds);
+
         // Pass 2: assign each price, then overlay the active combination's data
         //    (sku/stock/name/media) onto the variant cards.
         foreach ($items as &$item) {
@@ -1888,11 +1891,14 @@ class ItemsModel extends UrlListModel
                 VariantHelper::overlay($item, $item->variant->activeCombination ?? null);
             }
 
-            // Sale-tag badges onto the card slots: this is the only point where BOTH
+            // The labels the card shows (Labels), read for every consumer: the REST list states them.
+            $item->labels = Labels::of(item: $item, isListing: true);
+
+            // The labels and the sale tags onto the card slots: this is the only point where BOTH
             // the price/discounts and the harvested surfaces exist. Guarded like the
             // surface harvest above, so data-only listings (search) stay untouched.
             if ($this->getState('plugin.layouts', true)) {
-                SaleTag::contribute($item, true);
+                Labels::contribute(item: $item, isListing: true);
             }
         }
         unset($item);
@@ -2000,10 +2006,14 @@ class ItemsModel extends UrlListModel
 
             $this->chooseOptionsCart($item, $drawn);
             $this->withdrawCartWithoutPrice(item: $item);
+        }
 
-            // Sale-tag badges for the single-card reload path (the list loop uses a
-            // different path, so no double badge).
-            SaleTag::contribute($item, true);
+        // The card's labels, and with the sale tags onto its slots when it is drawn: the single-card reload path (the
+        // list loop uses a different path, so no double badge).
+        $item->labels = Labels::of(item: $item, isListing: true);
+
+        if ($this->getState('plugin.layouts', true)) {
+            Labels::contribute(item: $item, isListing: true);
         }
     }
 

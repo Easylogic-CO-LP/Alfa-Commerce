@@ -475,3 +475,20 @@ ALTER TABLE `#__alfa_item_combinations` ADD COLUMN `discount_rules` tinyint(1) D
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `new_products` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 = reaches new products; 1 = leaves out products new within the shop''s days (Options > General > Products); 2 = leaves out products new within new_days' AFTER `apply_before_tax` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `new_days` int(11) NOT NULL DEFAULT 0 COMMENT 'The rule''s own days a product counts as new for, when new_products is 2; else 0' AFTER `new_products` /** CAN FAIL **/;
 ALTER TABLE `#__alfa_items` ADD COLUMN `created` datetime DEFAULT NULL COMMENT 'UTC: when the product was made; NULL on a product made before the date was kept, which is then never new' AFTER `created_by` /** CAN FAIL **/;
+
+-- Labels
+
+-- The labels a product shows: the automatic New label, the shop's predefined labels (Options > Labels) it ticks, each in
+-- the corner the product chose or the label's own, and the product's own label between its dates; a discount's sale tag
+-- gets the same corner. The install SQL has the same table and column; each statement runs again harmlessly.
+
+CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `label_key` varchar(64) NOT NULL COMMENT 'new for the automatic New label, a predefined label''s key (Options > Labels), or custom for the product''s own label',
+  `shown` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on this product; 0 = not shown although the shop would show it (the New label of a new product)',
+  `corner` varchar(12) DEFAULT NULL COMMENT 'The corner of the image this product shows the label in: top-left, top-right, bottom-left or bottom-right; NULL = the label''s own corner',
+  `custom` mediumtext DEFAULT NULL COMMENT 'JSON of the product''s own label (label_key custom): its name by language, colours, class, where it shows and its period; NULL on every other row',
+  PRIMARY KEY (`item_id`, `label_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product shows: the ones it ticks with their corners, and its own label';
+
+ALTER TABLE `#__alfa_discounts` ADD COLUMN `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right' AFTER `tag_class` /** CAN FAIL **/;
