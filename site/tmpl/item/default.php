@@ -24,6 +24,7 @@
      *   $this->sectionsMode          how the page sections are drawn: stacked, tabs or accordion (the menu item's
      *                                choice), '' on a buy-form reload. The sections themselves are the layout
      *                                item.sections (PageSections::collect builds them, common/sections.php draws).
+     *   $this->methodsMode           frame or hidden: whether the buy column lists the payment and shipping methods.
      *
      * A single field's markup is overridden without touching this file: html/layouts/com_alfa/item/field/<field
      * name>.php, or item/field/<field type>.php for every field of a type (see layouts/item/field.php).
@@ -123,24 +124,17 @@
         </div>
         <?php endif; ?>
 
-        <?php if (Surface::has($this->item, ItemSurface::PaymentMethods)): ?>
-        <div class="item-payment-methods">
-            <span class="item-payment-method-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_METHODS'); ?>:</span>
+        <?php // Payment and shipping: one framed block, one method per row (the part its plugin draws, else its image
+              // and name), unless the menu item hides it. ?>
+        <?php if ($this->methodsMode !== 'hidden' && (Surface::has($this->item, ItemSurface::PaymentMethods) || Surface::has($this->item, ItemSurface::ShipmentMethods))): ?>
+        <div class="item-methods">
+            <span class="item-methods-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_AND_SHIPPING'); ?></span>
 
-            <div class="item-payment-method-inner">
+            <div class="item-methods-inner">
                 <?php echo Surface::render($this->item, ItemSurface::PaymentMethods); ?>
+                <?php echo Surface::render($this->item, ItemSurface::ShipmentMethods); ?>
             </div>
         </div>
-
-        <?php endif; ?>
-
-        <?php if (Surface::has($this->item, ItemSurface::ShipmentMethods)): ?>
-        <div class="item-shipment-methods">
-            <span class="item-shipment-method-title"><?php echo Text::_('COM_ALFA_ITEM_SHIPMENT_METHODS'); ?>:</span>
-
-            <?php echo Surface::render($this->item, ItemSurface::ShipmentMethods); ?>
-        </div>
-
         <?php endif; ?>
 
         <?php echo Layout::render('cart.wrapper', $this->item); ?>

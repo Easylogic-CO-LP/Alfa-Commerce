@@ -89,6 +89,12 @@ class HtmlView extends BaseHtmlView
     protected string $sectionsMode = 'stacked';
 
     /**
+     * @var string Whether the buy column lists the payment and shipping methods: frame (one framed block, one method
+     *             per row) or hidden (the menu item's choice, else the Options')
+     */
+    protected string $methodsMode = 'frame';
+
+    /**
      * Display the view
      *
      * @param string $tpl Template name
@@ -181,6 +187,7 @@ class HtmlView extends BaseHtmlView
         // one of three presentations of the same collection. Not on the buy-form reload: like the related products,
         // they sit after the product's container, which is all a variant change replaces.
         $sectionsMode = (string) $this->params->get('item_sections', 'stacked');
+        $this->methodsMode = (string) $this->params->get('item_methods', 'frame') === 'hidden' ? 'hidden' : 'frame';
 
         if (RequestScalar::cmd($input, 'tmpl', '') !== '') {
             $this->sectionsMode = '';
@@ -204,9 +211,9 @@ class HtmlView extends BaseHtmlView
         // as the model hands the fields' surfaces.
         $slots = (array) ($this->item->surfaces ?? []);
 
-        // Each method is drawn by core first, in the order every method keeps: its image when the shop set
-        // one, its title, its description (the layout methods.item), then what its plugin adds. The images of the
-        // methods shown are read in one call per kind.
+        // One row per method, in the order every method keeps: the part its plugin draws for the methods block when
+        // it draws one, else core's drawing of the method (its image when the shop set one, its title, its
+        // description: the layout methods.item). The images of the methods shown are read in one call per kind.
         $images = [
             'payment' => $this->methodImages(kind: 'payment', methods: (array) $this->item->payment_methods),
             'shipment' => $this->methodImages(kind: 'shipment', methods: (array) $this->item->shipment_methods),
@@ -217,8 +224,6 @@ class HtmlView extends BaseHtmlView
                 unset($this->item->payment_methods[$payment_method->id]);
                 continue;
             }
-
-            $slots[ItemSurface::PaymentMethods->value][] = $this->methodDescriptor(method: $payment_method, image: $images['payment'][(int) $payment_method->id] ?? null);
 
             $paymentEvent = new PaymentsItemViewEvent($onItemViewEventName, [
                 'subject' => $this->item,
@@ -237,6 +242,10 @@ class HtmlView extends BaseHtmlView
                 return;
             }
 
+            if (!isset($paymentEvent->getSurfaces()[ItemSurface::PaymentMethods->value])) {
+                $slots[ItemSurface::PaymentMethods->value][] = $this->methodDescriptor(method: $payment_method, image: $images['payment'][(int) $payment_method->id] ?? null);
+            }
+
             $this->appendMethodSurfaces(slots: $slots, event: $paymentEvent, group: 'alfa-payments', type: (string) $payment_method->type);
             $this->item->surfaces = new SurfaceMap($slots);
         }
@@ -246,8 +255,6 @@ class HtmlView extends BaseHtmlView
                 unset($this->item->shipment_methods[$shipment_method->id]);
                 continue;
             }
-
-            $slots[ItemSurface::ShipmentMethods->value][] = $this->methodDescriptor(method: $shipment_method, image: $images['shipment'][(int) $shipment_method->id] ?? null);
 
             $shipment_event = new ShipmentsItemViewEvent($onItemViewEventName, [
                 'subject' => $this->item,
@@ -263,6 +270,10 @@ class HtmlView extends BaseHtmlView
                 );
 
                 return;
+            }
+
+            if (!isset($shipment_event->getSurfaces()[ItemSurface::ShipmentMethods->value])) {
+                $slots[ItemSurface::ShipmentMethods->value][] = $this->methodDescriptor(method: $shipment_method, image: $images['shipment'][(int) $shipment_method->id] ?? null);
             }
 
             $this->appendMethodSurfaces(slots: $slots, event: $shipment_event, group: 'alfa-shipments', type: (string) $shipment_method->type);
@@ -388,8 +399,8 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * Core's own entry for one method in its slot of the product page: the layout methods.item, drawn before
-     * the method's plugin adds anything.
+     * Core's own row for one method in the methods block of the product page: the layout methods.item (its image,
+     * its name, the description the shop wrote), drawn when the method's plugin draws no part of its own there.
      *
      * @param object $method The method.
      * @param object|null $image Its image, or null.

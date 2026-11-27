@@ -274,12 +274,34 @@
 }
 /* MANUFACTURERS CATEGORIES END */
 
-/* PAYMENT METHOD */
-.item-payment-method-inner {
-    display: flex;
-    flex-direction: column;
+/* PAYMENT AND SHIPPING: one framed block in the buy column, one method per row (core's drawing of the method, or the
+   part its plugin draws), the frame and the lines between the rows in one token's colour. */
+:where(.item-methods) {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--alfa-methods-frame);
+    border-radius: var(--alfa-radius);
 }
-/* PAYMENT METHOD END */
+
+:where(.item-methods-title) {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+:where(.item-methods-inner) {
+    display: grid;
+}
+
+:where(.item-methods-inner > .item-field-surface) {
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--alfa-methods-frame);
+}
+
+:where(.item-methods-inner > .item-field-surface:first-child) {
+    padding-top: 0;
+    border-top: 0;
+}
 
 /* A payment or shipping method's image, before its title: held to the token's height, never wider than a
    few words, its own proportions kept. */
