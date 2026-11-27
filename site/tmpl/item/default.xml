@@ -92,18 +92,6 @@
             </field>
 
             <field
-                    name="item_methods"
-                    type="list"
-                    label="COM_ALFA_LAYOUT_ITEM_METHODS"
-                    description="COM_ALFA_LAYOUT_ITEM_METHODS_DESC"
-                    validate="options"
-            >
-                <option value="">JGLOBAL_USE_GLOBAL</option>
-                <option value="frame">COM_ALFA_LAYOUT_ITEM_METHODS_FRAME</option>
-                <option value="hidden">COM_ALFA_LAYOUT_ITEM_METHODS_HIDDEN</option>
-            </field>
-
-            <field
                     name="item_related_layout"
                     type="subtemplate"
                     view="item"
@@ -120,7 +108,8 @@
                     validate="options"
             >
                 <option value="">JGLOBAL_USE_GLOBAL</option>
-                <option value="0">0</option>
+                <option value="-1">JALL</option>
+                <option value="0">JNONE</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>

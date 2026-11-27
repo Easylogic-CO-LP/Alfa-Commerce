@@ -24,7 +24,6 @@
      *   $this->sectionsMode          how the page sections are drawn: stacked, tabs or accordion (the menu item's
      *                                choice), '' on a buy-form reload. The sections themselves are the layout
      *                                item.sections (PageSections::collect builds them, common/sections.php draws).
-     *   $this->methodsMode           frame or hidden: whether the buy column lists the payment and shipping methods.
      *
      * A single field's markup is overridden without touching this file: html/layouts/com_alfa/item/field/<field
      * name>.php, or item/field/<field type>.php for every field of a type (see layouts/item/field.php).
@@ -125,8 +124,9 @@
         <?php endif; ?>
 
         <?php // Payment and shipping: one framed block, one method per row (the part its plugin draws, else its image
-              // and name), unless the menu item hides it. ?>
-        <?php if ($this->methodsMode !== 'hidden' && (Surface::has($this->item, ItemSurface::PaymentMethods) || Surface::has($this->item, ItemSurface::ShipmentMethods))): ?>
+              // and name), drawn while at least one method is set to show on the product; each method's own switch
+              // is the one switch. ?>
+        <?php if (Surface::has($this->item, ItemSurface::PaymentMethods) || Surface::has($this->item, ItemSurface::ShipmentMethods)): ?>
         <div class="item-methods">
             <span class="item-methods-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_AND_SHIPPING'); ?></span>
 

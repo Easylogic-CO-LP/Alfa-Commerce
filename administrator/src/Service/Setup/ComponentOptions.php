@@ -77,7 +77,7 @@ final class ComponentOptions
 
         // The product page: how many related products it shows (0 = none), where the product, its category and the
         // menu item set no count of their own.
-        'item_related_count' => 4,
+        'item_related_count' => -1,
 
         // Pricing
         'combination_adjust_target' => 'final',
