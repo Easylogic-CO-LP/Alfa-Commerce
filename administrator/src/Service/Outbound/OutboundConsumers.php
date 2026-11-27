@@ -179,7 +179,9 @@ final class OutboundConsumers
      *
      * @param int $id The consumer.
      *
-     * @return array{back: int, more: bool} The changes put back, and whether changes given up remain after the batch.
+     * @return array{back: int, overtaken: int, more: bool} The changes put back, the ones discarded as overtaken (a newer
+     *                                                change of the unit waits, or a later change of the order was
+     *                                                delivered), and whether changes given up remain after the batch.
      *
      * @throws DomainException When there is no such consumer.
      *
@@ -198,6 +200,7 @@ final class OutboundConsumers
             ['consumer_id', 'topic', 'subject_id', 'unit_id'],
         ));
         $back = 0;
+        $overtaken = 0;
         $db->transactionStart(true);
 
         try {
@@ -225,6 +228,20 @@ final class OutboundConsumers
                     . ' SET ' . $db->quoteName('d.state') . ' = ' . $discarded
                     . ' WHERE ' . $batch . ' AND ' . $db->quoteName('d.topic') . ' IN (' . $merged . ')',
                 )->execute();
+                $overtaken += (int) $db->getAffectedRows();
+
+                // An order's change overtaken: a later change of the same order was delivered since, so an older state
+                // must not arrive after a newer one.
+                $orders = implode(', ', array_map([$db, 'quote'], OutboundTopics::ORDERS));
+                $db->setQuery(
+                    'UPDATE ' . $table . ' AS ' . $db->quoteName('d') . ' INNER JOIN ' . $table . ' AS ' . $db->quoteName('o')
+                    . ' ON ' . $db->quoteName('o.consumer_id') . ' = ' . $db->quoteName('d.consumer_id') . ' AND ' . $db->quoteName('o.subject_id') . ' = ' . $db->quoteName('d.subject_id')
+                    . ' AND ' . $db->quoteName('o.topic') . ' IN (' . $orders . ') AND ' . $db->quoteName('o.state') . ' = ' . $db->quote(OutboundDelivery::STATE_SENT)
+                    . ' AND ' . $db->quoteName('o.id') . ' > ' . $db->quoteName('d.id')
+                    . ' SET ' . $db->quoteName('d.state') . ' = ' . $discarded . ', ' . $db->quoteName('d.last_error') . ' = ' . $db->quote('COM_ALFA_OUTBOUND_REASON_OVERTAKEN')
+                    . ' WHERE ' . $batch . ' AND ' . $db->quoteName('d.topic') . ' IN (' . $orders . ')',
+                )->execute();
+                $overtaken += (int) $db->getAffectedRows();
 
                 $db->setQuery(
                     'UPDATE ' . $table . ' AS ' . $db->quoteName('d')
@@ -252,7 +269,7 @@ final class OutboundConsumers
 
         self::syncNotice(consumerId: $id);
 
-        return ['back' => $back, 'more' => $more];
+        return ['back' => $back, 'overtaken' => $overtaken, 'more' => $more];
     }
 
     /**

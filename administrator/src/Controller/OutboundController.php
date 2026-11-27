@@ -93,6 +93,10 @@ class OutboundController extends BaseController
             $result = OutboundConsumers::retryDead(id: $id);
             $message = Text::plural('COM_ALFA_OUTBOUND_RETRIED', $result['back']);
 
+            if ($result['overtaken'] > 0) {
+                $message .= ' ' . Text::plural('COM_ALFA_OUTBOUND_OVERTAKEN', $result['overtaken']);
+            }
+
             return $result['more']
                 ? $message . ' ' . Text::sprintf('COM_ALFA_OUTBOUND_RETRY_MORE', OutboundConsumers::RETRY_BATCH)
                 : $message;
