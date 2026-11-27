@@ -73,20 +73,18 @@ final class OutboundValues
         $db = OutboundConsumers::db();
         $stockUnits = [];
         $priceUnits = [];
-        $orders = [];
 
         foreach ($rows as $row) {
             match ((string) $row->topic) {
                 OutboundTopics::STOCK => $stockUnits[(int) $row->subject_id][(int) $row->unit_id] = true,
                 OutboundTopics::PRICE => $priceUnits[(int) $row->subject_id][(int) $row->unit_id] = true,
-                default => $orders[(int) $row->subject_id] = true,
+                default => null,
             };
         }
 
         $units = $stockUnits === [] && $priceUnits === [] ? [] : self::units(db: $db, units: array_replace_recursive($stockUnits, $priceUnits));
         $prices = $priceUnits === [] ? [] : self::prices(db: $db, units: $priceUnits);
         $states = $priceUnits === [] ? [] : PricesState::ofUnits(units: $priceUnits);
-        $statuses = $orders === [] ? [] : self::orderStatuses(db: $db, orderIds: array_keys($orders));
         $disputes = self::disputes(db: $db, rows: $rows);
         $out = [];
 
@@ -114,7 +112,8 @@ final class OutboundValues
                 ],
                 OutboundTopics::ORDER_CREATED => $change + [
                     'order_id' => $itemId,
-                    'status_id' => $statuses[$itemId] ?? null,
+                    // The status the order opened in, recorded with the change; null for a row recorded without it.
+                    'status_id' => ctype_digit((string) $row->payload) ? (int) $row->payload : null,
                 ],
                 OutboundTopics::ORDER_DISPUTE => $change + ['order_id' => $itemId, 'dispute' => self::disputeMove(payload: (string) $row->payload, disputes: $disputes)],
                 default => $change + ['order_id' => $itemId] + self::statusMove(payload: (string) $row->payload),
@@ -287,32 +286,6 @@ final class OutboundValues
                     'currency' => $result->getPrice()->getCurrency()->getCode(),
                 ] : null;
             }
-        }
-
-        return $out;
-    }
-
-    /**
-     * The status each order is in now.
-     *
-     * @param DatabaseDriver $db The connection.
-     * @param int[] $orderIds The orders.
-     *
-     * @return array<int, int>
-     *
-     * @since  2.3.0
-     */
-    private static function orderStatuses(DatabaseDriver $db, array $orderIds): array
-    {
-        $out = [];
-
-        foreach ($db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName(['id', 'id_order_status']))
-                ->from($db->quoteName('#__alfa_orders'))
-                ->whereIn($db->quoteName('id'), array_map('intval', $orderIds)),
-        )->loadObjectList() ?: [] as $order) {
-            $out[(int) $order->id] = (int) $order->id_order_status;
         }
 
         return $out;
