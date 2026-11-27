@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
 use Joomla\Registry\Registry;
@@ -191,6 +192,82 @@ final class ItemSections
         }
 
         return $out;
+    }
+
+    /**
+     * The rows of a posted list that the product page would never show for want of a title: a row with a body in
+     * some language and no title in the shop's default language, the one every other language falls back to. A
+     * product's row that names a general section of Options takes that section's title and needs none of its own.
+     *
+     * The storefront leaves a section without a title out (PageSections), so the forms refuse such a row at the
+     * save and name it, by its place in the list (1 for the first) and its key when it has one.
+     *
+     * @param mixed $posted The rows as a form posts them (a product's `sections`, the Options' `product_sections`).
+     * @param string $replaces The row's field naming the general section it replaces; '' for the general sections
+     *                         themselves, whose own key replaces nothing.
+     * @param string $keyField The row's field holding its key, named with the row.
+     *
+     * @return list<array{row: int, key: string}>
+     *
+     * @since  2.3.0
+     */
+    public static function untitledRows(mixed $posted, string $replaces = '', string $keyField = 'key'): array
+    {
+        if (\is_string($posted)) {
+            $posted = json_decode($posted, true);
+        }
+
+        $default = MultilingualHelper::getDefaultLanguageTag();
+        $generalKeys = $replaces === ''
+            ? []
+            : array_column(self::general(ComponentHelper::getParams('com_alfa')), 'key');
+        $untitled = [];
+        $place = 0;
+
+        foreach ((array) $posted as $row) {
+            $place++;
+            $row = (array) $row;
+
+            if (trim(self::texts($row['title'] ?? [])[$default] ?? '') !== '') {
+                continue;
+            }
+
+            if ($replaces !== '' && \in_array(self::key((string) ($row[$replaces] ?? '')), $generalKeys, true)) {
+                continue;
+            }
+
+            if (!self::hasContent(self::texts($row['body'] ?? []))) {
+                continue;
+            }
+
+            $untitled[] = ['row' => $place, 'key' => self::key((string) ($row[$keyField] ?? ''))];
+        }
+
+        return $untitled;
+    }
+
+    /**
+     * Whether a body has something to show in any language: text, or an element that shows without text (a
+     * picture, a video, an embedded frame). What an editor leaves in an emptied box (empty paragraphs, line breaks,
+     * non-breaking spaces) is nothing.
+     *
+     * @param array<string, string> $body The body per language.
+     *
+     * @since  2.3.0
+     */
+    private static function hasContent(array $body): bool
+    {
+        foreach ($body as $html) {
+            if (preg_match('/<(img|picture|video|audio|iframe|object|embed|svg)\b/i', $html) === 1) {
+                return true;
+            }
+
+            if (trim(str_replace("\u{00A0}", ' ', html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'))) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
