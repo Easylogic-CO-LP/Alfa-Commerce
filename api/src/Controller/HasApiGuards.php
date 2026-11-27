@@ -59,6 +59,16 @@ use RuntimeException;
 trait HasApiGuards
 {
     /**
+     * The most records one page of a list answers: a page size limit, shared by the lists that read every row of a
+     * page with its parts (the products, the storefront catalogue, the orders, the tasks). The number is the one the
+     * Tasks list already held. A page[limit] above it is served at it and the answer says so
+     * ({@see self::boundListPage()}).
+     *
+     * @since  2.3.0
+     */
+    public const LIST_PAGE_MOST = 100;
+
+    /**
      * Relation keys the admin model destroys when they are absent from a PATCH.
      * Each must be readable back off getItem() under the same name.
      *
@@ -172,6 +182,37 @@ trait HasApiGuards
             throw $e->orderExists()
                 ? new Save(ErrorText::of($e), 409, $e)
                 : new ResourceNotFound(ErrorText::of($e), 404, $e);
+        }
+    }
+
+    /**
+     * Bound the page this list answers to {@see self::LIST_PAGE_MOST}.
+     *
+     * An absent, non-numeric or lower page[limit] is Joomla's own page ($itemsPerPage); a higher one is served at the
+     * most, and the answer's meta.warnings says so, {code: page_limit, detail, parameter: page[limit]}, so a caller
+     * reads the rest with page[offset] and links.next instead of taking a short page for the whole list. Joomla's
+     * displayList() reads page[limit] and page[offset] from the input and sets them as given, so the bounded values are
+     * written there; an offset below 0 is the first page.
+     *
+     * @since  2.3.0
+     */
+    protected function boundListPage(): void
+    {
+        $page = $this->input->get('page', [], 'array');
+        $asked = is_numeric($page['limit'] ?? null) ? (int) $page['limit'] : 0;
+        $offset = is_numeric($page['offset'] ?? null) ? max(0, (int) $page['offset']) : 0;
+
+        $this->input->set('page', [
+            'limit' => $asked < 1 ? $this->itemsPerPage : min(self::LIST_PAGE_MOST, $asked),
+            'offset' => $offset,
+        ]);
+
+        if ($asked > self::LIST_PAGE_MOST) {
+            $this->app->getDocument()->addMeta('warnings', [[
+                'code' => 'page_limit',
+                'detail' => Text::sprintf('COM_ALFA_API_PAGE_LIMIT_MOST', self::LIST_PAGE_MOST, $asked),
+                'parameter' => 'page[limit]',
+            ]]);
         }
     }
 

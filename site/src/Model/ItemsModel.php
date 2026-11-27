@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemsListPrepareEvent;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\SurfaceMap;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ValueFacetGroupsEvent;
+use Alfa\Component\Alfa\Administrator\Field\ListLimitboxField;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ListLimitsHelper;
@@ -579,15 +580,16 @@ class ItemsModel extends UrlListModel
     /**
      * Enforce the offered page sizes on the REQUEST value.
      *
-     * With sizes configured, the merchant's menu is a contract, not a
-     * suggestion: a URL value outside it is dropped, falling back to the
-     * tier-resolved default. With no sizes configured, any POSITIVE size stays
-     * free (the dropdown grafts it in), but "All" (0, and negatives, which
-     * MySQL treats identically: no LIMIT clause, the entire catalogue with
-     * per-row pricing, media and plugin work off one cheap GET) is requestable
-     * ONLY where a merchant offers it via a 0 entry in the sizes. By default
-     * no shop offers it. A merchant may still set 0 as a tier DEFAULT: that
-     * is config, not a request, and is untouched here.
+     * The request takes only a size the shop offers in its page size
+     * dropdown, anything else is dropped and the tier-resolved default
+     * applies. With sizes configured (browsed category, menu item, Options),
+     * those sizes. With none configured, the stock sizes the dropdown draws
+     * ({@see ListLimitboxField::stockLimits()}), so a URL can never ask one
+     * page for the whole catalogue with per-row pricing, media and plugin
+     * work. "All" (0, and negatives, which MySQL treats identically: no LIMIT
+     * clause) is requestable ONLY where a merchant offers it via a 0 entry in
+     * the sizes. A merchant may still set any size, 0 included, as a tier
+     * DEFAULT: that is config, not a request, and is untouched here.
      *
      * @param array $list List input from URL
      * @param array $defaults Defaults from XML (already chain-resolved)
@@ -598,9 +600,9 @@ class ItemsModel extends UrlListModel
     {
         if (isset($list['limit']) && $list['limit'] !== '') {
             $requested = (int) $list['limit'];
-            $limits = $this->getListLimits();
+            $limits = $this->getListLimits() ?: ListLimitboxField::stockLimits();
 
-            $allowed = $limits ? \in_array($requested, $limits, true) : $requested > 0;
+            $allowed = \in_array($requested, $limits, true);
 
             if (!$allowed) {
                 unset($list['limit']);

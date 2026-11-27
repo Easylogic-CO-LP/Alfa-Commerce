@@ -39,6 +39,19 @@ class ListLimitboxField extends LimitboxField
     public $type = 'ListLimitbox';
 
     /**
+     * The sizes the dropdown draws when the shop configures none: core's own
+     * stock sizes. The storefront takes a requested size only from what the
+     * dropdown offers, so it reads them here rather than keeping a copy.
+     *
+     * @return int[] The stock sizes, ascending, without "All"
+     * @since  2.3.0
+     */
+    public static function stockLimits(): array
+    {
+        return array_map('intval', (new self())->defaultLimits);
+    }
+
+    /**
      * Core's options with unknown J-keys degraded to plain numbers and
      * duplicate values collapsed.
      *
