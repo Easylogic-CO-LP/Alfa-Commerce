@@ -66,18 +66,6 @@ final class AlfaCatalogHelper
     ];
 
     /**
-     * @var int The most tabs one row makes when it stands for one tab per category, manufacturer or label.
-     * @since  2.3.0
-     */
-    public const AUTO_TABS_MAX = 12;
-
-    /**
-     * @var int The most tabs a module draws.
-     * @since  2.3.0
-     */
-    public const TABS_MAX = 24;
-
-    /**
      * @var string Group key prefix of a tab (followed by its row index).
      * @since  2.3.0
      */
@@ -167,10 +155,11 @@ final class AlfaCatalogHelper
             $auto = $kind === Providers::KIND_PRODUCTS ? self::auto($row) : '';
             $subjects = $auto !== '' ? Subjects::names(type: $auto, ids: Providers::ids($row[self::AUTO[$auto][0]] ?? [])) : [];
 
-            // One tab per subject; a row with no subject chosen (or none this visitor is shown) is one plain tab.
+            // One tab per subject the operator chose, every one of them; a row with no subject chosen (or none this
+            // visitor is shown) is one plain tab.
             $tabs = [];
 
-            foreach (\array_slice($subjects, 0, self::AUTO_TABS_MAX, true) as $id => $name) {
+            foreach ($subjects as $id => $name) {
                 $tabs[] = [
                     'key' => self::TAB_KEY . $index . '-' . self::AUTO[$auto][1] . $id,
                     'row' => [self::AUTO[$auto][0] => [$id]] + $row,
@@ -186,7 +175,7 @@ final class AlfaCatalogHelper
             foreach ($tabs as $tab) {
                 $query = Providers::of($kind)->query(row: $tab['row'], display: $display);
 
-                if ($query === [] || \count($definitions) >= self::TABS_MAX) {
+                if ($query === []) {
                     continue;
                 }
 

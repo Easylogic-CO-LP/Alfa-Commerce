@@ -24,10 +24,19 @@ use Joomla\Registry\Registry;
  *
  * Cards and a flat list are read through the component's Categories model (published categories this visitor may
  * see, names in the page's language, their images and links): one read for the categories and one for their images,
- * whatever their number. A list of the categories inside a parent is the shop's own navigation tree
- * (CategoryHelper::getCategoryTree(), stored by the component), drawn to the levels asked for, with the visitor's
- * category marked and its branch open. Product counts come from that same tree, so they follow the visitor's groups
- * and the stock. Nothing here queries a table.
+ * whatever their number.
+ *
+ * A list of the categories inside a parent is a navigation tree, read a level at a time
+ * (CategoryHelper::getChildren()): the first level, then the categories inside the ones that are open, down to the
+ * levels asked for. One statement per level drawn, so at most as many statements as levels, whatever the size of
+ * the shop; with only the visitor's branch open, each statement reads the children of one category. The branch
+ * itself is the component's stored path of the visitor's category.
+ *
+ * Product counts are the component's (CategoryHelper::getProductCounts()): one more read for all the categories of
+ * the tab together, following the visitor's groups and the stock. Nothing here queries a table.
+ *
+ * A tab shows as many categories as its number says, and all of them when the number is 0: nothing is left out
+ * that the operator did not leave out.
  *
  * @since  2.3.0
  */
@@ -52,22 +61,11 @@ final class CategoriesProvider implements ProviderInterface
     public const OPEN = ['current', 'all'];
 
     /**
-     * @var int The most levels a tree draws below its parent.
+     * @var int The most levels a tree draws below its parent. A safety limit: the depth the shop's own category
+     *          tree is built to. The form's field goes no higher, so the operator sees it while choosing.
      * @since  2.3.0
      */
     public const LEVELS_MAX = 10;
-
-    /**
-     * @var int The most categories a tab shows at its first level; a stored 0 means this many.
-     * @since  2.3.0
-     */
-    public const LIMIT_MAX = 200;
-
-    /**
-     * @var int The most categories a tree draws over all its levels.
-     * @since  2.3.0
-     */
-    public const NODES_MAX = 1000;
 
     /**
      * A categories tab's query. A list also names the visitor's category, which it marks; cards never do, so a
@@ -90,7 +88,7 @@ final class CategoriesProvider implements ProviderInterface
             'parent' => $select === 'children' ? max(0, (int) ($row['cat_parent'] ?? 0)) : 0,
             'ids' => $select === 'chosen' ? Providers::ids($row['cat_ids'] ?? []) : [],
             'ordering' => Providers::choice($row['cat_ordering'] ?? '', array_keys(self::ORDERING)),
-            'limit' => Providers::bounded($row['cat_limit'] ?? null, 0, self::LIMIT_MAX, 0),
+            'limit' => max(0, (int) ($row['cat_limit'] ?? 0)),
             'tree' => $list && $select === 'children',
             'levels' => $list && $select === 'children' ? Providers::bounded($row['cat_levels'] ?? null, 1, self::LEVELS_MAX, 1) : 1,
             'open' => Providers::choice($row['cat_open'] ?? '', self::OPEN),
@@ -114,25 +112,13 @@ final class CategoriesProvider implements ProviderInterface
      */
     public function records(array $query, Registry $params): array
     {
-        $limit = (int) ($query['limit'] ?? 0);
-        $limit = $limit > 0 ? min($limit, self::LIMIT_MAX) : self::LIMIT_MAX;
+        // The operator's number; 0 is every category.
+        $limit = max(0, (int) ($query['limit'] ?? 0));
         $current = (int) ($query['current'] ?? 0);
         $counts = !empty($query['counts']);
 
         if (!empty($query['tree'])) {
-            $levels = Providers::bounded($query['levels'] ?? null, 1, self::LEVELS_MAX, 1);
-            $tree = CategoryHelper::getCategoryTree(parentId: (int) ($query['parent'] ?? 0), maxDepth: $levels, includeCount: $counts);
-            $budget = self::NODES_MAX;
-
-            return self::nodes(
-                categories: \array_slice(self::ordered(array_values($tree), (string) $query['ordering']), 0, $limit),
-                branch:     self::branch($current),
-                current:    $current,
-                openAll:    ($query['open'] ?? '') === 'all',
-                counts:     $counts,
-                byName:     ($query['ordering'] ?? '') === 'name',
-                budget:     $budget,
-            );
+            return self::tree(query: $query, limit: $limit, current: $current, counts: $counts);
         }
 
         if (($query['select'] ?? '') === 'chosen' && ($query['ids'] ?? []) === []) {
@@ -239,53 +225,76 @@ final class CategoriesProvider implements ProviderInterface
     }
 
     /**
-     * One level of a tree in the order asked for: the shop's own, or by name.
+     * The tree of a tab: the categories inside its parent, and inside every one of them that is open, down to the
+     * levels asked for. A category is open when every branch opens, or when it leads to the visitor's category.
+     * Read a level at a time, one statement per level, the categories inside every open category of the level
+     * above together; a level with no open category ends the reading.
      *
-     * @param array<object> $categories The tree's categories at one level.
-     * @param string $ordering A key of ORDERING.
-     *
-     * @return array<object>
-     *
-     * @since  2.3.0
-     */
-    private static function ordered(array $categories, string $ordering): array
-    {
-        if ($ordering === 'name') {
-            usort($categories, static fn (object $a, object $b): int => strnatcasecmp((string) ($a->name ?? ''), (string) ($b->name ?? '')));
-        }
-
-        return $categories;
-    }
-
-    /**
-     * One level of nodes from the tree's categories. A branch is drawn below a category when every branch opens or
-     * the category leads to the visitor's; the whole tree never holds more than its budget of nodes.
-     *
-     * @param array<object> $categories The tree's categories at this level.
-     * @param array<int, true> $branch The ids on the branch of the visitor's category.
-     * @param int $current The visitor's category.
-     * @param bool $openAll Whether every branch opens.
+     * @param array<string, mixed> $query The tab's query.
+     * @param int $limit The most categories at the first level; 0 = all.
+     * @param int $current The visitor's category, 0 for none.
      * @param bool $counts Whether the product counts are drawn.
-     * @param bool $byName Whether each level is ordered by name.
-     * @param int $budget The nodes still allowed, counted down.
      *
      * @return list<object>
      *
      * @since  2.3.0
      */
-    private static function nodes(array $categories, array $branch, int $current, bool $openAll, bool $counts, bool $byName, int &$budget): array
+    private static function tree(array $query, int $limit, int $current, bool $counts): array
+    {
+        $levels = Providers::bounded($query['levels'] ?? null, 1, self::LEVELS_MAX, 1);
+        $parent = (int) ($query['parent'] ?? 0);
+        $openAll = ($query['open'] ?? '') === 'all';
+        $byName = ($query['ordering'] ?? '') === 'name';
+        $branch = self::branch($current);
+        $inside = [];
+        $ids = [];
+        $parents = [$parent];
+
+        for ($level = 1; $level <= $levels && $parents !== []; $level++) {
+            $read = CategoryHelper::getChildren(parentIds: $parents, byName: $byName, limit: $level === 1 ? $limit : 0);
+            $parents = [];
+
+            foreach ($read as $parentId => $rows) {
+                $inside[(int) $parentId] = $rows;
+
+                foreach ($rows as $row) {
+                    $ids[] = (int) $row->id;
+
+                    if ($openAll || isset($branch[(int) $row->id])) {
+                        $parents[] = (int) $row->id;
+                    }
+                }
+            }
+        }
+
+        return self::nodes(
+            inside:        $inside,
+            parent:        $parent,
+            branch:        $branch,
+            current:       $current,
+            productCounts: $counts && $ids !== [] ? CategoryHelper::getProductCounts($ids) : null,
+        );
+    }
+
+    /**
+     * The nodes inside one category, each with the nodes inside it, from the levels read.
+     *
+     * @param array<int, list<object>> $inside The categories read, by the category they are inside.
+     * @param int $parent The category whose nodes these are.
+     * @param array<int, true> $branch The ids on the branch of the visitor's category.
+     * @param int $current The visitor's category.
+     * @param array<int, int>|null $productCounts The products per category, null when counts are off.
+     *
+     * @return list<object>
+     *
+     * @since  2.3.0
+     */
+    private static function nodes(array $inside, int $parent, array $branch, int $current, ?array $productCounts): array
     {
         $nodes = [];
 
-        foreach ($categories as $category) {
-            if ($budget <= 0) {
-                break;
-            }
-
-            $budget -= 1;
+        foreach ($inside[$parent] ?? [] as $category) {
             $id = (int) $category->id;
-            $open = isset($branch[$id]);
-            $children = ($openAll || $open) && !empty($category->children) ? array_values((array) $category->children) : [];
 
             $nodes[] = (object) [
                 'id' => $id,
@@ -294,18 +303,10 @@ final class CategoriesProvider implements ProviderInterface
                 'image' => '',
                 'alt' => '',
                 'description' => '',
-                'count' => $counts ? (int) ($category->product_count ?? 0) : null,
+                'count' => $productCounts === null ? null : (int) ($productCounts[$id] ?? 0),
                 'current' => $id === $current,
-                'open' => $open,
-                'children' => $children === [] ? [] : self::nodes(
-                    categories: self::ordered($children, $byName ? 'name' : 'ordering'),
-                    branch:     $branch,
-                    current:    $current,
-                    openAll:    $openAll,
-                    counts:     $counts,
-                    byName:     $byName,
-                    budget:     $budget,
-                ),
+                'open' => isset($branch[$id]),
+                'children' => self::nodes(inside: $inside, parent: $id, branch: $branch, current: $current, productCounts: $productCounts),
             ];
         }
 

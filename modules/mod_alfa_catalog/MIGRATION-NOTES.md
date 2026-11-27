@@ -72,7 +72,7 @@ The instance becomes a module of one tab: a list of the categories inside a pare
 | `open` | `cat_open` | `current` or `all` in both |
 | `show_count` | `cat_show_count` | |
 | (none) | `cat_ordering` = `ordering` | the tree's own order, as before |
-| (none) | `cat_limit` = 0 | all, as before, up to 200 at the first level and 1000 over all levels |
+| (none) | `cat_limit` = 0 | all, as before |
 | (none) | `card` = `{"base":{"display":"list"}}` | the list presentation |
 | `layout`, `moduleclass_sfx` | the module's `layout`, `moduleclass_sfx` | |
 
@@ -93,9 +93,10 @@ By hand:
   `--mod-alfa-catalog-accent`, `-muted` becomes `--mod-alfa-catalog-muted`, `-hairline` becomes
   `--mod-alfa-catalog-hairline`.
 
-No counterpart: nothing. What changes without being asked for: a shop with more than 200 categories in one level,
-or more than 1000 in the drawn tree, is cut there; the records go through the module cache (one entry per visitor's
-category), which the Advanced tab's Caching switches off.
+No counterpart: nothing. What changes without being asked for: the tree is read a level at a time (one statement
+per level drawn, below the first level only for the categories that are open) where the old module read the shop's
+whole stored tree; the records go through the module cache (one entry per visitor's category), which the Advanced
+tab's Caching switches off.
 
 ## mod_alfa_manufacturers
 
@@ -108,7 +109,7 @@ The instance becomes a module of one tab of manufacturers, shown as a grid.
 | `show` | `man_show` | `logo_name`, `logo`, `name` in both |
 | `link` | `man_link` | `products` or `page` in both |
 | `ordering` | `man_ordering` | `name` or `ordering` in both |
-| `limit` | `man_limit` | 0 = all in both; the new module stops at 200 |
+| `limit` | `man_limit` | 0 = all in both |
 | (none) | `man_show_count` = 0 | new |
 | (none) | `card` = `{"base":{"display":"grid"}}` | or `list` for a sidebar: name, small logo, count |
 | `layout`, `moduleclass_sfx` | the module's `layout`, `moduleclass_sfx` | |

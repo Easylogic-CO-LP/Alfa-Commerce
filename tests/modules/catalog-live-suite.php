@@ -11,7 +11,8 @@
  *   [CL1] products: a tab's products come back within its number, in one listing read, and the manufacturers filter
  *         keeps only that manufacturer's products.
  *   [CL2] categories: the categories inside the top level through the Categories model, each with a link and never
- *         an image without a description; no read per category; the tree marks a category and opens its branch.
+ *         an image without a description; no read per category; the tree marks a category, opens its branch and
+ *         costs one statement per level drawn.
  *   [CL3] manufacturers: within the number; the product counts of all of them are ONE grouped read of the listing,
  *         and each count equals the listing's own total for that manufacturer.
  *   [CL4] automatic tabs: one tab per manufacturer and per label the shop has, the names in one read per type.
@@ -147,7 +148,6 @@ $query = Providers::of('categories')->query(['cat_show_count' => 1, 'cat_show_de
 if ($categories === []) {
     $skipped[] = '[CL2] this shop shows no category';
 } else {
-    is_true('[CL2] the categories are within the cap', \count($categories) <= 200);
     is_true('[CL2] the reads do not grow with the categories', $categoryReads <= 6);
     is_true('[CL2] every category has a link', array_filter($categories, static fn (object $category): bool => $category->link === '') === []);
     is_true('[CL2] every image has a description', array_filter($categories, static fn (object $category): bool => $category->image !== '' && trim($category->alt) === '') === []);
@@ -158,7 +158,9 @@ if ($categories === []) {
     $app->getInput()->set('option', 'com_alfa');
     $app->getInput()->set('view', 'items');
     $app->getInput()->set('category_id', $current);
-    $tree = Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 3], 'list'), $params);
+    [$tree, $levelReads] = $reads(static fn (): array => Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 3], 'list'), $params), 'c.parent_id IN');
+    is_true('[CL2] a tree of three levels reads at most three levels, one statement each', $levelReads >= 1 && $levelReads <= 3);
+    echo "  [CL2] the tree ran {$levelReads} statement(s) for its levels\n";
     $marked = array_values(array_filter($tree, static fn (object $node): bool => $node->current));
     is_same('[CL2] the tree marks the visitor\'s category', array_column($marked, 'id'), [$current]);
     is_true('[CL2] and opens it', $marked !== [] && $marked[0]->open);

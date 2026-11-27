@@ -16,14 +16,15 @@
  *
  *   [CT1] kinds and values: a stored kind, id list, choice and number are read within what they accept; the look
  *         accepts a list beside the grid and the slider, and no card setting has an effect in a list.
- *   [CT2] providers are bounded: a tab never asks a model for more than its cap, whatever is stored; a tree never
- *         holds more than its cap of nodes.
+ *   [CT2] the operator's number is the limit: a model is asked for exactly that many, and for all of them when the
+ *         number is 0; a products tab keeps to the form's own range; a tree is read a level at a time, one read per
+ *         level drawn whatever the size of the shop, and only the open branch below the first level.
  *   [CT3] no read per record: a tab of 50 categories is one read, of 40 manufacturers with their product counts
  *         two, of products one.
  *   [CT4] automatic tabs: one tab per chosen category, per chosen manufacturer and per chosen label, each named
  *         after its subject and showing that subject's products within the row's number; the names of a module's
  *         subjects are one read per type; a subject the visitor is not shown makes no tab; only the first tab is
- *         read with the page, the others when opened; never more than twelve tabs from one row.
+ *         read with the page, the others when opened; thirty chosen subjects are thirty tabs.
  *   [CT5] the three presentations draw for the three kinds: a grid of cards, a slider of cards, a list of rows; an
  *         image never has an empty description, also when the record has neither a description nor a name.
  *   [CT6] the tree marks the visitor's category, opens its branch and no other, draws only the levels asked for,
@@ -123,6 +124,9 @@ namespace {
         /** @var array<string, mixed> The request. */
         public static array $request = [];
 
+        /** @var array<int, int[]> The parents of every read of children, in order. */
+        public static array $childReads = [];
+
         /** @var string[] The cache ids asked for, in order. */
         public static array $cacheIds = [];
 
@@ -141,31 +145,11 @@ namespace {
             self::$reads = [];
             self::$listings = [];
             self::$cacheIds = [];
+            self::$childReads = [];
             self::$pageCacheExcluded = 0;
             \Alfa\Module\AlfaCatalog\Site\Helper\Subjects::forget();
         }
 
-        /** The category tree below a parent, to a depth, as the shop's helper returns it. */
-        public static function tree(int $parent, int $depth, bool $counts): array
-        {
-            $level = [];
-
-            foreach (self::$categories as $id => $category) {
-                if ($category['parent'] !== $parent || !$category['visible']) {
-                    continue;
-                }
-
-                $node = (object) ['id' => $id, 'name' => $category['name'], 'children' => $depth > 1 ? self::tree($id, $depth - 1, $counts) : []];
-
-                if ($counts) {
-                    $node->product_count = \count(array_filter(self::$products, static fn (array $product): bool => \in_array($id, $product['categories'], true))) + 100;
-                }
-
-                $level[] = $node;
-            }
-
-            return $level;
-        }
     }
 
     /** A list model's stand-in: its state, and one recorded read per getItems(). */
@@ -300,11 +284,27 @@ namespace Alfa\Component\Alfa\Site\Model {
 namespace Alfa\Component\Alfa\Site\Helper {
     final class CategoryHelper
     {
-        public static function getCategoryTree(int $parentId = 0, int $maxDepth = 10, bool $includeCount = false): array
+        public static function getChildren(array $parentIds, bool $byName = false, int $limit = 0): array
         {
-            \Shop::read('tree');
+            \Shop::read('children');
+            \Shop::$childReads[] = $parentIds;
+            $children = [];
 
-            return \Shop::tree($parentId, $maxDepth, $includeCount);
+            foreach (\Shop::$categories as $id => $category) {
+                if ($category['visible'] && \in_array($category['parent'], $parentIds, true)) {
+                    $children[$category['parent']][] = (object) ['id' => $id, 'parent_id' => $category['parent'], 'name' => $category['name']];
+                }
+            }
+
+            foreach ($children as $parent => $rows) {
+                if ($byName) {
+                    usort($rows, static fn (object $a, object $b): int => strcmp($a->name, $b->name));
+                }
+
+                $children[$parent] = $limit > 0 && \count($parentIds) === 1 ? \array_slice($rows, 0, $limit) : $rows;
+            }
+
+            return $children;
         }
 
         public static function getCategoryPath(int $categoryId): array
@@ -654,28 +654,34 @@ namespace {
         [],
     );
 
-    // [CT2] Providers are bounded.
+    // [CT2] The operator's number is the limit.
     Shop::reset();
     $params = module_params();
     $query = Providers::of('products')->query(['limit' => 5000], 'grid');
-    is_same('[CT2] a stored 5000 products is read as the cap', $query['limit'], ProductsProvider::LIMIT_MAX);
+    is_same('[CT2] a products tab keeps to the form\'s range, 1 to 60', $query['limit'], ProductsProvider::LIMIT_MAX);
     $records = Providers::of('products')->records(['limit' => 5000] + $query, $params);
-    is_same('[CT2] the listing model is handed the cap, never the stored number', Shop::$listings[0]['list.limit'], ProductsProvider::LIMIT_MAX);
+    is_same('[CT2] the listing model is handed that range, never a number outside it', Shop::$listings[0]['list.limit'], ProductsProvider::LIMIT_MAX);
     is_same('[CT2] and no more products come back', \count($records), ProductsProvider::LIMIT_MAX);
 
+    Shop::$manufacturers += array_combine(range(300, 549), array_map(static fn (int $n): array => ['name' => 'Maker ' . $n, 'visible' => true, 'logo' => true], range(300, 549)));
     Shop::reset();
-    Providers::of('manufacturers')->records(Providers::of('manufacturers')->query(['man_limit' => 0], 'grid'), $params);
-    is_same('[CT2] every manufacturer is still a bounded read', Shop::$listings[0]['list.limit'], ManufacturersProvider::LIMIT_MAX);
+    $records = Providers::of('manufacturers')->records(Providers::of('manufacturers')->query(['man_limit' => 0], 'grid'), $params);
+    is_same('[CT2] 0 manufacturers is all of them: the model is asked without a limit', Shop::$listings[0]['list.limit'], 0);
+    is_same('[CT2] and all 253 come back in one read', [\count($records), Shop::$reads], [253, ['Manufacturers' => 1]]);
     Shop::reset();
-    Providers::of('manufacturers')->records(['limit' => 99999] + Providers::of('manufacturers')->query([], 'grid'), $params);
-    is_same('[CT2] a number over the cap is the cap', Shop::$listings[0]['list.limit'], ManufacturersProvider::LIMIT_MAX);
+    $records = Providers::of('manufacturers')->records(Providers::of('manufacturers')->query(['man_limit' => 7], 'grid'), $params);
+    is_same('[CT2] a number of manufacturers is asked of the model as it is', [Shop::$listings[0]['list.limit'], \count($records)], [7, 7]);
+    Shop::$manufacturers = array_slice(Shop::$manufacturers, 0, 4, true);
 
     Shop::reset();
     Providers::of('categories')->records(Providers::of('categories')->query(['cat_limit' => 0], 'grid'), $params);
-    is_same('[CT2] every category is still a bounded read', Shop::$listings[0]['list.limit'], CategoriesProvider::LIMIT_MAX);
-    is_same('[CT2] a stored 50 levels is read as the cap', Providers::of('categories')->query(['cat_levels' => 50], 'list')['levels'], CategoriesProvider::LEVELS_MAX);
+    is_same('[CT2] 0 categories is all of them', Shop::$listings[0]['list.limit'], 0);
+    Shop::reset();
+    Providers::of('categories')->records(Providers::of('categories')->query(['cat_limit' => 2], 'grid'), $params);
+    is_same('[CT2] a number of categories is asked of the model as it is', Shop::$listings[0]['list.limit'], 2);
+    is_same('[CT2] a stored 50 levels is read as the deepest the form offers', Providers::of('categories')->query(['cat_levels' => 50], 'list')['levels'], CategoriesProvider::LEVELS_MAX);
 
-    // A shop of 40 x 40 categories: more than a tree may hold.
+    // A shop of 40 x 40 x 2 categories.
     $kept = Shop::$categories;
     Shop::$categories = [];
 
@@ -683,17 +689,35 @@ namespace {
         Shop::$categories[$top] = ['name' => 'Top ' . $top, 'parent' => 0, 'visible' => true, 'alt' => '', 'desc' => ''];
 
         for ($child = 1; $child <= 40; $child++) {
-            Shop::$categories[$top * 100 + $child] = ['name' => 'Child ' . $child, 'parent' => $top, 'visible' => true, 'alt' => '', 'desc' => ''];
+            $id = 1000 + $top * 100 + $child;
+            Shop::$categories[$id] = ['name' => 'Child ' . $child, 'parent' => $top, 'visible' => true, 'alt' => '', 'desc' => ''];
+            Shop::$categories[$id * 100 + 1] = ['name' => 'Leaf 1', 'parent' => $id, 'visible' => true, 'alt' => '', 'desc' => ''];
+            Shop::$categories[$id * 100 + 2] = ['name' => 'Leaf 2', 'parent' => $id, 'visible' => true, 'alt' => '', 'desc' => ''];
         }
     }
 
     $count = static function (array $nodes) use (&$count): int {
         return array_sum(array_map(static fn (object $node): int => 1 + $count($node->children), $nodes));
     };
+    Shop::reset();
     $tree = Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 2, 'cat_open' => 'all'], 'list'), $params);
-    is_same('[CT2] a tree of 1640 categories holds its cap of nodes', $count($tree), CategoriesProvider::NODES_MAX);
-    $tree = Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 2, 'cat_open' => 'all', 'cat_limit' => 3], 'list'), $params);
-    is_same('[CT2] a tree keeps to its number at the first level', \count($tree), 3);
+    is_same('[CT2] every branch open to two levels: all 1640 categories of those levels, none left out', $count($tree), 1640);
+    is_same('[CT2] in two reads, one per level', Shop::$reads, ['children' => 2]);
+    Shop::reset();
+    $tree = Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 3, 'cat_open' => 'all', 'cat_limit' => 3], 'list'), $params);
+    is_same('[CT2] a number at the first level: 3, the 120 inside them and the 240 inside those', [\count($tree), $count($tree)], [3, 363]);
+    is_same('[CT2] in three reads', Shop::$reads, ['children' => 3]);
+
+    Shop::reset();
+    Shop::$request = ['option' => 'com_alfa', 'view' => 'items', 'category_id' => 170701];
+    $tree = Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 10, 'cat_open' => 'current'], 'list'), $params);
+    is_same('[CT2] only the visitor\'s branch open: the 40 of the top, the 40 inside one and the 2 inside one of those', $count($tree), 82);
+    is_same('[CT2] four reads though ten levels were allowed: three levels drawn, and the visitor\'s category found empty', Shop::$reads, ['children' => 4]);
+    is_same('[CT2] below the first level each read is of one category', Shop::$childReads, [[0], [7], [1707], [170701]]);
+    Shop::reset();
+    Shop::$request = [];
+    $tree = Providers::of('categories')->records(Providers::of('categories')->query(['cat_levels' => 10, 'cat_open' => 'current'], 'list'), $params);
+    is_same('[CT2] with no visitor\'s category the first level alone, in one read', [$count($tree), Shop::$reads], [40, ['children' => 1]]);
     Shop::$categories = $kept;
 
     // [CT3] No read per record.
@@ -767,7 +791,11 @@ namespace {
     Shop::$manufacturers += array_combine(range(200, 229), array_map(static fn (int $n): array => ['name' => 'Maker ' . $n, 'visible' => true, 'logo' => true], range(200, 229)));
     Shop::reset();
     $tabs = AlfaCatalogHelper::definitions(module_params(['kind' => 'products', 'auto' => 'manufacturer', 'manufacturers' => range(200, 229)]));
-    is_same('[CT4] thirty chosen manufacturers make twelve tabs', \count($tabs), AlfaCatalogHelper::AUTO_TABS_MAX);
+    is_same('[CT4] thirty chosen manufacturers make thirty tabs', \count($tabs), 30);
+    is_same('[CT4] their names still one read', Shop::$reads, ['Manufacturers' => 1]);
+    Shop::reset();
+    $groups = AlfaCatalogHelper::getGroups(module_params(['kind' => 'products', 'auto' => 'manufacturer', 'manufacturers' => array_merge([1], range(200, 228))]), 42);
+    is_same('[CT4] and of thirty tabs only the first is read with the page', [\count($groups), \count(array_filter($groups, static fn (array $group): bool => !$group['lazy'])), Shop::$reads['Items']], [30, 1, 1]);
     Shop::$manufacturers = array_slice(Shop::$manufacturers, 0, 4, true);
 
     Shop::reset();
@@ -858,7 +886,7 @@ namespace {
     is_true('[CT6] a category without a name is named by its id', str_contains($html, '<span class="entry-name">Category 8</span>'));
     is_true('[CT6] the counts are drawn', substr_count($html, 'class="entry-count"') === substr_count($html, 'class="node"'));
     is_true('[CT6] in a navigation landmark named after the module', str_contains($html, '<nav class="tree-nav" aria-label="Our catalogue">'));
-    is_same('[CT6] the tree is one read of the shop\'s own', Shop::$reads, ['tree' => 1]);
+    is_same('[CT6] three levels drawn are three reads, and every count one more', Shop::$reads, ['children' => 3, 'category counts' => 1]);
 
     $all = module_params(shown_as('list', ['kind' => 'categories', 'cat_levels' => 3, 'cat_open' => 'all']));
     $html = AlfaCatalogHelper::renderGroup($module, $all, AlfaCatalogHelper::getGroups($all, 42)[0]);

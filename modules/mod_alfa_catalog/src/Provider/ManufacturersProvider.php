@@ -25,6 +25,8 @@ use Joomla\Registry\Registry;
  * more read for all of them together, made by the listing model itself (ItemsModel::getManufacturerCounts()): the
  * products this visitor may see and the stock policy shows, counted per manufacturer.
  *
+ * A tab shows as many manufacturers as its number says, and all of them when the number is 0.
+ *
  * @since  2.3.0
  */
 final class ManufacturersProvider implements ProviderInterface
@@ -48,12 +50,6 @@ final class ManufacturersProvider implements ProviderInterface
     public const ORDERING = ['name' => 'name', 'ordering' => 'a.ordering'];
 
     /**
-     * @var int The most manufacturers a tab shows; a stored 0 means this many.
-     * @since  2.3.0
-     */
-    public const LIMIT_MAX = 200;
-
-    /**
      * A manufacturers tab's query.
      *
      * @param array $row The stored tab row.
@@ -68,7 +64,7 @@ final class ManufacturersProvider implements ProviderInterface
         return [
             'ids' => Providers::ids($row['man_ids'] ?? []),
             'ordering' => Providers::choice($row['man_ordering'] ?? '', array_keys(self::ORDERING)),
-            'limit' => Providers::bounded($row['man_limit'] ?? null, 0, self::LIMIT_MAX, 0),
+            'limit' => max(0, (int) ($row['man_limit'] ?? 0)),
             'show' => Providers::choice($row['man_show'] ?? '', self::SHOW),
             'link' => Providers::choice($row['man_link'] ?? '', self::LINK),
             'counts' => (int) ($row['man_show_count'] ?? 0) === 1,
@@ -88,7 +84,6 @@ final class ManufacturersProvider implements ProviderInterface
      */
     public function records(array $query, Registry $params): array
     {
-        $limit = (int) ($query['limit'] ?? 0);
         $model = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()
             ->createModel('Manufacturers', 'Site', ['ignore_request' => true]);
 
@@ -101,7 +96,8 @@ final class ManufacturersProvider implements ProviderInterface
         $model->setState('list.ordering', self::ORDERING[Providers::choice($query['ordering'] ?? '', array_keys(self::ORDERING))]);
         $model->setState('list.direction', 'ASC');
         $model->setState('list.start', 0);
-        $model->setState('list.limit', $limit > 0 ? min($limit, self::LIMIT_MAX) : self::LIMIT_MAX);
+        // The operator's number; 0 is every manufacturer the shop shows.
+        $model->setState('list.limit', max(0, (int) ($query['limit'] ?? 0)));
 
         $rows = $model->getItems() ?: [];
         $toPage = ($query['link'] ?? '') === 'page';
