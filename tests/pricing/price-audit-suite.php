@@ -41,6 +41,8 @@
  *   [ST3] ★ the stored rows page: a page of one row, the next page, the total unchanged.
  *   [ST4] ★ every sale row is judged across chunks: the engine ran once for each of the shop's sale rows that need it,
  *         with more rows than one chunk holds.
+ *   [ST5] ★ a change between two chunks of a run leaves the result it stores out of date: the result rests on the data
+ *         as of the run's start.
  *   [PR1] the product's price row says the sale replaces the rules it names, or which rules apply now; prices.js keeps
  *         that sentence live.
  *   [T1]  nothing of the run outlived the rollback, by the ids it knows: a row of its products, rules or tax found on
@@ -380,7 +382,7 @@ try {
     $store = new PriceAuditStore(db: $db);
     $db->setQuery("DELETE FROM `{$p}alfa_meta` WHERE name LIKE 'price\\_audit.%'")->execute();
     $stateBefore = $store->status()['state'];
-    $runJob = static function (int $units): array {
+    $runJob = static function (int $units, ?callable $betweenChunks = null): array {
         $job = new PriceAuditJob();
         $run = new JobRun(id: 0, handler: PriceAuditJob::NAME, scopeKey: '', payload: [], checkpoint: null, doneUnits: 0, totalUnits: 0, trigger: 'suite');
         $chunks = 0;
@@ -389,6 +391,10 @@ try {
             $chunk = $job->chunk($run, $units);
             $chunks++;
             $run = $run->at(checkpoint: $chunk->checkpoint, doneUnits: $run->doneUnits + $chunk->units, totalUnits: $run->totalUnits);
+
+            if ($chunks === 1 && $betweenChunks !== null) {
+                $betweenChunks();
+            }
         } while (!$chunk->finished && $chunks < 100000);
 
         return ['chunks' => $chunks, 'result' => json_decode((string) $chunk->result, true)];
@@ -416,6 +422,18 @@ try {
     $firstAsk = PriceAuditJob::enqueue();
     $secondAsk = PriceAuditJob::enqueue();
     $stateRunning = $store->status();
+
+    // [ST5] a run that overlaps a change: the price rows change between its first and second chunk, and the result it
+    // stores at its end is out of date from the moment it is stored. The job rows of the asks above are removed first,
+    // so the state read is the result's, not a waiting job's.
+    $db->setQuery("DELETE FROM `{$p}alfa_tasks` WHERE id IN (" . (int) $firstAsk->id . ', ' . (int) $secondAsk->id . ')')->execute();
+    $ranOver = $runJob(2, static function () use ($db): void {
+        // The clock has one second: the change is marked one second after the run began, so a change later than the
+        // start is what is judged, not a tie.
+        sleep(1);
+        PriceAuditStore::markStale(db: $db);
+    });
+    $stateOverlap = $store->status();
 
     // [PR1] the row's sentence, rendered as the item screen renders it.
     $sentenceOf = static function (int $itemId) use ($db, $p): array {
@@ -451,6 +469,7 @@ try {
         'chunks' => $ran['chunks'],
         'jobResult' => $ran['result'],
         'states' => ['before' => $stateBefore, 'after' => $stateAfter, 'stale' => $stateStale, 'running' => $stateRunning['state'], 'job' => $stateRunning['job']['id'] ?? null],
+        'overlap' => ['state' => $stateOverlap['state'], 'finished' => \is_array($ranOver['result']), 'staleAfterStart' => ($stateOverlap['stale_since'] ?? '') >= (string) ($stateOverlap['summary']['now'] ?? 'x')],
         'asks' => ['first' => $firstAsk->joined, 'second' => $secondAsk->joined, 'same' => $firstAsk->id === $secondAsk->id],
         'pages' => ['one' => \count($pageOne['rows']), 'two' => \count($pageTwo['rows']), 'totals' => [$pageOne['total'], $pageTwo['total']], 'distinct' => ($pageOne['rows'][0]['rule']['id'] ?? null) !== ($pageTwo['rows'][0]['rule']['id'] ?? null)],
         'above' => $ofItem($sections[PriceAudit::SECTION_SALE_ABOVE], $pAbove),
@@ -546,6 +565,7 @@ if (isset($result['error'])) {
         [PriceAuditStore::STATE_NEVER, PriceAuditStore::STATE_COMPLETE, PriceAuditStore::STATE_STALE, PriceAuditStore::STATE_RUNNING, true]);
     check('[ST2] ★ a second Check again joins the job already waiting: one job', [$result['asks']['first'], $result['asks']['second'], $result['asks']['same']], [false, true, true]);
     check('[ST3] ★ the stored rows page: one row a page, the next page another row, the total the same', [$result['pages']['one'], $result['pages']['two'], $result['pages']['totals'][0] === $result['pages']['totals'][1], $result['pages']['distinct']], [1, 1, true, true]);
+    check('[ST5] ★ a change between two chunks leaves the finished result out of date', [$result['overlap']['finished'], $result['overlap']['state'], $result['overlap']['staleAfterStart']], [true, PriceAuditStore::STATE_STALE, true]);
     check('[ST4] ★ every sale row judged across chunks: more chunks than one, the job\'s result the counts', [$result['chunks'] > \count(PriceAudit::SET_SECTIONS) + 2, \is_array($result['jobResult']['counts'] ?? null), $result['engine']['runs'] <= $result['saleRows']], [true, true, true]);
 
     echo "\nthe product's price row\n";
