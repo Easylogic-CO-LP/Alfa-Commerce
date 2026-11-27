@@ -197,8 +197,11 @@ class MultilingualTextField extends TextField implements MultilingualFieldInterf
      */
     protected function getInput(): string
     {
-        Factory::getApplication()->getDocument()->getWebAssetManager()
-            ->useStyle('com_alfa.multilingual-fields');
+        // The field also renders outside the component (the Options screen, a plugin's or a module's form), where
+        // the component's assets are not registered yet.
+        $assets = Factory::getApplication()->getDocument()->getWebAssetManager();
+        $assets->getRegistry()->addExtensionRegistryFile('com_alfa');
+        $assets->useStyle('com_alfa.multilingual-fields');
 
         $languages = LanguageHelper::getLanguages('lang_code');
         $isMultilang = count($languages) > 1;
