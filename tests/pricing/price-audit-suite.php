@@ -71,6 +71,7 @@ use Alfa\Component\Alfa\Administrator\Service\Pricing\RulePeriod;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ConditionNotice;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -310,11 +311,14 @@ try {
     $pNoPrice = $product('noprice', $catB, null, []);
     $pOutside = $product('outside', $catB, $manufacturer, [$row('10.00000000')]);
 
-    // The sale above its price: a row saved before the save refused it, set by SQL and indexed again.
+    // The sale above its price: a row saved before the save refused it, set by SQL.
     $aboveRow = (int) $db->setQuery("SELECT id FROM `{$p}alfa_items_prices` WHERE item_id = {$pAbove} AND combination_id IS NULL ORDER BY id", 0, 1)->loadResult();
     $db->setQuery("UPDATE `{$p}alfa_items_prices` SET override_value = '80.00000000' WHERE id = {$aboveRow}")->execute();
+
+    // The index rows of the fixtures, written now: a save leaves the product's rebuild to the background work, and the
+    // sections that read the index would not see the fixtures otherwise.
     PriceDataLoader::forgetLoaded();
-    (new PriceIndexSyncService())->syncItem($pAbove);
+    (new PriceIndexSyncService())->syncItems([$pAbove, $pLarge, $pInverted, $pBelow, $pStacked, $pNoPrice, $pOutside]);
 
     echo "fixture ids: discounts={$d1},{$d2},{$d3},{$d4} tax={$t1} items={$pAbove},{$pLarge},{$pInverted},{$pBelow},{$pStacked},{$pNoPrice},{$pOutside} (inside the rolled-back transaction)\n";
 
@@ -361,7 +365,7 @@ try {
         $html = AlfapricesField::renderPrices(controlBase: 'jform[prices]', rows: $rows, showModify: false, itemId: $itemId);
         $rowsHtml = (string) strstr($html, '<template data-price-template>', true);
 
-        if (!preg_match('~<div class="override-hint" data-price-rules-note data-rule-names="([^"]*)"([^>]*)>([^<]*)</div>~', $rowsHtml, $m)) {
+        if (!preg_match('~<div class="price-cell" data-price-rules-note data-rule-names="([^"]*)"\s+data-rules-excluded="[^"]*"([^>]*)>\s*<span class="override-hint[^"]*" data-price-rules-text>([^<]*)</span>~', $rowsHtml, $m)) {
             return ['names' => null, 'hidden' => null, 'text' => null];
         }
 
@@ -443,7 +447,9 @@ if (isset($result['error'])) {
 
     echo "\nthe price check\n";
     $above = $result['above'];
-    check('[PA1] ★ a sale above the price it replaces is a finding naming its row', [\count($above), $above[0]['row_id'] ?? null, $above[0]['detail']['sale_price'] ?? null, $above[0]['detail']['replaced_price'] ?? null], [1, $result['aboveRow'], '80.00000000', '60.00000000']);
+    // The audit states a price as the catalogue unit (the stored figure on its digits, no padding zeros).
+    $unit = static fn (string $stored): string => PriceComputationEngine::catalogueUnit(value: $stored);
+    check('[PA1] ★ a sale above the price it replaces is a finding naming its row', [\count($above), $above[0]['row_id'] ?? null, $above[0]['detail']['sale_price'] ?? null, $above[0]['detail']['replaced_price'] ?? null], [1, $result['aboveRow'], $unit('80.00000000'), $unit('60.00000000')]);
     check('[PA1] a sale above the price is not also a large one', $result['aboveNotLarge'], []);
     $large = $result['large'];
     check('[PA1] ★ a sale below half the price is a finding with its share', [\count($large), $large[0]['detail']['share_percent'] ?? null], [1, 90.0]);
@@ -453,7 +459,7 @@ if (isset($result['error'])) {
     check('[PA2] ★ a tax published before its start is a finding, not started', [\count($result['upcomingTax']), $result['upcomingTax'][0]['detail']['status'] ?? null], [1, RulePeriod::UPCOMING]);
     check('[PA2] a discount in its period is not one', $result['activeDiscount'], []);
     $inverted = $result['inverted'];
-    check('[PA3] ★ a period row without a sale beside a sale row without a period is a finding naming both rows', [\count($inverted), ($inverted[0]['row_id'] ?? 0) > 0, ($inverted[0]['detail']['sale_row'] ?? 0) > 0, $inverted[0]['detail']['sale_price'] ?? null], [1, true, true, '50.00000000']);
+    check('[PA3] ★ a period row without a sale beside a sale row without a period is a finding naming both rows', [\count($inverted), ($inverted[0]['row_id'] ?? 0) > 0, ($inverted[0]['detail']['sale_row'] ?? 0) > 0, $inverted[0]['detail']['sale_price'] ?? null], [1, true, true, $unit('50.00000000')]);
     $below = $result['belowRules'];
     check('[PA4] ★ a sale that gives less than the rules it replaces is a finding naming the rules', [\count($below), str_contains((string) ($below[0]['detail']['rules'] ?? ''), 'PA disposable discount D1'), str_contains((string) ($below[0]['detail']['rules'] ?? ''), 'PA disposable discount D2')], [1, true, true]);
     check('[PA4] ★ the engine ran for the sale rows within its cap', [$result['engine']['runs'] > 0, $result['engine']['runs'] <= PriceAudit::ENGINE_CAP, $result['engine']['cap']], [true, true, PriceAudit::ENGINE_CAP]);
@@ -484,9 +490,9 @@ if (isset($result['error'])) {
 }
 
 $pricesJs = SourceFile::read(JPATH_ROOT . '/media/com_alfa/js/admin/prices.js');
-check('[PR1] prices.js keeps the sentence live from the preview\'s rules and the row\'s sale',
-    [str_contains($pricesJs, "row.querySelector('[data-price-rules-note]')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_REPLACES_RULES')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_RULES_APPLIED')"), str_contains($pricesJs, 'note.dataset.ruleNames = discounts.map(ruleLabel)')],
-    [true, true, true, true]);
+check('[PR1] prices.js keeps the sentence live from the preview\'s rules, the row\'s sale and the product\'s switch',
+    [str_contains($pricesJs, "row.querySelector('[data-price-rules-note]')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_SALE_REPLACES_RULES')"), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_RULES_APPLIED')"), str_contains($pricesJs, 'note.dataset.ruleNames = discounts.map(ruleLabel)'), str_contains($pricesJs, "Joomla.Text._('COM_ALFA_PRICES_RULES_EXCLUDED')")],
+    [true, true, true, true, true]);
 
 $after = $census();
 $moved = [];
