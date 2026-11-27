@@ -15,7 +15,10 @@
  * Data: $this->activityLog (from OrderModel::getOrderActivityLog()), newest
  * first. Each line is read from its stored event and context through
  * OrderHistoryHelper::line(); the stored summary where the context lacks the
- * facts.
+ * facts. A status change says its note to the customer and whether the customer
+ * is e-mailed; the e-mail's own entry says who it reached and when, with the
+ * note it carried; the status e-mail sent again by staff and a save of the
+ * internal note read as such.
  *
  * @package    Alfa Commerce
  * @since  1.0.0
@@ -51,6 +54,13 @@ $actionColors = [
 	'failed'             => 'danger',
 	'tracking_updated'   => 'info',
 	'delivered'          => 'success',
+	// A status change with its note, and the e-mails it and staff send: told apart at a glance.
+	'status_changed'     => 'primary',
+	'transition_refused' => 'danger',
+	'email_sent'         => 'success',
+	'email_resent'       => 'info',
+	'email_held'         => 'warning',
+	'email_failed'       => 'danger',
 ];
 ?>
 
