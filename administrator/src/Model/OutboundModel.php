@@ -129,8 +129,12 @@ class OutboundModel extends AlfaListModel
 
         $work = (string) $this->getState('filter.work', '');
 
-        if ($work !== '' && \in_array($work, TaskStaff::WORK_STATES, true)) {
-            $query->where(OutboundConsumers::workSql(db: $db, alias: 'd') . ' = :work')->bind(':work', $work);
+        // The stored rank of the state, indexed: running and waiting are both waiting rows (running is the row's display
+        // while its job sends), attention the given up, finished the rest.
+        $ranks = [TaskStaff::WORK_RUNNING => 0, TaskStaff::WORK_WAITING => 0, TaskStaff::WORK_ATTENTION => 1, TaskStaff::WORK_FINISHED => 2];
+
+        if ($work !== '' && isset($ranks[$work])) {
+            $query->where($db->quoteName('d.rank') . ' = ' . $ranks[$work]);
         } elseif ($work !== '') {
             $query->where('1 = 0');
         }

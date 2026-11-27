@@ -331,9 +331,8 @@ final class OutboundConsumers
     }
 
     /**
-     * How many deliveries are in each state of work of the Background screen: running (waiting rows of a consumer
-     * whose delivery job runs now), waiting, attention (given up) and finished (taken, discarded, or of a plugin that
-     * takes none).
+     * How many deliveries wait (state of work waiting) and how many were given up (attention), for the Tools card; the
+     * other states of work count zero here: the finished are not read, and a row being sent counts as waiting.
      *
      * @return array<string, int> By state of work ({@see TaskStaff::WORK_STATES}).
      *
@@ -343,12 +342,15 @@ final class OutboundConsumers
     {
         $db = self::db();
         $counts = array_fill_keys(TaskStaff::WORK_STATES, 0);
+        $states = [OutboundDelivery::STATE_PENDING => TaskStaff::WORK_WAITING, OutboundDelivery::STATE_DEAD => TaskStaff::WORK_ATTENTION];
 
+        // The waiting and the given up only, read through the state index, as the card of who is told reads them; the
+        // finished are not counted here, and a waiting row's job being sent is the row's own display.
         foreach ($db->setQuery(
-            'SELECT ' . self::workSql(db: $db, alias: 'd') . ' AS ' . $db->quoteName('work') . ', COUNT(*) AS ' . $db->quoteName('n')
-            . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES, 'd') . ' GROUP BY ' . $db->quoteName('work'),
+            'SELECT ' . $db->quoteName('state') . ', COUNT(*) AS ' . $db->quoteName('n') . ' FROM ' . $db->quoteName(OutboundFeed::DELIVERIES)
+            . ' WHERE ' . $db->quoteName('state') . ' IN (' . implode(', ', array_map([$db, 'quote'], array_keys($states))) . ') GROUP BY ' . $db->quoteName('state'),
         )->loadAssocList() ?: [] as $count) {
-            $counts[(string) $count['work']] = (int) $count['n'];
+            $counts[$states[(string) $count['state']]] = (int) $count['n'];
         }
 
         return $counts;
