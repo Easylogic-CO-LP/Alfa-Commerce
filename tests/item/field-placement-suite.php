@@ -146,7 +146,7 @@ try {
             . ' WHERE ' . $db->quoteName('id') . ' = ' . $fieldId,
         )->execute();
         $db->setQuery(
-            'INSERT INTO ' . $db->quoteName('#__alfa_item_info_values') . ' (' . $db->quoteName(['item_id', 'value_id', 'ordering']) . ')'
+            'INSERT INTO ' . $db->quoteName('#__alfa_item_info_values') . ' (' . implode(', ', $db->quoteName(['item_id', 'value_id', 'ordering'])) . ')'
             . ' VALUES (' . $itemId . ', ' . $valueId . ', 0)',
         )->execute();
 
