@@ -32,7 +32,7 @@ class ScopeusersField extends SqlField
      * @var string
      * @since  2.3.0
      */
-    protected $type = 'Scopeusers';
+    public $type = 'Scopeusers';
 
     /**
      * The accounts of the query, then the held ones it does not find.

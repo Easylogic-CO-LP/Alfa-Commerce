@@ -96,7 +96,7 @@ foreach (ToolRegistry::forSurface('background') as $action) {
 $check('P1a the combined run and the single kinds are offered on the background surface', array_values(array_intersect(['tasks.pending', 'tasks.run', 'inventory.effects', 'pricing.groupsets', 'tasks.prune'], array_keys($actions))), ['tasks.pending', 'tasks.run', 'inventory.effects', 'pricing.groupsets', 'tasks.prune']);
 $pending = $actions['tasks.pending'] ?? new PluginAction();
 $check('P1b the combined run is chunked and changes state', [(bool) ($pending->metadata['chunked'] ?? false), $pending->mutates], [true, true]);
-$check('P1c it is core\'s, named for staff', [$pending->metadata['owner_group'] ?? null, $pending->label], ['com_alfa', 'COM_ALFA_TASKS_RUN_PENDING']);
+$check('P1c it is core\'s, named for staff', [$pending->metadata['owner_group'] ?? null, $pending->label], ['com_alfa', \Joomla\CMS\Language\Text::_('COM_ALFA_TASKS_RUN_PENDING')]);
 $check('P1d it comes first in the order of the surface', array_keys($actions)[0] ?? null, 'tasks.pending');
 
 // ── P2: the message ──────────────────────────────────────────────────────────

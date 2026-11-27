@@ -105,6 +105,16 @@ MailOff::engage();
 \defined('JPATH_COMPONENT_ADMINISTRATOR') || \define('JPATH_COMPONENT_ADMINISTRATOR', JPATH_ADMINISTRATOR . '/components/com_alfa');
 \defined('JPATH_COMPONENT_SITE') || \define('JPATH_COMPONENT_SITE', JPATH_SITE . '/components/com_alfa');
 
+// The method forms and their layouts ask the application for its template; a suite runs from the site docroot, where
+// the administrator's template is out of reach, so an installed template is pinned, as the other suites do.
+$installedTemplates = array_values(array_filter(glob(JPATH_THEMES . '/*') ?: [], static fn (string $dir): bool => is_file($dir . '/index.php')));
+
+if ($installedTemplates !== []) {
+    (new \ReflectionProperty(\Joomla\CMS\Application\CMSApplication::class, 'template'))
+        ->setValue($app, (object) ['template' => basename($installedTemplates[0]), 'params' => new \Joomla\Registry\Registry(), 'parent' => '']);
+    $app->set('themeInherits', '');
+}
+
 $app->loadDocument();
 
 $db = $container->get('DatabaseDriver');

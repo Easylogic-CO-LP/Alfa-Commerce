@@ -236,7 +236,7 @@ try {
     $byKey = array_column($sections, null, 'key');
     $ownKey = PageSections::key($fields[FieldPlacement::Section->value]['name']);
 
-    check('[FP4] ★ the page sections carry the Specifications table', str_contains((string) ($byKey[PageSections::SPECIFICATIONS]['body'] ?? ''), '<table class="alfa-spec-table">'), true);
+    check('[FP4] ★ the page sections carry the Specifications table', str_contains((string) ($byKey[PageSections::SPECIFICATIONS]['body'] ?? ''), '<table class="spec-table">'), true);
     check('[FP4] ★ and the field\'s own section, keyed by its name and titled with its label', [isset($byKey[$ownKey]), $byKey[$ownKey]['title'] ?? null], [true, $item->fields[$fields[FieldPlacement::Section->value]['name']]->label]);
     check('[FP4] the specifications come right after the description, the field\'s section after them', array_search(PageSections::SPECIFICATIONS, array_keys($byKey), true) < array_search($ownKey, array_keys($byKey), true), true);
 } finally {
