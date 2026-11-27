@@ -131,8 +131,23 @@ $toolsUser = Factory::getApplication()->getIdentity();
                  overridable layout system), so a template override cannot fake it. */ ?>
         <?php echo $this->integrityHtml; ?>
 
-        <?php /* Every address of the REST API and who may call it, one table: a fixed-path partial too. */ ?>
-        <?php echo $this->apiRoutesHtml; ?>
+        <?php /* The REST API's endpoints and who may call them: the counts here, the report with its filters on its own page. */ ?>
+        <div class="card mb-3">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TITLE'); ?></div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    <?php if ($this->apiSummary['unreadable']) : ?>
+                        <?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_UNREADABLE'); ?>
+                    <?php else : ?>
+                        <?php echo Text::sprintf('COM_ALFA_TOOLS_API_ROUTES_SUMMARY', $this->apiSummary['addresses'], $this->apiSummary['plugins'], $this->apiSummary['accounts'], $this->apiSummary['superUsers']); ?>
+                    <?php endif; ?>
+                </p>
+                <a class="btn btn-secondary" href="<?php echo Route::_('index.php?option=com_alfa&view=apiroutes'); ?>">
+                    <span class="icon-code" aria-hidden="true"></span>
+                    <?php echo Text::_('COM_ALFA_TITLE_APIROUTES'); ?>
+                </a>
+            </div>
+        </div>
 
         <?php echo $renderSurface('integrity'); ?>
 

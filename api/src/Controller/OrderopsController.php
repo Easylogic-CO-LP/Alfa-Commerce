@@ -95,7 +95,7 @@ class OrderopsController extends OrdersController
      * EDIT permission rather than create/delete, except moving the order between
      * statuses, which asks Change State instead of edit, plus view (declared
      * here, enforced by HasApiGuards::assertAuthorisedForTask() before the task
-     * runs, listed by Tools, Security).
+     * runs, listed by the API routes page).
      *
      * WHY THE STATUS TASK IS NOT ORDINARY EDITING. Entering a status runs stock
      * movements, issues a sales document against a GAPLESS series, emails the

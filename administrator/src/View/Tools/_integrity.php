@@ -27,6 +27,25 @@ use Joomla\CMS\Session\Session;
 defined('_JEXEC') or die;
 
 $ostatus = $this->official['status'] ?? 'unreachable';
+
+/**
+ * A list of files folded under its count, closed, so a customised install's thousand entries do not push the rest of
+ * the tab off the screen; the alert that holds it keeps its words and its colour.
+ *
+ * @param list<string> $paths The files.
+ */
+$files = function (array $paths): void {
+    ?>
+    <details class="mt-2">
+        <summary><?php echo Text::plural('COM_ALFA_TOOLS_INTEGRITY_FILES', \count($paths)); ?></summary>
+        <ul class="mb-0 mt-2">
+            <?php foreach ($paths as $path) : ?>
+                <li><code><?php echo $this->escape($path); ?></code></li>
+            <?php endforeach; ?>
+        </ul>
+    </details>
+    <?php
+};
 ?>
 <div class="card mb-3">
     <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_OFFICIAL_TITLE'); ?></div>
@@ -83,33 +102,21 @@ $ostatus = $this->official['status'] ?? 'unreachable';
             <?php if ($hasInjected) : ?>
                 <div class="alert <?php echo $alarm ? 'alert-danger' : 'alert-info'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_ADDED'); ?></strong>
-                    <ul class="mb-0 mt-2">
-                        <?php foreach ($this->official['injected'] as $path) : ?>
-                            <li><code><?php echo $this->escape($path); ?></code></li>
-                        <?php endforeach; ?>
-                    </ul>
+                    <?php $files($this->official['injected']); ?>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($this->official['modified'])) : ?>
                 <div class="alert <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_MODIFIED'); ?></strong>
-                    <ul class="mb-0 mt-2">
-                        <?php foreach ($this->official['modified'] as $path) : ?>
-                            <li><code><?php echo $this->escape($path); ?></code></li>
-                        <?php endforeach; ?>
-                    </ul>
+                    <?php $files($this->official['modified']); ?>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($this->official['missing'])) : ?>
                 <div class="alert <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
                     <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_MISSING'); ?></strong>
-                    <ul class="mb-0 mt-2">
-                        <?php foreach ($this->official['missing'] as $path) : ?>
-                            <li><code><?php echo $this->escape($path); ?></code></li>
-                        <?php endforeach; ?>
-                    </ul>
+                    <?php $files($this->official['missing']); ?>
                 </div>
             <?php endif; ?>
         <?php endif; ?>

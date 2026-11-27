@@ -1019,7 +1019,7 @@ class AlfaHelper
 
     /**
      * The permission alfa.<section>.<action> a section's action names: the one spelling can() asks, and the
-     * one the REST controllers declare for Tools, Security. Empty when the section or the action is.
+     * one the REST controllers declare for the API routes page. Empty when the section or the action is.
      *
      * @param string $section A section or any entity or screen name {@see self::PERMISSION_SECTIONS} knows.
      * @param string $action view | create | edit | edit.state | delete, or a section's own.
@@ -1088,17 +1088,17 @@ class AlfaHelper
     ];
 
     /**
-     * Admin screens whose own display() checks a permission of its own: Tools and its media screen
-     * (alfa.tools), Notifications (alfa.notifications.view), a plugin panel (its menu entry's
-     * action), the plugin action popup (the section the action works on), the inventory audit
-     * (core.admin), Reset to default (alfa.tools with core.admin), Clear everything
+     * Admin screens whose own display() checks a permission of its own: Tools, its media screen and
+     * its API routes page (alfa.tools), Notifications (alfa.notifications.view), a plugin panel (its
+     * menu entry's action), the plugin action popup (the section the action works on), the inventory
+     * audit (core.admin), Reset to default (alfa.tools with core.admin), Clear everything
      * (alfa.data.clear) and Tools > Extensions (alfa.tools; its actions check theirs).
      *
      * @var string[]
      *
      * @since  2.0.0
      */
-    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'notifications', 'panel', 'action', 'inventoryaudit', 'resetdefaults', 'cleardata', 'extensions'];
+    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'apiroutes', 'notifications', 'panel', 'action', 'inventoryaudit', 'resetdefaults', 'cleardata', 'extensions'];
 
     /**
      * What each standard Joomla list and record task does, as a permission verb. Alfa's own tasks
