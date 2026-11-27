@@ -6,7 +6,7 @@
  * --white or a fixed grey.
  */
 
-:where(.afx-sections) {
+.afx-sections {
     max-width: 34rem;
 }
 
