@@ -64,6 +64,20 @@
                onchange="this.form.submit();"
         />
 
+        <!-- The products one discount rule reaches today, by the reach's own condition (RuleReach): the rule form's
+             Reach card links here, so its count and this list are the same set. -->
+        <field name="discount"
+               type="model"
+               model="discounts"
+               column_value="id"
+               column_text="name"
+               label="COM_ALFA_FILTER_DISCOUNT_REACH"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_SELECT_DISCOUNT_REACH</option>
+        </field>
+
         <!-- Item-field facets (Size, Color, ...)
              The SAME field type and the SAME filter[fields][<id>][] contract the
              storefront uses, in admin scope: values come from the projection, so

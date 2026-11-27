@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\RuleReach;
 use Alfa\Component\Alfa\Site\Service\Catalog\NewProducts;
 use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Joomla\CMS\Factory;
@@ -627,9 +628,9 @@ class PriceDataLoader
      *   6. Product scope      - discount names no product (no row) or names
      *                          this product
      *
-     * Then the rule's exclusions: a product it names, or a product in a category it names, is never reached. The
-     * product's own switch is applied on the collection (loadBatch()), not here, so a variant set to take the rules
-     * still finds them.
+     * Then the rule's exclusions: a product it names, or a product in a category it names, is never reached
+     * (RuleReach::excludedSql(), the wording the reach counts read too). The product's own switch is applied on the
+     * collection (loadBatch()), not here, so a variant set to take the rules still finds them.
      *   3. Place scope        - discount targets all places (place_id=0/NULL)
      *                          or the visitor's place or a place above it
      *                          (RulePrecedence orders what matched)
@@ -705,9 +706,7 @@ class PriceDataLoader
 
             // Except: a product the rule names, or a product in a category it names, is never reached, whatever the
             // scope above takes in.
-            ->where('NOT EXISTS (SELECT 1 FROM #__alfa_discount_excluded_items AS xi WHERE xi.discount_id = d.id AND xi.item_id = ic.item_id)')
-            ->where('NOT EXISTS (SELECT 1 FROM #__alfa_discount_excluded_categories AS xc INNER JOIN ' . $this->categoryLinks() . ' AS xic'
-                . ' ON xic.item_id = ic.item_id WHERE xc.discount_id = d.id AND xc.category_id = xic.category_id)')
+            ->where('NOT ' . RuleReach::excludedSql(ruleId: 'd.id', itemId: 'ic.item_id', categoryLinks: $this->categoryLinks()))
 
             // New products: a rule that leaves them out does not reach a product new at the moment, within the shop's
             // days or the rule's own. A product not saved yet has no date and is reached.
@@ -865,12 +864,11 @@ class PriceDataLoader
      */
     private function newProductsSql(PriceContext $context): string
     {
-        $moment = $this->db->quote($context->getReferenceDate() ?? ActiveDateCondition::now());
-        $shopDays = NewProducts::days();
-        $shop = $shopDays > 0 ? 'NOT ' . NewProducts::withinSql(itemAlias: 'it', daysSql: (string) $shopDays, momentSql: $moment) : '1 = 1';
-        $own = 'NOT ' . NewProducts::withinSql(itemAlias: 'it', daysSql: 'd.new_days', momentSql: $moment);
-
-        return '(it.id IS NULL OR ((d.new_products <> 1 OR ' . $shop . ') AND (d.new_products <> 2 OR d.new_days <= 0 OR ' . $own . ')))';
+        return NewProducts::reachedByRuleSql(
+            ruleAlias: 'd',
+            itemAlias: 'it',
+            momentSql: $this->db->quote($context->getReferenceDate() ?? ActiveDateCondition::now()),
+        );
     }
 
     /**

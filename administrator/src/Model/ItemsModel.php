@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
+use Alfa\Component\Alfa\Administrator\Service\Pricing\RuleReach;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ItemFieldValueProjection;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Exception;
@@ -486,6 +487,14 @@ class ItemsModel extends AlfaListModel
                 . ' FROM ' . $db->quoteName('#__alfa_item_labels')
                 . ' WHERE ' . $db->quoteName('label_id') . ' IN (' . implode(',', $labels) . '))',
             );
+        }
+
+        // The products one discount rule reaches today (the rule form's Reach card links here), by the reach's own
+        // condition, so the list and the card's count are the same set.
+        $discount = (int) $this->getState('filter.discount');
+
+        if ($discount > 0) {
+            $query->where(RuleReach::productSql(kind: RuleReach::DISCOUNT, ruleId: (string) $discount, itemId: $db->quoteName('a.id')));
         }
 
         // Item-field value filter (Size, Color, ...)
