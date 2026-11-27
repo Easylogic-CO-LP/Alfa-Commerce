@@ -275,16 +275,29 @@ final class PriceAudit
      */
     public static function sentence(array $report): string
     {
+        return self::sentenceOf(counts: self::counts(report: $report), building: (bool) ($report['index']['building'] ?? false));
+    }
+
+    /**
+     * The sentence from the counts alone (see counts()), for a reader that keeps the counts and not the report.
+     *
+     * @param array<string, int> $counts The sections with findings and their counts.
+     * @param bool $building Whether the price index is being built after the update.
+     *
+     * @since  2.3.0
+     */
+    public static function sentenceOf(array $counts, bool $building = false): string
+    {
         $parts = [];
 
-        foreach (self::counts(report: $report) as $key => $count) {
+        foreach ($counts as $key => $count) {
             if ($key === self::SECTION_INDEX) {
-                $parts[] = Text::_(($report['index']['building'] ?? false) ? 'COM_ALFA_PRICE_AUDIT_COUNT_INDEX_BUILDING' : 'COM_ALFA_PRICE_AUDIT_COUNT_INDEX');
+                $parts[] = Text::_($building ? 'COM_ALFA_PRICE_AUDIT_COUNT_INDEX_BUILDING' : 'COM_ALFA_PRICE_AUDIT_COUNT_INDEX');
 
                 continue;
             }
 
-            $parts[] = Text::plural('COM_ALFA_PRICE_AUDIT_COUNT_' . strtoupper($key), $count);
+            $parts[] = Text::plural('COM_ALFA_PRICE_AUDIT_COUNT_' . strtoupper((string) $key), (int) $count);
         }
 
         return implode(', ', $parts);

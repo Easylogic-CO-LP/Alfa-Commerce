@@ -112,7 +112,7 @@ $ruleUrl = static fn (string $kind, int $id): string => Route::_(url: 'index.php
         $langKey = 'COM_ALFA_PRICE_AUDIT_SECTION_' . strtoupper($key);
         $badge = !$section['available'] ? 'bg-secondary' : ($count > 0 ? $this->badge(section: $key) : 'bg-secondary');
         ?>
-        <details class="card mb-4 alfa-audit-section" data-audit-section="<?php echo $this->escape(var: $key); ?>">
+        <details class="card mb-4 alfa-audit-section" id="price-audit-<?php echo $this->escape(var: $key); ?>" data-audit-section="<?php echo $this->escape(var: $key); ?>">
             <summary class="card-header">
                 <?php // The card header is a flex row; one block inside it keeps the description under the title. ?>
                 <div class="alfa-audit-summary">
@@ -194,7 +194,7 @@ $ruleUrl = static fn (string $kind, int $id): string => Route::_(url: 'index.php
     <?php endforeach; ?>
 
     <?php // The price index: the counters of its check, the context this report read, and what to run when a figure is off. ?>
-    <details class="card mb-4 alfa-audit-section" data-audit-section="<?php echo PriceAudit::SECTION_INDEX; ?>" <?php echo $index['complete'] ? '' : 'open'; ?>>
+    <details class="card mb-4 alfa-audit-section" id="price-audit-<?php echo PriceAudit::SECTION_INDEX; ?>" data-audit-section="<?php echo PriceAudit::SECTION_INDEX; ?>" <?php echo $index['complete'] ? '' : 'open'; ?>>
         <summary class="card-header">
             <div class="alfa-audit-summary">
                 <h2 class="h4 mb-1">

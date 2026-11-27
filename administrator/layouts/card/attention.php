@@ -23,8 +23,12 @@
  * once every signal is quiet, and an empty return here is what the registry reads as
  * "no card", so the card removes itself rather than reporting daily that all is well.
  *
+ * A tile may carry lines instead of its sentence: one fact a line, each a link of its own (the kinds of a finding,
+ * each leading to its own section). Such a tile is a block whose lines and verb are the links, never an anchor around
+ * anchors; with more than two lines it takes the whole row of the grid, the grid's own span, no new mechanism.
+ *
  * @var array $displayData One resolved card. data:
- *   ['rows' => [['severity', 'kind', 'value', 'text', 'go', 'url']]]
+ *   ['rows' => [['severity', 'kind', 'value', 'text', 'go', 'url', 'lines' => [['text', 'url']]]]]
  */
 
 \defined('_JEXEC') or die;
@@ -50,8 +54,30 @@ $e = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
         <?php
         $row = (array) $row;
         $url = (string) ($row['url'] ?? '');
-        $tag = $url !== '' ? 'a' : 'div';
+        $lines = array_values(array_filter((array) ($row['lines'] ?? []), static fn ($line): bool => \is_array($line) && (string) ($line['text'] ?? '') !== ''));
         ?>
+        <?php if ($lines !== []) : ?>
+            <div class="alfa-attention-tile<?php echo \count($lines) > 2 ? ' alfa-attention-tile-wide' : ''; ?>" data-severity="<?php echo $e((string) ($row['severity'] ?? 'warning')); ?>">
+                <span class="alfa-attention-kind"><?php echo $e((string) ($row['kind'] ?? '')); ?></span>
+                <span class="alfa-attention-figure"><?php echo $e((string) ($row['value'] ?? '')); ?></span>
+                <ul class="alfa-attention-lines">
+                    <?php foreach ($lines as $line) : ?>
+                        <li>
+                            <?php if ((string) ($line['url'] ?? '') !== '') : ?>
+                                <a href="<?php echo $e((string) $line['url']); ?>"><?php echo $e((string) $line['text']); ?></a>
+                            <?php else : ?>
+                                <?php echo $e((string) $line['text']); ?>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php if ($url !== '') : ?>
+                    <a class="alfa-attention-go" href="<?php echo $e($url); ?>"><?php echo $e((string) ($row['go'] ?? '')); ?></a>
+                <?php endif; ?>
+            </div>
+            <?php continue; ?>
+        <?php endif; ?>
+        <?php $tag = $url !== '' ? 'a' : 'div'; ?>
         <<?php echo $tag; ?> class="alfa-attention-tile" data-severity="<?php echo $e((string) ($row['severity'] ?? 'warning')); ?>"<?php if ($url !== '') : ?> href="<?php echo $e($url); ?>"<?php endif; ?>>
             <span class="alfa-attention-kind"><?php echo $e((string) ($row['kind'] ?? '')); ?></span>
             <span class="alfa-attention-figure"><?php echo $e((string) ($row['value'] ?? '')); ?></span>

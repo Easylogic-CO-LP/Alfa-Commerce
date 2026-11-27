@@ -228,17 +228,6 @@ final class CoreCardProvider
             ->when($canSeeOrders)
             ->setLayoutData(fn (): array => $this->attentionCard());
 
-        // The prices, in the same strip, to a Super User (the price check's own permission): the counts of the kinds
-        // of finding as one sentence, and the way to the price check. Nothing while the check finds nothing. Read
-        // with the strip and kept by the Dashboard's cache, which a product, discount or tax save drops.
-        $event->top(self::ID, 'prices.audit', 'COM_ALFA_DASHCARD_PRICES')
-            ->ordering(95)
-            ->setLayout('card.prices')
-            ->width(100)
-            ->url(Route::_('index.php?option=com_alfa&view=priceaudit', false))
-            ->when(static fn (): bool => (bool) Factory::getApplication()->getIdentity()?->authorise('core.admin', 'com_alfa'))
-            ->setLayoutData(static fn (): array => self::pricesCard());
-
         // The background work, in the same strip, to a user who may use Tools: its health notice while it
         // stands, and one line for each job running or waiting, with its progress and a link to its progress page
         // (read at page load). While neither is there its data is empty and the card is not shown.
@@ -250,21 +239,6 @@ final class CoreCardProvider
             ->width(100)
             ->when(static fn (): bool => (bool) Factory::getApplication()->getIdentity()?->authorise('alfa.tools', 'com_alfa'))
             ->setLayoutData(static fn (): array => self::backgroundWork());
-    }
-
-    /**
-     * The prices card's data: the price check's findings in one sentence and the way to the page; empty while the
-     * check finds nothing, so the card is not shown.
-     *
-     * @return array{text?: string, url?: string}
-     *
-     * @since  2.3.0
-     */
-    private static function pricesCard(): array
-    {
-        $sentence = PriceAudit::sentence(report: PriceAudit::read());
-
-        return $sentence === '' ? [] : ['text' => $sentence, 'url' => Route::_('index.php?option=com_alfa&view=priceaudit', false)];
     }
 
     /**
@@ -397,6 +371,8 @@ final class CoreCardProvider
         // and the promotion finding is cart-rule data.
         $canSeeItems = AlfaHelper::can(section: 'items', action: 'view');
         $canSeeCartrules = AlfaHelper::can(section: 'cartrules', action: 'view');
+        // The prices tile opens the price check, which answers to core.admin alone.
+        $canAdmin = (bool) Factory::getApplication()->getIdentity()?->authorise('core.admin', 'com_alfa');
 
         // Those two tiles open an edit screen; a viewer who may see the data but not edit it
         // keeps the tile without the link. They open through the edit task, which checks the
@@ -408,6 +384,7 @@ final class CoreCardProvider
             if (
                 (\in_array($finding['key'], ['outofstock', 'bestseller'], true) && !$canSeeItems)
                 || ($finding['key'] === 'promo' && !$canSeeCartrules)
+                || ($finding['key'] === 'prices' && !$canAdmin)
             ) {
                 continue;
             }
@@ -508,16 +485,53 @@ final class CoreCardProvider
                     'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_DOCUMENTS'),
                     'url' => $list('orders', ['payment' => 'refunded', 'date_range' => $window]),
                 ],
+                // The price check's findings: the total as the figure, each kind on its own line leading to its
+                // section of the price check, and the page itself as the verb.
+                'prices' => [
+                    'severity' => 'warning',
+                    'kind' => Text::_('COM_ALFA_DASHCARD_ATTENTION_KIND_PRICES'),
+                    'value' => number_format($finding['count']),
+                    'text' => '',
+                    'lines' => $this->priceLines(counts: (array) ($extra['counts'] ?? []), building: (bool) ($extra['building'] ?? false)),
+                    'go' => Text::_('COM_ALFA_DASHCARD_ATTENTION_GO_PRICES'),
+                    'url' => Route::_('index.php?option=com_alfa&view=priceaudit', false),
+                ],
                 default => null,
             };
         }
 
-        // EVERY FINDING, NO CAP. There are at most eight, the layout is a grid, and a
+        // EVERY FINDING, NO CAP. There are at most nine, the layout is a grid, and a
         // merchant told "one more finding" has been told something is being withheld.
         $rows = array_values(array_filter($rows));
 
         // Every finding may have been one this viewer is not shown: then, as with none, no card.
         return $rows === [] ? [] : ['rows' => $rows];
+    }
+
+    /**
+     * The price check's kinds of finding as the Prices tile's lines: one short phrase a kind, with its count, each
+     * leading to that section of the price check (its anchor on the page).
+     *
+     * @param array<string, int> $counts The sections with findings and their counts (PriceAudit::counts()).
+     * @param bool $building Whether the price index is being built after the update.
+     *
+     * @return list<array{text: string, url: string}>
+     *
+     * @since  2.3.0
+     */
+    private function priceLines(array $counts, bool $building): array
+    {
+        $page = Route::_('index.php?option=com_alfa&view=priceaudit', false);
+        $lines = [];
+
+        foreach ($counts as $key => $count) {
+            $lines[] = [
+                'text' => PriceAudit::sentenceOf(counts: [(string) $key => (int) $count], building: $building),
+                'url' => $page . '#price-audit-' . (string) $key,
+            ];
+        }
+
+        return $lines;
     }
 
     /**
