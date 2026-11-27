@@ -162,7 +162,8 @@ class AlfapricesField extends FormField
         Text::script('COM_ALFA_PRICES_DISCOUNTED');
         Text::script('COM_ALFA_PRICES_FINAL');
         Text::script('COM_ALFA_PRICES_PRICE');
-        Text::script('COM_ALFA_PRICES_SALE_PERCENT');
+        Text::script('COM_ALFA_PRICES_SALE_BY_PERCENT');
+        Text::script('COM_ALFA_PRICES_SALE_PERCENT_OF');
         Text::script('COM_ALFA_PRICES_RULES_APPLIED');
         Text::script('COM_ALFA_PRICES_SALE_REPLACES_RULES');
         Text::script('COM_ALFA_PRICES_RULES_EXCLUDED');

@@ -35,9 +35,9 @@ Text::script('COM_ALFA_TOOLS_REQUEST_FAILED');
  * second renderer and no hard-coded card: core's own tools are collected through the
  * same event as a plugin's ({@see \Alfa\Component\Alfa\Administrator\Service\Tools\CoreToolProvider}),
  * so the path an engine plugin's card takes is exercised on every Tools page load.
- * Order within a tab is each action's declared priority; for core's Database Sync
- * tools that priority encodes RUN order, so the tab reads top-to-bottom as
- * "do them in this order".
+ * Order within a tab is each action's declared priority; for core's Maintenance tools
+ * that priority encodes RUN order (the media tools, then the database sync tools, the
+ * guided tours last), so the tab reads top-to-bottom as "do them in this order".
  */
 $renderActions = static function (array $actions): string {
     $html = '';
@@ -50,21 +50,29 @@ $renderActions = static function (array $actions): string {
 };
 $renderSurface = static fn (string $surface): string => $renderActions(ToolRegistry::forSurface($surface));
 
-/** Tab ids this template renders itself, and the surface whose actions are the Background screen's toolbar; anything
- *  else a plugin names opens its own tab. */
-$coreSurfaces = ['media', 'dbsync', 'tasks', 'github', 'integrity', 'data', 'extensions', 'background'];
 $toolsUser = Factory::getApplication()->getIdentity();
+
+// The Development tab is for whoever changes the code (the contribution guide with the package export, the tours'
+// export): Super Users see it, nobody else.
+$showDevelopment = $toolsUser->authorise('core.admin');
+
+/** Tab ids this template renders itself (the Background tab is `tasks`: the Background screen is view=tasks, and
+ *  the web-cron key returns to it by that id), the surface whose actions are the Background screen's toolbar, and
+ *  the development surface, rendered only for a Super User; anything else a plugin names opens its own tab. */
+$coreSurfaces = ['maintenance', 'tasks', 'security', 'extensions', 'development', 'background'];
 ?>
 <div class="com-alfa-tools p-3">
 
     <?php // Outer tabset carries recall; the devguide's inner tabset must NOT, or
           // nested recall shares one sessionStorage key and can hang the page. ?>
-    <?php // A new web-cron address opens on the Tasks tab, whatever tab was last open.
+    <?php // A new web-cron address opens on the Background tab, whatever tab was last open.
     $onTasks = $this->newCronKey !== ''; ?>
-    <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaTools', ['active' => $onTasks ? 'tasks' : 'media', 'recall' => !$onTasks]); ?>
+    <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaTools', ['active' => $onTasks ? 'tasks' : 'maintenance', 'recall' => !$onTasks]); ?>
 
-    <?php /* Media */ ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'media', Text::_('COM_ALFA_TOOLS_TAB_MEDIA')); ?>
+    <?php /* Maintenance: the media tools, the database sync tools in run order and the guided tours (the registry
+             loop, in declared priority), then reset and clear, each of which opens its own page that shows what it
+             would change before anything is changed. */ ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'maintenance', Text::_('COM_ALFA_TOOLS_TAB_MAINTENANCE')); ?>
         <div class="card mb-3">
             <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_MEDIA_TITLE'); ?></div>
             <div class="card-body">
@@ -75,83 +83,7 @@ $toolsUser = Factory::getApplication()->getIdentity();
                 </a>
             </div>
         </div>
-        <?php echo $renderSurface('media'); ?>
-
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php /* Database Sync: registry-only, in declared run order */ ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'dbsync', Text::_('COM_ALFA_TOOLS_TAB_DBSYNC')); ?>
-        <?php echo $renderSurface('dbsync'); ?>
-
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php /* Tasks: how much background work there is, in the words of the Background screen, which lists it and runs its
-             tools; then any card a plugin adds to the tab, and how the background work runs (set once, read rarely) */ ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
-        <div class="card mb-3">
-            <div class="card-header"><?php echo Text::_('COM_ALFA_TITLE_TASKS'); ?></div>
-            <div class="card-body">
-                <?php if ($this->background['unreadable']) : ?>
-                    <div class="alert alert-warning"><span class="icon-warning" aria-hidden="true"></span>
-                        <?php echo Text::_('COM_ALFA_TASKS_UNREADABLE'); ?></div>
-                <?php else : ?>
-                    <?php $work = $this->background['work']; $deliveries = $this->background['deliveries']; ?>
-                    <p class="mb-1"><?php echo Text::sprintf('COM_ALFA_TOOLS_BACKGROUND_WORK', (int) ($work['running'] ?? 0), (int) ($work['waiting'] ?? 0), (int) ($work['attention'] ?? 0), (int) ($work['finished'] ?? 0)); ?></p>
-                    <p class="text-muted mb-3"><?php echo Text::sprintf('COM_ALFA_TOOLS_BACKGROUND_DELIVERIES', (int) ($deliveries['waiting'] ?? 0) + (int) ($deliveries['running'] ?? 0), (int) ($deliveries['attention'] ?? 0)); ?></p>
-                <?php endif; ?>
-                <a class="btn <?php echo (int) ($this->background['work']['attention'] ?? 0) > 0 ? 'btn-warning' : 'btn-secondary'; ?>" href="<?php echo Route::_('index.php?option=com_alfa&view=tasks'); ?>">
-                    <span class="icon-loop" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_TOOLS_BACKGROUND_BTN'); ?>
-                </a>
-            </div>
-        </div>
-        <?php echo $renderSurface('tasks'); ?>
-        <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php /* GitHub: Commit & Pull Request */ ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'github', Text::_('COM_ALFA_TOOLS_TAB_GITHUB')); ?>
-        <?php echo $this->loadTemplate('devguide'); ?>
-        <?php echo $renderSurface('github'); ?>
-
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php /* Security: file integrity */ ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'integrity', Text::_('COM_ALFA_TOOLS_INTEGRITY_TAB')); ?>
-        <?php /* Official-release verification against the SIGNED CDN checksums.
-                 'modified' = exact-version deviation (alarm); 'ahead' = off-catalog
-                 / customised (calm); 'unreachable' = network state; 'bad_signature'
-                 = do not trust the reference. */ ?>
-        <?php /* Verdict card is built in the View from a fixed-path partial (NOT the
-                 overridable layout system), so a template override cannot fake it. */ ?>
-        <?php echo $this->integrityHtml; ?>
-
-        <?php /* The REST API's endpoints and who may call them: the counts here, the report with its filters on its own page. */ ?>
-        <div class="card mb-3">
-            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TITLE'); ?></div>
-            <div class="card-body">
-                <p class="text-muted mb-3">
-                    <?php if ($this->apiSummary['unreadable']) : ?>
-                        <?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_UNREADABLE'); ?>
-                    <?php else : ?>
-                        <?php echo Text::sprintf('COM_ALFA_TOOLS_API_ROUTES_SUMMARY', $this->apiSummary['addresses'], $this->apiSummary['plugins'], $this->apiSummary['accounts'], $this->apiSummary['superUsers']); ?>
-                    <?php endif; ?>
-                </p>
-                <a class="btn btn-secondary" href="<?php echo Route::_('index.php?option=com_alfa&view=apiroutes'); ?>">
-                    <span class="icon-code" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_TITLE_APIROUTES'); ?>
-                </a>
-            </div>
-        </div>
-
-        <?php echo $renderSurface('integrity'); ?>
-
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php /* Reset and clear: each action opens its own page, which shows what it would change
-             before anything is changed. */ ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'data', Text::_('COM_ALFA_TOOLS_TAB_DATA')); ?>
+        <?php echo $renderSurface('maintenance'); ?>
         <div class="card mb-3">
             <div class="card-header"><?php echo Text::_('COM_ALFA_RESET_TITLE'); ?></div>
             <div class="card-body">
@@ -180,7 +112,64 @@ $toolsUser = Factory::getApplication()->getIdentity();
                 <?php endif; ?>
             </div>
         </div>
-        <?php echo $renderSurface('data'); ?>
+
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Background: how much background work there is, in the words of the Background screen, which lists it and
+             runs its tools; then any card a plugin adds to the tab, and how the background work runs (set once, read
+             rarely) */ ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_BACKGROUND')); ?>
+        <div class="card mb-3">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_TITLE_TASKS'); ?></div>
+            <div class="card-body">
+                <?php if ($this->background['unreadable']) : ?>
+                    <div class="alert alert-warning"><span class="icon-warning" aria-hidden="true"></span>
+                        <?php echo Text::_('COM_ALFA_TASKS_UNREADABLE'); ?></div>
+                <?php else : ?>
+                    <?php $work = $this->background['work']; $deliveries = $this->background['deliveries']; ?>
+                    <p class="mb-1"><?php echo Text::sprintf('COM_ALFA_TOOLS_BACKGROUND_WORK', (int) ($work['running'] ?? 0), (int) ($work['waiting'] ?? 0), (int) ($work['attention'] ?? 0), (int) ($work['finished'] ?? 0)); ?></p>
+                    <p class="text-muted mb-3"><?php echo Text::sprintf('COM_ALFA_TOOLS_BACKGROUND_DELIVERIES', (int) ($deliveries['waiting'] ?? 0) + (int) ($deliveries['running'] ?? 0), (int) ($deliveries['attention'] ?? 0)); ?></p>
+                <?php endif; ?>
+                <a class="btn <?php echo (int) ($this->background['work']['attention'] ?? 0) > 0 ? 'btn-warning' : 'btn-secondary'; ?>" href="<?php echo Route::_('index.php?option=com_alfa&view=tasks'); ?>">
+                    <span class="icon-loop" aria-hidden="true"></span>
+                    <?php echo Text::_('COM_ALFA_TOOLS_BACKGROUND_BTN'); ?>
+                </a>
+            </div>
+        </div>
+        <?php echo $renderSurface('tasks'); ?>
+        <?php echo LayoutHelper::render('tasks.runner', $this->runner + ['newKey' => $this->newCronKey], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Security: file integrity and the REST API's addresses */ ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'security', Text::_('COM_ALFA_TOOLS_TAB_SECURITY')); ?>
+        <?php /* Official-release verification against the SIGNED CDN checksums.
+                 'modified' = exact-version deviation (alarm); 'ahead' = off-catalog
+                 / customised (calm); 'unreachable' = network state; 'bad_signature'
+                 = do not trust the reference. */ ?>
+        <?php /* Verdict card is built in the View from a fixed-path partial (NOT the
+                 overridable layout system), so a template override cannot fake it. */ ?>
+        <?php echo $this->integrityHtml; ?>
+
+        <?php /* The REST API's endpoints and who may call them: the counts here, the report with its filters on its own page. */ ?>
+        <div class="card mb-3">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_TITLE'); ?></div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    <?php if ($this->apiSummary['unreadable']) : ?>
+                        <?php echo Text::_('COM_ALFA_TOOLS_API_ROUTES_UNREADABLE'); ?>
+                    <?php else : ?>
+                        <?php echo Text::sprintf('COM_ALFA_TOOLS_API_ROUTES_SUMMARY', $this->apiSummary['addresses'], $this->apiSummary['plugins'], $this->apiSummary['accounts'], $this->apiSummary['superUsers']); ?>
+                    <?php endif; ?>
+                </p>
+                <a class="btn btn-secondary" href="<?php echo Route::_('index.php?option=com_alfa&view=apiroutes'); ?>">
+                    <span class="icon-code" aria-hidden="true"></span>
+                    <?php echo Text::_('COM_ALFA_TITLE_APIROUTES'); ?>
+                </a>
+            </div>
+        </div>
+
+        <?php echo $renderSurface('security'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
@@ -199,6 +188,15 @@ $toolsUser = Factory::getApplication()->getIdentity();
         <?php echo $renderSurface('extensions'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Development: the contribution guide with the package export, and the tools for whoever changes the code */ ?>
+    <?php if ($showDevelopment) : ?>
+        <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'development', Text::_('COM_ALFA_TOOLS_TAB_DEVELOPMENT')); ?>
+            <?php echo $this->loadTemplate('devguide'); ?>
+            <?php echo $renderSurface('development'); ?>
+
+        <?php echo HTMLHelper::_('uitab.endTab'); ?>
+    <?php endif; ?>
 
     <?php /* Tabs opened by plugins, for surfaces no core tab renders */ ?>
     <?php foreach (ToolRegistry::extraSurfaces($coreSurfaces) as $surface => $surfaceActions) : ?>

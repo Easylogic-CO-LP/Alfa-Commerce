@@ -233,47 +233,137 @@
         }
     };
 
-    // Sale on the price: the discount it gives, as a share of the price it
-    // replaces (the net when the sale pins the net, the price with taxes when
-    // it pins the final), under the sale input. A warning colour when it takes
-    // more than half the price, or when the sale is above the price (a net sale
-    // above the net is what the save refuses).
-    const updateSalePercent = (row) => {
-        const line = row.querySelector('[data-price-sale-percent]');
-
-        if (!line) {
-            return;
-        }
-
+    // The price a sale replaces: the net when the sale pins the net, the price
+    // with taxes when it pins the final (none while the row's tax is not known
+    // yet: the with-tax box is shut). NaN when there is no such price.
+    const saleBase = (row) => {
         const type = row.querySelector('[data-price-override-type]:checked')?.value || '';
-        const sale = parseFloat(row.querySelector('[data-price-override]')?.value);
         const net = parseFloat(row.querySelector('[data-price-value]')?.value);
-        const c = calc(row);
-        const price = type === 'final' ? net * c.tax : net;
 
-        if ((type !== 'start' && type !== 'final') || Number.isNaN(sale) || Number.isNaN(price) || price <= 0) {
-            line.hidden = true;
-            line.textContent = '';
-            line.classList.remove('text-warning');
+        if ((type !== 'start' && type !== 'final') || Number.isNaN(net) || net <= 0) {
+            return NaN;
+        }
+
+        if (type === 'final') {
+            const final = row.querySelector('[data-price-final]');
+
+            return final && final.disabled ? NaN : net * calc(row).tax;
+        }
+
+        return net;
+    };
+
+    // Which input of the sale the merchant types in, amount or percent; the other follows it. Kept on the row,
+    // never posted: the amount is what is stored, the percent is a helper for typing.
+    const saleBy = (row) => (row.dataset.saleBy === 'percent' ? 'percent' : 'amount');
+
+    // Draw the row's choice: the cycle button names it, the follower input is read-only, and the hint that the
+    // amount is what is stored shows while the percent is typed.
+    const applySaleBy = (row) => {
+        const by = saleBy(row);
+        const amount = row.querySelector('[data-price-override]');
+        const percent = row.querySelector('[data-price-sale-percent]');
+        const button = row.querySelector('[data-price-sale-by-cycle]');
+        const hint = row.querySelector('[data-price-sale-by-hint]');
+
+        if (amount) {
+            amount.readOnly = by === 'percent';
+        }
+
+        if (percent) {
+            percent.readOnly = by === 'amount';
+        }
+
+        if (button) {
+            const label = button.dataset[by === 'percent' ? 'labelPercent' : 'labelAmount'] || by;
+
+            button.textContent = label;
+            button.title = label;
+        }
+
+        if (hint) {
+            hint.hidden = by !== 'percent';
+        }
+    };
+
+    // The percent follows the amount: the share the sale takes off the price it replaces fills the percent input,
+    // and that input's label names the price. The label warns when the sale takes more than half the price, or when
+    // the sale is above the price (a net sale above the net is what the save refuses). No price to take it off: the
+    // input is empty and the label plain. With writeValue false only the label is refreshed, for the percent the
+    // merchant is typing right now.
+    const updateSalePercent = (row, writeValue = true) => {
+        const percent = row.querySelector('[data-price-sale-percent]');
+        const label = row.querySelector('[data-price-sale-percent-label]');
+
+        if (!percent || !label) {
+            return;
+        }
+
+        const base = saleBase(row);
+        const sale = parseFloat(row.querySelector('[data-price-override]')?.value);
+        const c = calc(row);
+
+        if (Number.isNaN(base)) {
+            if (writeValue) {
+                percent.value = '';
+            }
+
+            label.textContent = Joomla.Text._('COM_ALFA_PRICES_SALE_BY_PERCENT');
+            label.classList.remove('text-warning');
 
             return;
         }
 
-        const share = ((price - sale) / price) * 100;
+        label.textContent = Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT_OF').replace('%s', base.toFixed(c.dec));
 
-        line.textContent = Joomla.Text._('COM_ALFA_PRICES_SALE_PERCENT')
-            .replace('%1$s', share.toFixed(1).replace(/\.0$/, ''))
-            .replace('%2$s', price.toFixed(c.dec))
-            .replace('%%', '%');
-        line.classList.toggle('text-warning', share > 50 || share < 0);
-        line.hidden = false;
+        if (Number.isNaN(sale)) {
+            if (writeValue) {
+                percent.value = '';
+            }
+
+            label.classList.remove('text-warning');
+
+            return;
+        }
+
+        const share = ((base - sale) / base) * 100;
+
+        if (writeValue) {
+            percent.value = String(Number(share.toFixed(2)));
+        }
+
+        label.classList.toggle('text-warning', share > 50 || share < 0);
+    };
+
+    // The amount follows a typed percent: the price the sale replaces less that share, rounded to the row's
+    // decimals. A cleared percent clears the amount; without a price to take the share off, nothing is computed.
+    const updateSaleAmount = (row) => {
+        const amount = row.querySelector('[data-price-override]');
+        const percent = row.querySelector('[data-price-sale-percent]');
+
+        if (!amount || !percent) {
+            return;
+        }
+
+        if (percent.value === '') {
+            amount.value = '';
+
+            return;
+        }
+
+        const base = saleBase(row);
+        const share = parseFloat(percent.value);
+
+        if (Number.isNaN(base) || Number.isNaN(share)) {
+            return;
+        }
+
+        amount.value = (base * (1 - share / 100)).toFixed(calc(row).dec);
     };
 
     // Custom discount hint: the computed other end of the pinned price.
     // Starting shows the resulting final (taxes on top), Final shows the net.
     const updateOverrideHint = (row) => {
-        updateSalePercent(row);
-
         const hint = row.querySelector('[data-price-override-hint]');
 
         if (!hint) {
@@ -304,7 +394,20 @@
             return;
         }
 
+        // The sale amount typed: the percent follows it.
         if (field.matches('[data-price-override]')) {
+            updateSalePercent(row);
+            updateOverrideHint(row);
+            refreshCurrent(row);
+
+            return;
+        }
+
+        // The sale percent typed: the amount follows it, and everything that reads the amount; the typed percent
+        // stays as typed (the rounded amount would give it back with more digits), only its label is refreshed.
+        if (field.matches('[data-price-sale-percent]')) {
+            updateSaleAmount(row);
+            updateSalePercent(row, false);
             updateOverrideHint(row);
             refreshCurrent(row);
 
@@ -376,6 +479,7 @@
             refreshAdjustFigures(row);
         }
 
+        updateSalePercent(row);
         updateOverrideHint(row);
 
         const taxes = preview.taxes || [];
@@ -522,6 +626,9 @@
                 final.title = message;
             }
         }
+
+        // A pinned final price has no price to take its percent off while the tax is not known.
+        updateSalePercent(row);
     };
 
     const refreshPreview = async (row, root) => {
@@ -615,7 +722,16 @@
             }
 
             const overrideRow = overrideType.closest('.price-row');
+            const saleBlock = overrideRow.querySelector('[data-price-sale]');
+
+            // The sale's inputs show only while the discount is on.
+            if (saleBlock) {
+                saleBlock.hidden = overrideType.value === '';
+            }
+
             overrideRow.dataset.override = overrideType.value;
+            // The price the sale replaces changed (none, the net, the price with taxes): the percent follows.
+            updateSalePercent(overrideRow);
             updateOverrideHint(overrideRow);
             refreshCurrent(overrideRow);
 
@@ -712,6 +828,10 @@
             }
         }
 
+        // The copy types its sale the way the source does (the percent itself is derived again from the copied amount).
+        target.dataset.saleBy = saleBy(source);
+        applySaleBy(target);
+
         // Re-derive the presentation state from the copied values: mode attr,
         // override enable/step/hint, final twin + today figure, and fresh
         // engine coefficients for the copied dimensions.
@@ -736,6 +856,19 @@
             modeCycle.textContent = label;
             modeCycle.title = label;
             hidden.dispatchEvent(new Event('change', { bubbles: true }));
+
+            return;
+        }
+
+        // Sale cycler (amount <-> percent): which input of the sale the merchant types in; the other follows.
+        const saleCycle = event.target.closest('[data-price-sale-by-cycle]');
+
+        if (saleCycle && saleCycle.closest('.alfa-prices')) {
+            const saleRow = saleCycle.closest('.price-row');
+
+            saleRow.dataset.saleBy = saleBy(saleRow) === 'percent' ? 'amount' : 'percent';
+            applySaleBy(saleRow);
+            saleRow.querySelector(saleBy(saleRow) === 'percent' ? '[data-price-sale-percent]' : '[data-price-override]')?.focus();
 
             return;
         }

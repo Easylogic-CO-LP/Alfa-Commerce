@@ -177,16 +177,21 @@ if ($overrideOn === 'final') {
     $overrideHint = Text::_('COM_ALFA_PRICES_FINAL') . ': ' . $money((float) $override * $taxFactor, $decimals);
 }
 
-// The discount a sale gives, as a share of the price it replaces, shown under the sale input: the net price when
-// the sale pins the net, the price with taxes when it pins the final. Drawn as a warning when it takes more than
-// half the price, or when the sale is above the price (a net sale above the net is what the save refuses).
+// The discount a sale gives, as a share of the price it replaces: the net price when the sale pins the net, the
+// price with taxes when it pins the final. It fills the percent input beside the sale amount, and that input's
+// label names the price it is taken off. The label warns when the sale takes more than half the price, or when
+// the sale is above the price (a net sale above the net is what the save refuses). The percent is a helper for
+// typing: the amount is what is stored, so a later change of the price does not move the sale. Without a price to
+// take it off (a pinned final price while the item's tax is not known yet) the input is empty and the label plain.
 $salePercent = '';
+$salePercentLabel = Text::_('COM_ALFA_PRICES_SALE_BY_PERCENT');
 $salePercentWarns = false;
 
 if (\in_array($overrideOn, ['start', 'final'], true) && $value !== '' && (float) $value > 0 && ($overrideOn === 'start' || $taxKnown)) {
     $replaced = $overrideOn === 'final' ? (float) $value * $taxFactor : (float) $value;
     $share = (($replaced - (float) $override) / $replaced) * 100;
-    $salePercent = Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT', rtrim(rtrim(number_format($share, 1, '.', ''), '0'), '.'), $money($replaced, $decimals));
+    $salePercent = $typed(number_format($share, 2, '.', ''));
+    $salePercentLabel = Text::sprintf('COM_ALFA_PRICES_SALE_PERCENT_OF', $money($replaced, $decimals));
     $salePercentWarns = $share > 50 || $share < 0;
 }
 
@@ -223,7 +228,7 @@ $selectHtml = static function (string $name, string $id, array $list, $current, 
 $calendarForm = PriceRowDates::form(control: $base, row: $row);
 ?>
 <div class="price-row" data-mode="<?php echo $esc($mode); ?>"
-     data-override="<?php echo $override !== '' ? $esc($overrideType) : ''; ?>"
+     data-override="<?php echo $override !== '' ? $esc($overrideType) : ''; ?>" data-sale-by="amount"
      data-calc-a="<?php echo $esc($calcA); ?>" data-calc-b="<?php echo $esc($calcB); ?>"
      data-tax-factor="<?php echo $esc($taxFactor); ?>" data-decimals="<?php echo $decimals; ?>"
      data-base-net="<?php echo $esc($baseNet); ?>"
@@ -341,14 +346,37 @@ $calendarForm = PriceRowDates::form(control: $base, row: $row);
                         <span><?php echo Text::_('COM_ALFA_PRICES_OVERRIDE_FINAL'); ?></span>
                     </label>
                 </div>
-                <!-- A pinned FINAL price is customer-facing money: whole
-                     cents only. The net variant keeps 4-decimal precision. -->
-                <input type="number" step="<?php echo $storedStep; ?>"
-                       name="<?php echo $esc($base); ?>[override_value]" id="<?php echo $esc($idBase . '_override_value'); ?>"
-                       value="<?php echo $esc($override); ?>" class="form-control form-control-sm mt-1"
-                       data-price-override placeholder="-" <?php echo $overrideOn === '' ? 'disabled' : ''; ?>>
-                <div class="override-hint" data-price-override-hint <?php echo $overrideHint === '' ? 'hidden' : ''; ?>><?php echo $esc($overrideHint); ?></div>
-                <span class="override-hint sale-percent<?php echo $salePercentWarns ? ' text-warning' : ''; ?>" data-price-sale-percent <?php echo $salePercent === '' ? 'hidden' : ''; ?>><?php echo $esc($salePercent); ?></span>
+                <!-- The sale, typed as an amount or as a percent off the price it
+                     replaces. The cycle button says which of the two inputs the
+                     merchant types in; the other is read-only and follows. Only the
+                     amount is posted: the percent is a helper, never stored. The
+                     whole block shows only while the discount is on. -->
+                <div class="sale-by" data-price-sale<?php echo $overrideOn === '' ? ' hidden' : ''; ?>>
+                    <span class="op-cycle sale-by-cycle">
+                        <button type="button" data-price-sale-by-cycle
+                                data-label-amount="<?php echo $esc(Text::_('COM_ALFA_PRICES_SALE_BY_AMOUNT')); ?>"
+                                data-label-percent="<?php echo $esc(Text::_('COM_ALFA_PRICES_SALE_BY_PERCENT')); ?>"
+                                title="<?php echo $esc(Text::_('COM_ALFA_PRICES_SALE_BY_AMOUNT')); ?>"><?php echo Text::_('COM_ALFA_PRICES_SALE_BY_AMOUNT'); ?></button>
+                    </span>
+                    <div class="sale-pair">
+                        <div>
+                            <label for="<?php echo $esc($idBase . '_override_value'); ?>"><?php echo Text::_('COM_ALFA_PRICES_SALE_BY_AMOUNT'); ?></label>
+                            <!-- Posted as typed, to eight places: the save judges it. -->
+                            <input type="number" step="<?php echo $storedStep; ?>"
+                                   name="<?php echo $esc($base); ?>[override_value]" id="<?php echo $esc($idBase . '_override_value'); ?>"
+                                   value="<?php echo $esc($override); ?>" class="form-control form-control-sm"
+                                   data-price-override placeholder="-" <?php echo $overrideOn === '' ? 'disabled' : ''; ?>>
+                        </div>
+                        <div>
+                            <label for="<?php echo $esc($idBase . '_sale_percent'); ?>"<?php echo $salePercentWarns ? ' class="text-warning"' : ''; ?> data-price-sale-percent-label><?php echo $esc($salePercentLabel); ?></label>
+                            <input type="number" step="0.01" id="<?php echo $esc($idBase . '_sale_percent'); ?>"
+                                   value="<?php echo $esc($salePercent); ?>" class="form-control form-control-sm"
+                                   data-price-sale-percent placeholder="-" readonly>
+                        </div>
+                    </div>
+                    <div class="override-hint" data-price-override-hint <?php echo $overrideHint === '' ? 'hidden' : ''; ?>><?php echo $esc($overrideHint); ?></div>
+                    <div class="override-hint" data-price-sale-by-hint hidden><?php echo Text::_('COM_ALFA_PRICES_SALE_BY_PERCENT_HINT'); ?></div>
+                </div>
             </div>
 
         </div>
