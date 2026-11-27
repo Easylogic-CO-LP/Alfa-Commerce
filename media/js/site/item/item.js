@@ -160,7 +160,7 @@ function navigation(slider) {
     function arrowButton(side) {
         var button = document.createElement("button")
         button.type = "button"
-        button.className = "alfa-slider-arrow alfa-slider-arrow--" + side
+        button.className = "alfa-slider-arrow alfa-slider-arrow-" + side
         button.setAttribute("aria-label", Joomla.Text._(side === "prev" ? "COM_ALFA_CARD_IMAGES_PREVIOUS" : "COM_ALFA_CARD_IMAGES_NEXT"))
         button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="' + (side === "prev" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6") + '"/></svg>'
         return button

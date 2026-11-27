@@ -194,11 +194,11 @@
     cursor: pointer;
 }
 
-.alfa-slider-arrow--prev {
+.alfa-slider-arrow-prev {
     inset-inline-start: 0.25rem;
 }
 
-.alfa-slider-arrow--next {
+.alfa-slider-arrow-next {
     inset-inline-end: 0.25rem;
 }
 

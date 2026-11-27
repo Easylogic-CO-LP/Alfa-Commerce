@@ -61,11 +61,11 @@ $count = \count($slides);
             <?php endforeach; ?>
         </div>
 
-        <button type="button" class="alfa-slider-arrow alfa-slider-arrow--prev" data-action="card-slider-prev"
+        <button type="button" class="alfa-slider-arrow alfa-slider-arrow-prev" data-action="card-slider-prev"
                 aria-label="<?php echo $this->escape(Text::_('COM_ALFA_CARD_IMAGES_PREVIOUS')); ?>" aria-disabled="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <button type="button" class="alfa-slider-arrow alfa-slider-arrow--next" data-action="card-slider-next"
+        <button type="button" class="alfa-slider-arrow alfa-slider-arrow-next" data-action="card-slider-next"
                 aria-label="<?php echo $this->escape(Text::_('COM_ALFA_CARD_IMAGES_NEXT')); ?>" aria-disabled="false">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg>
         </button>
