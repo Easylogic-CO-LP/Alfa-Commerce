@@ -13,7 +13,6 @@ namespace Alfa\Component\Alfa\Administrator\View\User;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -47,7 +46,7 @@ class HtmlView extends FormView
     }
 
     /**
-     * Prepare the view: add the 'task' and base64 'return' control fields to the form.
+     * Prepare the view: add the 'task' control field to the form; the form's layout carries the return address.
      *
      * @return void
      *
@@ -57,12 +56,9 @@ class HtmlView extends FormView
     {
         parent::initializeView();
 
-        $input = Factory::getApplication()->getInput();
-
         // Add form control fields
         $this->form
-            ->addControlField('task', '')
-            ->addControlField('return', RequestScalar::read($input, 'return', '', 'base64'));
+            ->addControlField('task', '');
     }
 
     /**

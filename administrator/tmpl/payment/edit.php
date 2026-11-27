@@ -14,6 +14,7 @@ use \Joomla\CMS\Factory;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Layout\LayoutHelper;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
@@ -83,5 +84,6 @@ $fieldsets = $this->form->getFieldsets();
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
 	<?php echo $this->form->renderControlFields(); ?>
+	<?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
 </form>

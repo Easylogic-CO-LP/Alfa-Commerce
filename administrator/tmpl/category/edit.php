@@ -151,4 +151,5 @@
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
     <?php echo $this->form->renderControlFields(); ?>
+    <?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 </form>
