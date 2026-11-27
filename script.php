@@ -214,6 +214,9 @@ class com_alfaInstallerScript extends InstallerScript
      */
     private const NEW_TABLES = [
         '#__alfa_items_shipments',
+        '#__alfa_discount_items',
+        '#__alfa_discount_excluded_items',
+        '#__alfa_discount_excluded_categories',
     ];
 
     /**
@@ -235,6 +238,15 @@ class com_alfaInstallerScript extends InstallerScript
             'opening_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination the product''s listing card opens on (the card''s own rule over its published combinations and their stock verdicts); 0 = none. Kept by the inventory commands, the price index writer and the stock settings'", 'projection_dirty_at'],
             'price_combination_id' => ["int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'The combination whose price the listing card shows: the opening combination when it has price rows of its own, else 0 (the product''s own price). Kept with opening_combination_id; the listing reads its price index row by it'", 'opening_combination_id'],
             'commerce_changed_at' => ["datetime(6) NULL DEFAULT NULL COMMENT 'UTC: when the product stock, prices, a price period that began, or the product itself last changed; the REST API filter[changed_since]'", 'modified'],
+            'discount_rules' => ["tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = the discount rules apply; 0 = excluded from every discount rule, whatever the rules say'", 'is_virtual'],
+            'created' => ["datetime DEFAULT NULL COMMENT 'UTC: when the product was made; NULL on a product made before the date was kept, which is then never new'", 'created_by'],
+        ],
+        '#__alfa_item_combinations' => [
+            'discount_rules' => ["tinyint(1) DEFAULT NULL COMMENT 'NULL = as the product; 1 = the discount rules apply; 0 = excluded from every discount rule'", 'min_qty'],
+        ],
+        '#__alfa_discounts' => [
+            'new_products' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 = reaches new products; 1 = leaves out products new within the shop''s days (Options > General > Products); 2 = leaves out products new within new_days'", 'apply_before_tax'],
+            'new_days' => ["int(11) NOT NULL DEFAULT 0 COMMENT 'The rule''s own days a product counts as new for, when new_products is 2; else 0'", 'new_products'],
         ],
         '#__alfa_item_field_values' => [
             'code' => ["varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none'", 'item_field_id'],
