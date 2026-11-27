@@ -1832,7 +1832,13 @@
 
     const firstCard = () => document.querySelector('[data-media-grid] .media-card:not(.is-deleted)');
 
-    if (previewAside()) {
+    // The script is read in the head, before the tab's markup exists: the aside is looked for once the document
+    // is there, as the grid's other initialisers do.
+    const initImagePreview = () => {
+        if (!previewAside()) {
+            return;
+        }
+
         previewCard(firstCard());
 
         ['click', 'focusin'].forEach((type) => document.addEventListener(type, (event) => {
@@ -1861,5 +1867,11 @@
                 previewCard(shown && grid.contains(shown) ? shown : firstCard());
             }).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
         }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initImagePreview);
+    } else {
+        initImagePreview();
     }
 })();

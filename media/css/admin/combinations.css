@@ -723,12 +723,12 @@ body:has(.alfa-studio) {
 /* Image column: the variant's first image with how many more it has, or a small drop zone for a variant
    without one. One fixed size, so the row stays one line high. */
 .alfa-combinations .variant-image-cell {
-  width: 3.75rem;
+  width: 4.25rem;
 }
 
 .alfa-combinations .variant-image {
   position: relative;
-  width: 44px;
+  width: 56px;
 }
 
 .alfa-combinations .variant-image-open {
@@ -749,8 +749,8 @@ body:has(.alfa-studio) {
 
 .alfa-combinations .variant-image-open img {
   display: block;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   object-fit: cover;
   border-radius: 3px;
 }
@@ -773,27 +773,28 @@ body:has(.alfa-studio) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.1rem;
-  width: 44px;
-  height: 44px;
+  gap: 0.15rem;
+  width: 56px;
+  height: 56px;
   margin: 0;
-  border: 1px dashed var(--alfa-line);
+  padding: 0 0.15rem;
+  border: 1px dashed var(--alfa-ink-soft);
   border-radius: 4px;
-  color: var(--alfa-ink-soft);
+  color: var(--alfa-ink);
   background: var(--alfa-canvas);
   cursor: pointer;
 }
 
 .alfa-combinations .variant-image-drop .icon-upload {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
+/* Readable in the cell: 11px, two short lines at most, the ink's own colour. */
 .alfa-combinations .variant-image-drop-text {
-  font-size: 0.5rem;
-  line-height: 1;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
   text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
 .alfa-combinations .variant-image-drop:hover,
@@ -813,18 +814,18 @@ body:has(.alfa-studio) {
    size, so the first image stays readable while the other cells shrink. */
 @media (max-width: 575.98px) {
   .alfa-combinations .variant-image-cell {
-    min-width: 3.75rem;
+    min-width: 4.25rem;
   }
 
   .alfa-combinations .variant-image,
   .alfa-combinations .variant-image-open img,
   .alfa-combinations .variant-image-drop {
-    width: 44px;
+    width: 56px;
   }
 
   .alfa-combinations .variant-image-open img,
   .alfa-combinations .variant-image-drop {
-    height: 44px;
+    height: 56px;
   }
 }
 

@@ -35,7 +35,7 @@ $label = (string) ($label ?? '');
     <button type="button" class="variant-image-open" data-studio-images
             title="<?php echo $escape(Text::sprintf('COM_ALFA_COMBINATION_IMAGE_OPEN', $label)); ?>">
         <img src="<?php echo $escape((string) $first->thumbnail_url); ?>"
-             alt="<?php echo $escape((string) ($first->alt ?: $label)); ?>" width="44" height="44" loading="lazy">
+             alt="<?php echo $escape((string) ($first->alt ?: $label)); ?>" width="56" height="56" loading="lazy">
         <?php if ($mediaCount > 1) : ?>
             <span class="variant-image-more"><?php echo $escape(Text::sprintf('COM_ALFA_COMBINATION_IMAGE_MORE', $mediaCount - 1)); ?></span>
         <?php endif; ?>
