@@ -132,6 +132,7 @@ class DocumentseriesModel extends AlfaListModel
         $orderCol = $this->state->get('list.ordering', 'a.doc_type');
         $orderDirn = $this->state->get('list.direction', 'ASC');
         $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
+        $this->orderByKeyLast($query, (string) $orderCol, (string) $orderDirn);
 
         return $query;
     }

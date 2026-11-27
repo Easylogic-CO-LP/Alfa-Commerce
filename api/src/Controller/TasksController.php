@@ -49,20 +49,6 @@ class TasksController extends ApiController
     public const RETRY_AFTER_SECONDS = 5;
 
     /**
-     * The most tasks one page of the list holds.
-     *
-     * @since  2.2.0
-     */
-    private const PAGE_MAX = 100;
-
-    /**
-     * The tasks a page holds when the caller names no page[limit].
-     *
-     * @since  2.2.0
-     */
-    private const PAGE_DEFAULT = 20;
-
-    /**
      * The content type of the item.
      *
      * @var string
@@ -98,12 +84,8 @@ class TasksController extends ApiController
             }
         }
 
-        // Joomla's displayList() reads page[limit] and page[offset] from the input and sets them as given, so the capped
-        // values are written there: an absent, non-numeric or lower limit is the default, a higher one the most.
-        $page = $this->input->get('page', [], 'array');
-        $limit = is_numeric($page['limit'] ?? null) ? (int) $page['limit'] : self::PAGE_DEFAULT;
-        $offset = is_numeric($page['offset'] ?? null) ? max(0, (int) $page['offset']) : 0;
-        $this->input->set('page', ['limit' => $limit < 1 ? self::PAGE_DEFAULT : min(self::PAGE_MAX, $limit), 'offset' => $offset]);
+        $this->boundListPage();
+
         // The list's model, chosen here and never by the caller (the guards clear any ?model=): the documents' list,
         // not the Background screen's, which reads the same rows for staff.
         $this->input->set('model', 'taskdocuments');

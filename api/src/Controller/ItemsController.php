@@ -310,7 +310,8 @@ class ItemsController extends ApiController
      * Items list view amended to add filtering of data
      *
      * Each filter goes onto the model state under the name the items screen's filter form gives it, and the list
-     * model applies it as it does for the screen (stock: in, low or out; fields: the item field values).
+     * model applies it as it does for the screen (stock: in, low or out; fields: the item field values). A page holds
+     * at most {@see HasApiGuards::LIST_PAGE_MOST} items ({@see HasApiGuards::boundListPage()}).
      *
      * @return static A BaseController object to support chaining.
      *
@@ -318,6 +319,8 @@ class ItemsController extends ApiController
      */
     public function displayList()
     {
+        $this->boundListPage();
+
         $apiFilterInfo = $this->input->get('filter', [], 'array');
         $filter = InputFilter::getInstance();
 

@@ -17,12 +17,14 @@ use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 
 /**
- * What a saved discount rule reaches, for its form's Reach card: how many published products its categories and
- * manufacturers take in, with the product list narrowed to them; how many products of its manufacturers its categories
- * leave out, when it names both; the other rules it combines with on a product, each with the count; and how many
- * products of its scope it never reaches, excluded by the rule or on their own (DiscountExclusions). Counted over
- * the catalogue's scope links, never by pricing a product: the places, customer groups and customers of a rule narrow
- * the shoppers, not the products, so they are not part of the counts.
+ * What a saved discount rule reaches, for its form's Reach card: how many published products it reaches today, as
+ * the prices apply it (its categories, manufacturers and products take the product in, and neither the rule's
+ * exclusions, nor the product's own switch, nor the rule's new-products choice leaves it out: RuleReach), with the
+ * product list narrowed to exactly them; how many products of its manufacturers its categories leave out, when it
+ * names both; the other rules it combines with on a product, each with the count; and how many products of its scope
+ * it never reaches, excluded by the rule or on their own (DiscountExclusions). Counted over the catalogue's links,
+ * never by pricing a product: the places, customer groups and customers of a rule narrow the shoppers, not the
+ * products, so they are not part of the counts.
  *
  * Two rules stack on a product when both reach it and both combine or compound (behaviour 1 or 2): a rule set to
  * "only this" replaces the rules before it and ends the chain, so it stacks with none. Every other published rule in
@@ -78,16 +80,9 @@ final class DiscountReach
 
         $reaches = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $items . ' WHERE ' . $published . ' AND ' . $own)->loadResult();
 
-        // The product list narrowed to the rule's scope: the same links the count read, as that list's own filters.
-        $filter = ['state' => 1];
-
-        if ($categories !== null) {
-            $filter['category'] = $categories;
-        }
-
-        if ($manufacturers !== null) {
-            $filter['manufacturer'] = $manufacturers;
-        }
+        // The product list narrowed to the published products the rule reaches: that list's rule filter reads the
+        // condition the count read.
+        $filter = ['state' => 1, 'discount' => $discountId];
 
         $list = static fn (array $filter): string => Route::_('index.php?option=com_alfa&view=items&' . http_build_query(['filter' => $filter]), false);
 

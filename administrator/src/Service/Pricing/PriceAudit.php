@@ -439,7 +439,7 @@ final class PriceAudit
                 'SELECT ' . $db->quoteName('a.id') . ' FROM ' . $db->quoteName('#__alfa_items', 'a')
                 . ' WHERE ' . $db->quoteName('a.id') . ' IN (' . implode(',', $itemIds) . ')'
                 . ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_discounts', 'd') . ' WHERE ' . $this->activeDiscountSql()
-                . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $this->context['groups']) . ')',
+                . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $this->context['groups'], now: $this->now) . ')',
             )->loadColumn() ?: []));
         }
 
@@ -747,11 +747,11 @@ final class PriceAudit
             case self::SECTION_UNTAXED:
                 return '(SELECT ' . $db->quoteName('a.id', 'item_id') . ' FROM ' . $items . ' WHERE ' . $published
                     . ' AND NOT EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_taxes', 't') . ' WHERE ' . $this->activeTaxSql()
-                    . ' AND ' . RuleReach::sql(kind: RuleReach::TAX, ruleId: $db->quoteName('t.id'), itemId: $db->quoteName('a.id'), groupIds: $this->context['groups']) . '))';
+                    . ' AND ' . RuleReach::sql(kind: RuleReach::TAX, ruleId: $db->quoteName('t.id'), itemId: $db->quoteName('a.id'), groupIds: $this->context['groups'], now: $this->now) . '))';
 
             case self::SECTION_STACKED:
                 $reaching = ' FROM ' . $db->quoteName('#__alfa_discounts', 'd') . ' WHERE ' . $this->activeDiscountSql()
-                    . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $this->context['groups']);
+                    . ' AND ' . RuleReach::sql(kind: RuleReach::DISCOUNT, ruleId: $db->quoteName('d.id'), itemId: $db->quoteName('a.id'), groupIds: $this->context['groups'], now: $this->now);
 
                 return '(SELECT ' . $db->quoteName('a.id', 'item_id') . ', ' . $db->quoteName('i.discount_percent')
                     . ', (SELECT GROUP_CONCAT(' . $db->quoteName('d.id') . ' ORDER BY ' . $db->quoteName('d.ordering') . ', ' . $db->quoteName('d.id') . ')' . $reaching . ') AS rule_ids'

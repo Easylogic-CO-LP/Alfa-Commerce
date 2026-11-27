@@ -867,6 +867,14 @@ class OrderModel extends AlfaAdminModel
     public const LOADED_STATUS_KEY = 'loaded_status';
 
     /**
+     * The most history entries the order screen shows, the newest: a display limit. The screen says how many the order
+     * has when it has more ({@see self::countOrderActivity()}).
+     *
+     * @since 2.3.0
+     */
+    public const HISTORY_SHOWN = 100;
+
+    /**
      * "Different invoice details" as the form getForm() last built shows it.
      *
      * @var bool|null Null until a form is built.
@@ -1089,6 +1097,19 @@ class OrderModel extends AlfaAdminModel
         // form's ticked box, or a REST PATCH) keeps it, as 1 or 0, for save() to read as its choice about the invoice.
         if (\is_array($valid) && \array_key_exists('invoice_differs', $data)) {
             $valid['invoice_differs'] = empty($data['invoice_differs']) ? 0 : 1;
+        }
+
+        // The e-mail box of a status change is a tick box, and an unticked box posts nothing. The order screen posts
+        // its status block whole, so on a form that carries the box its absence is the operator's "no e-mail for
+        // this change", handed to save() as 0. A writer whose omitted keys mean "unchanged" (the REST API) says
+        // nothing by leaving it out, and the status decides.
+        if (
+            \is_array($valid)
+            && !$this->keepsOmittedDetails()
+            && !\array_key_exists('status_notify', $valid)
+            && $form->getField('status_notify') !== false
+        ) {
+            $valid['status_notify'] = 0;
         }
 
         // silent is not a field of the form either: a creation that states it (a REST POST) keeps it for save(), which
@@ -4774,8 +4795,9 @@ class OrderModel extends AlfaAdminModel
         $prevOrder = !$isNew ? $this->getItem($pk) : null;
 
         // What the order screen says about the status change it posts: the note to the customer and whether the
-        // customer is e-mailed (absent from a submission that says nothing: the inline list, the API, which leave
-        // the e-mail to the status). Neither is a column, so they are taken off the data here and handed to the
+        // customer is e-mailed: 1 for the ticked box, 0 for the unticked one (validate() writes the 0 an unticked
+        // box does not post). Absent from a submission that says nothing (the inline list, the API), which leaves
+        // the e-mail to the status. Neither is a column, so they are taken off the data here and handed to the
         // change below.
         $customerNote = trim((string) ($data['status_note'] ?? ''));
         $notifyCustomer = \array_key_exists('status_notify', $data) ? !empty($data['status_notify']) : null;
@@ -7118,10 +7140,11 @@ class OrderModel extends AlfaAdminModel
      *
      * @param int $orderId Order ID
      * @param string $eventFilter Filter by event prefix: 'item', 'payment', 'status', '' = all
-     * @param int $limit Max entries
+     * @param int $limit Max entries: by default the display limit of the order's history,
+     *                   {@see self::HISTORY_SHOWN}, whose total countOrderActivity() gives
      * @since  1.0.0
      */
-    public function getOrderActivityLog(int $orderId, string $eventFilter = '', int $limit = 100): array
+    public function getOrderActivityLog(int $orderId, string $eventFilter = '', int $limit = self::HISTORY_SHOWN): array
     {
         $db = $this->getDatabase();
 
@@ -7143,6 +7166,58 @@ class OrderModel extends AlfaAdminModel
         } catch (Exception $e) {
             return [];
         }
+    }
+
+    /**
+     * The history entries of the given events for an order, newest first, all of them: no display limit, for a reader
+     * that wants every entry of those events and not the screen's newest few.
+     *
+     * @param int      $orderId The order.
+     * @param string[] $events  Exact event names, for example order.status_changed.
+     *
+     * @since  2.3.0
+     */
+    public function getOrderActivityByEvents(int $orderId, array $events): array
+    {
+        if ($events === []) {
+            return [];
+        }
+
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true)
+            ->select('*')
+            ->from($db->quoteName('#__alfa_order_activity_log'))
+            ->where($db->quoteName('id_order') . ' = :order')
+            ->whereIn($db->quoteName('event'), $events, ParameterType::STRING)
+            ->order(['created DESC', 'id DESC'])
+            ->bind(':order', $orderId, ParameterType::INTEGER);
+
+        try {
+            return $db->setQuery($query)->loadObjectList() ?: [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * How many history entries an order has: the total the order screen's newest {@see self::HISTORY_SHOWN} are of, so
+     * the screen says when it shows fewer than the order has.
+     *
+     * @param int $orderId The order.
+     *
+     * @since  2.3.0
+     */
+    public function countOrderActivity(int $orderId): int
+    {
+        $db = $this->getDatabase();
+
+        return (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_order_activity_log'))
+                ->where($db->quoteName('id_order') . ' = :order')
+                ->bind(':order', $orderId, ParameterType::INTEGER),
+        )->loadResult();
     }
 
     /**

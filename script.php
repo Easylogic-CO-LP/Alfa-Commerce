@@ -290,6 +290,10 @@ class com_alfaInstallerScript extends InstallerScript
             'owner' => ["varchar(100) NOT NULL DEFAULT '' COMMENT 'Whose work it is: com_alfa, or the plugin that declared it as group.element; never empty once written'", 'finished_at'],
             'result' => ["mediumtext DEFAULT NULL COMMENT 'JSON written with the done settle of an extension task or job, at most 16 KiB; NULL otherwise'", 'owner'],
             'cancel_requested' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT 'job: cancelled while running; the row stays running until its step has ended, then cancelled'", 'result'],
+            'rank' => ["tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'running' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 WHEN 'held' THEN 2 ELSE 3 END) STORED COMMENT 'The Background screen''s order: running, waiting, needs attention, finished; indexed with id'", 'cancel_requested'],
+        ],
+        '#__alfa_outbound_deliveries' => [
+            'rank' => ["tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'pending' THEN 0 WHEN 'dead' THEN 1 ELSE 2 END) STORED COMMENT 'The Background screen''s order: waiting (running while its job runs), given up, finished; indexed with id'", 'dead_at'],
         ],
         '#__alfa_order_payments' => [
             'id_dispute' => ["int(11) DEFAULT NULL COMMENT 'Chargeback or reversal: the dispute that booked this row; written once, by the ledger'", 'id_reversed_payment'],
@@ -306,6 +310,12 @@ class com_alfaInstallerScript extends InstallerScript
     private const NEW_KEYS = [
         '#__alfa_item_field_values' => [
             'uq_field_code' => 'UNIQUE KEY `uq_field_code` (`item_field_id`, `code`)',
+        ],
+        '#__alfa_tasks' => [
+            'idx_rank_id' => 'KEY `idx_rank_id` (`rank`, `id`)',
+        ],
+        '#__alfa_outbound_deliveries' => [
+            'idx_rank_id' => 'KEY `idx_rank_id` (`rank`, `id`)',
         ],
     ];
 
@@ -334,9 +344,10 @@ class com_alfaInstallerScript extends InstallerScript
      * completed order under the arrival address and serve it to the next guest, and every group the component writes
      * (the dashboard's cards, the setup checks, the storefront's category tree, the integrity verdict and the
      * throttles of the notices, the tasks and the stock effects), whose entries the version before computed, and the
-     * group of the bundled items module (mod_alfa_items: its best sellers ranking and its listings). A group
-     * added to the component or to a bundled mod_alfa_ module is added here; the release tests compare this list with
-     * the source.
+     * groups of the bundled items and catalog modules (mod_alfa_items, mod_alfa_catalog: their best sellers rankings
+     * and their listings), and the group of the search module, whose cached copy could hold the search term of the
+     * visitor it was drawn for. A group added to the component or to a bundled mod_alfa_ module is added here; the
+     * release tests compare this list with the source.
      *
      * @var string[]
      * @since 2.2.0
@@ -352,7 +363,22 @@ class com_alfaInstallerScript extends InstallerScript
         'com_alfa.stockeffects',
         'com_alfa.tasks',
         'mod_alfa_items',
+        'mod_alfa_catalog',
+        'mod_alfa_search',
     ];
+
+    /**
+     * The bundled modules Joomla never caches, as core never caches its own search module: what they draw depends on
+     * the request. The filters module draws the page's filters and the search module the visitor's search term in its
+     * box, and Joomla's module cache keys a copy by the module and its settings, not by the request, so one visitor's
+     * copy was served to the next. Their manifests declare no cache setting; a module saved while the manifest declared
+     * one keeps "cache" and "cache_time" among its parameters, which Joomla still reads, so an update drops them
+     * ({@see self::uncacheModules()}).
+     *
+     * @var string[]
+     * @since 2.3.0
+     */
+    public const UNCACHED_MODULES = ['mod_alfa_filters', 'mod_alfa_search'];
 
     // Installer lifecycle hooks
 
@@ -1602,10 +1628,10 @@ class com_alfaInstallerScript extends InstallerScript
             $this->clearRetiredNotices();
         }
 
-        // On update, a filters module saved with a cache setting loses it: the module is never cached.
+        // On update, a filters or search module saved with a cache setting loses it: neither is ever cached.
         if ($type === 'update')
         {
-            $this->uncacheFiltersModules();
+            $this->uncacheModules();
         }
 
         // File integrity is verified online against the signed canonical checksums on the
@@ -2933,16 +2959,14 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * The filters module is never cached: what it draws depends on the page (the category or search it filters, the
-     * filters chosen), and Joomla's module cache would store one copy a module and language for every page. Its
-     * manifest declares no cache setting, so Joomla never caches it; a filters module saved while the manifest declared
-     * one keeps "cache" and "cache_time" among its parameters, which Joomla still reads, so they are dropped from every
-     * filters module here. A failure is written to the maintenance log and the update goes on.
+     * Drop "cache" and "cache_time" from the parameters of every module of {@see self::UNCACHED_MODULES}, so Joomla
+     * never caches one saved while its manifest declared a cache setting. A failure is written to the maintenance log
+     * and the update goes on.
      *
      * @return  void
      * @since   2.3.0
      */
-    private function uncacheFiltersModules(): void
+    private function uncacheModules(): void
     {
         try
         {
@@ -2951,7 +2975,7 @@ class com_alfaInstallerScript extends InstallerScript
                 $db->getQuery(true)
                     ->select($db->quoteName(['id', 'params']))
                     ->from($db->quoteName('#__modules'))
-                    ->where($db->quoteName('module') . ' = ' . $db->quote('mod_alfa_filters'))
+                    ->whereIn($db->quoteName('module'), self::UNCACHED_MODULES, \Joomla\Database\ParameterType::STRING)
             )->loadObjectList() ?: [];
 
             foreach ($rows as $row)
@@ -2975,7 +2999,7 @@ class com_alfaInstallerScript extends InstallerScript
         catch (\Throwable $e)
         {
             self::maintenanceLog(
-                line:     sprintf('Update to %s: the cache setting of the filters modules could not be dropped: %s', self::SCHEMA_VERSION, $e->getMessage()),
+                line:     sprintf('Update to %s: the cache setting of the filters and search modules could not be dropped: %s', self::SCHEMA_VERSION, $e->getMessage()),
                 priority: \Joomla\CMS\Log\Log::WARNING,
             );
         }

@@ -33,32 +33,46 @@ use Joomla\CMS\Factory;
  * the product and its values ones the product offers the visitor, the card must open on what it names, and when the
  * shop hides the product's out-of-stock units the unit it names must be in stock. A link that does not stand, like a
  * product the visitor may not see, is skipped and the next one takes its place. A unit with no price for the visitor
- * shows with no price and no add to cart, as the listing shows a product without one. The links are read once, at
- * most {@see self::READ_MAX}, and handed to onAlfaRelatedResolve ({@see RelatedResolveEvent}), whose listeners may
- * add, remove and reorder them; their products are read in pages of twice the count (at least 8), so a product with
- * many links never loads them all to show a few; a count of 0 reads nothing.
+ * shows with no price and no add to cart, as the listing shows a product without one. The links are read once and
+ * handed to onAlfaRelatedResolve ({@see RelatedResolveEvent}), whose listeners may add, remove and reorder them.
+ *
+ * A numbered count reads at most {@see self::READ_MAX} links and their products in pages of twice the count (at
+ * least 8), so a product with many links never loads them all to show a few; a count of 0 reads nothing.
+ * {@see self::ALL} shows every link the merchant put on the product's Related tab: every link is read, in one
+ * statement, and their products in batches of {@see self::BATCH}, each batch one read of the listing, until the
+ * list ends. What bounds that work is the list itself, which staff write row by row on the product.
  *
  * @since  2.3.0
  */
 final class RelatedProducts
 {
     /**
-     * How many of a product's links are read at most to fill its related products.
+     * How many of a product's links are read at most to fill a numbered count. A safety limit on the read: when a
+     * product's first links of this many do not stand for the visitor, the page shows fewer than the count. It does
+     * not apply to {@see self::ALL}.
      *
      * @since  2.3.0
      */
     public const READ_MAX = 48;
 
     /**
-     * The most a page shows.
+     * The largest numbered count the forms offer; a larger number asked for in code shows this many.
      *
      * @since  2.3.0
      */
     public const SHOWN_MAX = 12;
 
     /**
-     * The count that shows every related product the merchant put on the product's Related tab, in its order, up to
-     * {@see self::SHOWN_MAX}: what a shop that never chose a count shows.
+     * How many linked products one read of the listing takes when every related product is shown. A batch size: a
+     * list longer than this is read in further batches, so reaching it leaves nothing out.
+     *
+     * @since  2.3.0
+     */
+    public const BATCH = 24;
+
+    /**
+     * The count that shows every related product the merchant put on the product's Related tab, in its order: what
+     * a shop that never chose a count shows.
      *
      * @since  2.3.0
      */
@@ -68,7 +82,7 @@ final class RelatedProducts
      * The products to show, decorated by the site ItemsModel, in their order.
      *
      * @param int $itemId The product whose page shows them.
-     * @param int $count How many at most: {@see self::ALL} for every one (up to {@see self::SHOWN_MAX}), 0 for none.
+     * @param int $count How many at most (up to {@see self::SHOWN_MAX}), {@see self::ALL} for every one, 0 for none.
      *
      * @return list<object>
      *
@@ -76,7 +90,8 @@ final class RelatedProducts
      */
     public static function visible(int $itemId, int $count): array
     {
-        $count = $count === self::ALL ? self::SHOWN_MAX : min(self::SHOWN_MAX, $count);
+        $all = $count === self::ALL;
+        $count = $all ? PHP_INT_MAX : min(self::SHOWN_MAX, $count);
 
         if ($itemId <= 0 || $count <= 0) {
             return [];
@@ -88,16 +103,16 @@ final class RelatedProducts
         // are, and a product is shown once.
         $plugins = AlfaPluginHelper::get();
         $plugins->importGroup('alfa');
-        $event = RelatedResolveEvent::of(itemId: $itemId, links: RelatedItems::links(db: $db, itemId: $itemId, limit: self::READ_MAX), count: $count);
+        $event = RelatedResolveEvent::of(itemId: $itemId, links: RelatedItems::links(db: $db, itemId: $itemId, limit: $all ? 0 : self::READ_MAX), count: $count);
         $plugins->dispatchIsolated($event);
-        $links = self::onePerProduct(links: \array_slice($event->links(), 0, self::READ_MAX));
+        $links = self::onePerProduct(links: $all ? $event->links() : \array_slice($event->links(), 0, self::READ_MAX));
 
         if ($links === []) {
             return [];
         }
 
         $factory = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory();
-        $page = max(8, $count * 2);
+        $page = $all ? self::BATCH : max(8, $count * 2);
         $shown = [];
 
         foreach (array_chunk($links, $page) as $chunk) {

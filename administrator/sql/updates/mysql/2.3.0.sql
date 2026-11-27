@@ -526,3 +526,9 @@ ALTER TABLE `#__alfa_items` ADD COLUMN `label_settings` text DEFAULT NULL COMMEN
 ALTER TABLE `#__alfa_discounts` ADD COLUMN `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right' AFTER `tag_class` /** CAN FAIL **/;
 
 ALTER TABLE `#__alfa_meta` MODIFY `value` mediumtext NOT NULL COMMENT 'Its value, e.g. 2.0.0, the download store path, the store protection result or the price check''s stored findings as JSON' /** CAN FAIL **/;
+
+-- The Background screen's order of the tasks and the deliveries, stored and indexed, so the list reads an index instead of sorting the table.
+ALTER TABLE `#__alfa_tasks` ADD COLUMN `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'running' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 WHEN 'held' THEN 2 ELSE 3 END) STORED COMMENT 'The Background screen''s order: running, waiting, needs attention, finished; indexed with id' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_tasks` ADD KEY `idx_rank_id` (`rank`, `id`) /** CAN FAIL **/;
+ALTER TABLE `#__alfa_outbound_deliveries` ADD COLUMN `rank` tinyint UNSIGNED GENERATED ALWAYS AS (CASE `state` WHEN 'pending' THEN 0 WHEN 'dead' THEN 1 ELSE 2 END) STORED COMMENT 'The Background screen''s order: waiting (running while its job runs), given up, finished; indexed with id' /** CAN FAIL **/;
+ALTER TABLE `#__alfa_outbound_deliveries` ADD KEY `idx_rank_id` (`rank`, `id`) /** CAN FAIL **/;

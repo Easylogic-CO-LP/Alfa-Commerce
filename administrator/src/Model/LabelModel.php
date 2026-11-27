@@ -84,11 +84,13 @@ class LabelModel extends AlfaAdminModel
     }
 
     /**
-     * Method to save the form data: the row, then its name per language.
+     * Method to save the form data: the row and its name per language, in one transaction.
      *
      * @param array $data The form data.
      *
      * @return bool True on success, False on error.
+     *
+     * @throws Throwable What ended the transaction; nothing of the save is kept.
      *
      * @since  2.3.0
      */
@@ -105,26 +107,56 @@ class LabelModel extends AlfaAdminModel
         $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
         $isNew = $pk <= 0;
 
-        if (!parent::save($data)) {
+        // Alfa's before-save is asked before the transaction: no plugin code runs under it.
+        $asked = $this->alfaAskSave(data: $data);
+
+        if ($asked === null) {
             return false;
         }
 
-        $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+        // The language tables are extended BEFORE the transaction opens: DDL commits implicitly, and inside it that
+        // would commit the label's row without its name.
+        MultilingualHelper::ensureLangSchemaForData(tableName: '#__alfa_labels', primaryColumnName: 'id_label', data: $data);
 
-        // MULTILINGUAL: the name per language. A label has no alias.
-        MultilingualHelper::saveMultilingualData(
-            currentId:         $currentId,
-            primaryColumnName: 'id_label',
-            tableName:         '#__alfa_labels',
-            data:              $data,
-            aliasFields:       [],
-        );
+        // ONE TRANSACTION for the label's row and its name per language: a save that ends between the two leaves
+        // neither, never a label without a name. onAlfaAdminAfterSave and onContentAfterSave wait for its commit, so a
+        // listener reads the label as saved, name included.
+        $db = $this->alfaDriver();
+        $db->transactionStart(true);
+
+        try {
+            $this->alfaSaveAsked = $asked;
+
+            if (!parent::save($data)) {
+                TransactionState::rollBackLevel(db: $db);
+
+                return false;
+            }
+
+            $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : (int) $pk;
+
+            // MULTILINGUAL: the name per language. A label has no alias.
+            MultilingualHelper::saveMultilingualData(
+                currentId:         $currentId,
+                primaryColumnName: 'id_label',
+                tableName:         '#__alfa_labels',
+                data:              $data,
+                aliasFields:       [],
+            );
+
+            TransactionState::commitLevel(db: $db);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
 
         return true;
     }
 
     /**
-     * Method to delete one or more records, with the rows of the products that tick them and their names.
+     * Method to delete one or more records, with the rows of the products that tick them and their names, in one
+     * transaction.
      *
      * @param array &$pks An array of record primary keys.
      *
@@ -173,19 +205,20 @@ class LabelModel extends AlfaAdminModel
                     ->whereIn($db->quoteName('label_id'), $pks),
             )->execute();
 
+            // MULTILINGUAL: the per-language rows of the deleted labels, with them: a delete that ends here leaves the
+            // labels and their names as they were.
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_label',
+                tableName:         '#__alfa_labels',
+            );
+
             TransactionState::commitLevel(db: $db);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
             throw $e;
         }
-
-        // MULTILINGUAL: remove the per-language rows of the deleted labels.
-        MultilingualHelper::deleteMultilingualData(
-            ids:               $pks,
-            primaryColumnName: 'id_label',
-            tableName:         '#__alfa_labels',
-        );
 
         return true;
     }

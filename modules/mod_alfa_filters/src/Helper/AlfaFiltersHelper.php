@@ -230,7 +230,9 @@ class AlfaFiltersHelper
 
     /**
      * How many products the current filters leave: the number the panel's foot shows, read
-     * by the same items model as the facets, so it is the listing's own total.
+     * by the same items model as the facets, so it is the listing's own total. On the
+     * listing's page the items model answers with the count the view already made for its
+     * pagination, so the panel does not count the products a second time.
      *
      * @return int
      */

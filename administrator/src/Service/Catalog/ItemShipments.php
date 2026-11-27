@@ -307,4 +307,53 @@ final class ItemShipments
                 ->whereIn($db->quoteName('combination_id'), $ids),
         )->execute();
     }
+
+    /**
+     * Remove deleted shipping methods from every product's and combination's list, and count the units that were
+     * limited to those methods alone. With no row left such a product ships with every method and such a combination
+     * as its product does, so the caller tells the operator how many there are.
+     *
+     * Two statements over the list table by its method index, whatever the catalogue's size: the count, then the
+     * delete. Called inside the method delete's transaction, so a failure leaves every list as it was.
+     *
+     * @param DatabaseInterface $db The database.
+     * @param int[] $shipmentIds The deleted shipping methods.
+     *
+     * @return array{items: int, combinations: int} The products and the combinations whose list ended.
+     *
+     * @since  2.3.0
+     */
+    public static function forgetMethods(DatabaseInterface $db, array $shipmentIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $shipmentIds), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            return ['items' => 0, 'combinations' => 0];
+        }
+
+        $list = implode(',', $ids);
+        $table = $db->quoteName('#__alfa_items_shipments');
+
+        // A unit's list ends when it names one of the methods and no other row: a combination's "every method" row
+        // (0) is a row that stays.
+        $ended = $db->setQuery(
+            'SELECT COALESCE(SUM(CASE WHEN ' . $db->quoteName('u.combination_id') . ' = 0 THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('items')
+            . ', COALESCE(SUM(CASE WHEN ' . $db->quoteName('u.combination_id') . ' > 0 THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('combinations')
+            . ' FROM (SELECT DISTINCT ' . $db->quoteName('d.item_id') . ', ' . $db->quoteName('d.combination_id')
+            . ' FROM ' . $table . ' AS ' . $db->quoteName('d')
+            . ' WHERE ' . $db->quoteName('d.shipment_id') . ' IN (' . $list . ')'
+            . ' AND NOT EXISTS (SELECT 1 FROM ' . $table . ' AS ' . $db->quoteName('k')
+            . ' WHERE ' . $db->quoteName('k.item_id') . ' = ' . $db->quoteName('d.item_id')
+            . ' AND ' . $db->quoteName('k.combination_id') . ' = ' . $db->quoteName('d.combination_id')
+            . ' AND ' . $db->quoteName('k.shipment_id') . ' NOT IN (' . $list . '))) AS ' . $db->quoteName('u'),
+        )->loadAssoc() ?: [];
+
+        $db->setQuery(
+            $db->getQuery(true)
+                ->delete($table)
+                ->whereIn($db->quoteName('shipment_id'), $ids),
+        )->execute();
+
+        return ['items' => (int) ($ended['items'] ?? 0), 'combinations' => (int) ($ended['combinations'] ?? 0)];
+    }
 }

@@ -150,6 +150,7 @@
         <module module="mod_alfa_items" />
         <module module="mod_alfa_manufacturers" />
         <module module="mod_alfa_categories" />
+        <module module="mod_alfa_catalog" />
         <module module="mod_easy_articles" />
 	</modules>
 

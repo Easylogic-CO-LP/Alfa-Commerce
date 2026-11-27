@@ -197,12 +197,15 @@
 
         <!-- The general sections of every product page: each a key (the product's Sections tab names it to replace
              the section), a title and a body per language, an ordering number among the page sections, and the
-             categories it is limited to (none = every product). -->
-        <fieldset name="general_sections" label="COM_ALFA_CONFIG_FIELDSET_SECTIONS">
+             categories it is limited to (none = every product). A row with a body and no title in the shop's
+             default language is refused by name (SectionRowsRule): the page leaves a section without a title out. -->
+        <fieldset name="general_sections" label="COM_ALFA_CONFIG_FIELDSET_SECTIONS"
+                  addruleprefix="Alfa\Component\Alfa\Administrator\Rule">
             <field
                     name="product_sections"
                     type="subform"
                     multiple="true"
+                    validate="SectionRows"
                     layout="joomla.form.field.subform.repeatable"
                     buttons="add,remove,move"
                     label="COM_ALFA_CONFIG_PRODUCT_SECTIONS_LABEL"

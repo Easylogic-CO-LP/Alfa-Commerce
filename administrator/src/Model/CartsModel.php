@@ -242,6 +242,8 @@ class CartsModel extends AlfaListModel
             . $db->escape($this->getState('list.direction', 'DESC')),
         );
 
+        $this->orderByKeyLast($query, (string) $this->getState('list.ordering', 'a.updated'), (string) $this->getState('list.direction', 'DESC'));
+
         return $query;
     }
 

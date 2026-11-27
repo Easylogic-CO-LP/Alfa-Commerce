@@ -60,7 +60,8 @@ class CatalogitemsController extends ApiController
     }
 
     /**
-     * Catalogue list view amended to add filtering of data.
+     * Catalogue list view amended to add filtering of data. A page holds at most
+     * {@see HasApiGuards::LIST_PAGE_MOST} products, each priced ({@see HasApiGuards::boundListPage()}).
      *
      * @return static A BaseController object to support chaining.
      *
@@ -68,6 +69,8 @@ class CatalogitemsController extends ApiController
      */
     public function displayList()
     {
+        $this->boundListPage();
+
         $apiFilterInfo = $this->input->get('filter', [], 'array');
 
         if (\array_key_exists('search', $apiFilterInfo)) {

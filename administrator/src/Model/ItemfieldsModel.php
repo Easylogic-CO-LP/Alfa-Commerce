@@ -145,6 +145,7 @@ class ItemfieldsModel extends AlfaListModel
 
         if ($orderCol && $orderDirn) {
             $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
+            $this->orderByKeyLast($query, (string) $orderCol, (string) $orderDirn);
         }
 
         return $query;

@@ -545,6 +545,101 @@ class CategoryHelper
     }
 
     /**
+     * The categories directly inside each of these parents that this visitor may see, read together in one
+     * statement: [parent id => rows (id, parent_id, ordering, name, alias)], names in the page's language; a parent
+     * with none is absent. A navigation that opens one branch reads a level at a time with it, so its cost follows
+     * the levels it draws and never the size of the shop.
+     *
+     * @param int[] $parentIds The parents; 0 is the top level.
+     * @param bool $byName Order by name; otherwise the order of the Categories list.
+     * @param int $limit With one parent, the most rows read; 0 = all of them.
+     *
+     * @return array<int, list<object>>
+     *
+     * @since  2.3.0
+     */
+    public static function getChildren(array $parentIds, bool $byName = false, int $limit = 0): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $parentIds), static fn (int $id): bool => $id >= 0)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+
+        $query = $db->getQuery(true)
+            ->select('c.id, c.parent_id, c.ordering')
+            ->from('#__alfa_categories AS c')
+            ->whereIn('c.parent_id', $ids)
+            ->where('c.state = 1');
+
+        (new CatalogAccessPolicy())->applyToCategories($query, 'c');
+
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'c',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            fields:            ['name', 'alias'],
+        );
+
+        $query->order(($byName ? $db->quoteName('name') . ' ASC, ' : '') . 'c.ordering ASC, c.id ASC');
+
+        if ($limit > 0 && \count($ids) === 1) {
+            $query->setLimit($limit);
+        }
+
+        $children = [];
+
+        foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
+            $children[(int) $row->parent_id][] = $row;
+        }
+
+        return $children;
+    }
+
+    /**
+     * How many products each of these categories holds, its subcategories included, for this visitor:
+     * [category id => products]. The numbers are the count tree's (getCategoryTree() with counts: one stored tree
+     * per visitor group, a product in several subcategories counted once), so a count here is the count the
+     * navigation shows. A grouped statement over the listing cannot give them: it would count a product once per
+     * subcategory. A category the visitor may not see is absent.
+     *
+     * @param int[] $categoryIds The categories to count for.
+     *
+     * @return array<int, int>
+     *
+     * @since  2.3.0
+     */
+    public static function getProductCounts(array $categoryIds): array
+    {
+        $wanted = array_flip(array_filter(array_map('intval', $categoryIds), static fn (int $id): bool => $id > 0));
+
+        if ($wanted === []) {
+            return [];
+        }
+
+        $counts = [];
+        $walk = static function (array $categories) use (&$walk, &$counts, $wanted): void {
+            foreach ($categories as $category) {
+                if (isset($wanted[(int) $category->id])) {
+                    $counts[(int) $category->id] = (int) ($category->product_count ?? 0);
+                }
+
+                if (!empty($category->children) && \count($counts) < \count($wanted)) {
+                    $walk((array) $category->children);
+                }
+            }
+        };
+
+        $walk(self::getCategoryTree(parentId: 0, maxDepth: self::TREE_MAX_DEPTH, includeCount: true));
+
+        return $counts;
+    }
+
+    /**
      * A tree with product counts from the persistent cache, or built and stored.
      *
      * The stored entry is ['version' => int, 'built_at' => int, 'tree' => array].

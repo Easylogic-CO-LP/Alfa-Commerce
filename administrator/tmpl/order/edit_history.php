@@ -13,7 +13,8 @@
  * Every event has a status snapshot; no separate status table needed.
  *
  * Data: $this->activityLog (from OrderModel::getOrderActivityLog()), newest
- * first. Each line is read from its stored event and context through
+ * first, at most OrderModel::HISTORY_SHOWN (a display limit); $this->activityTotal,
+ * how many the order has, so the tab says when it shows fewer. Each line is read from its stored event and context through
  * OrderHistoryHelper::line(); the stored summary where the context lacks the
  * facts. A status change says its note to the customer and whether the customer
  * is e-mailed; the e-mail's own entry says who it reached and when, with the
@@ -33,6 +34,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
 
 $log = $this->activityLog ?? [];
+$logTotal = (int) ($this->activityTotal ?? \count($log));
 
 // Event metadata: icons, colors per entity type
 $entityMeta = [
@@ -277,6 +279,11 @@ $actionColors = [
                     </div>
 				<?php endforeach; ?>
             </div>
+			<?php if ($logTotal > \count($log)) : ?>
+                <div class="alert alert-info mt-3">
+					<?php echo Text::sprintf('COM_ALFA_ORDER_HISTORY_SHOWN', \count($log), $logTotal); ?>
+                </div>
+			<?php endif; ?>
 		<?php endif; ?>
     </div>
 </div>

@@ -296,9 +296,17 @@ $findings = array_sum(array_map(static fn (array $section): int => (int) ($secti
                     <dd class="col-sm-8"><?php echo (int) $index['pointers']; ?></dd>
                     <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_PRICE_AUDIT_INDEX_LEFT_OUT'); ?></dt>
                     <dd class="col-sm-8">
-                        <?php echo \count($index['left_out']); ?>
-                        <?php if ($index['left_out'] !== []) : ?>
-                            <span class="text-muted">(#<?php echo implode(', #', \array_slice(array_map('intval', $index['left_out']), 0, 20)); ?>)</span>
+                        <?php
+                        // A display limit: the first twenty ids are named and the rest are counted beside them, so
+                        // the line never says less than the total before it. The product list has no filter by a
+                        // set of ids to link them to.
+                        $leftOut = array_map('intval', $index['left_out']);
+                        $leftOutNamed = \array_slice($leftOut, 0, 20);
+                        $leftOutMore = \count($leftOut) - \count($leftOutNamed);
+                        ?>
+                        <?php echo \count($leftOut); ?>
+                        <?php if ($leftOut !== []) : ?>
+                            <span class="text-muted">(#<?php echo implode(', #', $leftOutNamed); ?><?php echo $leftOutMore > 0 ? Text::sprintf('COM_ALFA_PRICE_AUDIT_INDEX_LEFT_OUT_MORE', $leftOutMore) : ''; ?>)</span>
                         <?php endif; ?>
                     </dd>
                 </dl>
