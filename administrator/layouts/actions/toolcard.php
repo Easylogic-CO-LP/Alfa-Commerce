@@ -62,7 +62,7 @@ $buttonLabel = ToolButton::label($action);
                 <?php echo Text::_($notice); ?></div>
         <?php endif; ?>
 
-        <button class="btn <?php echo $e($action->class); ?> tool-btn"<?php echo $attrs; ?>>
+        <button class="btn <?php echo $e($action->class); ?>"<?php echo $attrs; ?>>
             <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
             <?php echo $buttonLabel; ?>
         </button>

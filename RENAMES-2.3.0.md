@@ -367,7 +367,7 @@ The `alfa-` prefix left the class names, the element ids and the data attributes
 | `alfa-tl-summary` | `tl-summary` |
 | `alfa-tl-toggle` | `tl-toggle` |
 | `alfa-tool-` | `tool-` |
-| `alfa-tool-btn` | `tool-btn` |
+| `alfa-tool-btn` | gone; the Tools script finds a tool button by its `data-progress-target` |
 | `alfa-tool-progress-` | `tool-progress-` |
 | `alfa-topics` | `topics` |
 | `alfa-tour-help` | `tour-help` |

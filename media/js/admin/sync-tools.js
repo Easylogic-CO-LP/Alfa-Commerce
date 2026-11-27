@@ -1,9 +1,9 @@
 /**
  * Alfa Commerce - Tools view: AJAX maintenance actions with per-card progress.
  *
- * Every card is registry-contributed (core and plugins alike) and every button
- * (.tool-btn, on a Tools card or on the Background screen's toolbar) drives the progress element it names
- * (data-progress-target, an id):
+ * Every card is registry-contributed (core and plugins alike). Every button that names its progress element
+ * (data-progress-target, an id), on a Tools card or on the Background screen's toolbar and its dropdown, drives that
+ * element:
  *   - data-action="single"   -> one request (task=toolaction.run).
  *   - data-action="backfill" -> chunked plan -> chunk loop (task=toolaction.plan/.chunk).
  *
@@ -30,7 +30,7 @@
     'use strict';
 
     function init() {
-        document.querySelectorAll('.tool-btn').forEach(function (btn) {
+        document.querySelectorAll('[data-progress-target]').forEach(function (btn) {
             btn.addEventListener('click', function () { run(btn); });
         });
 

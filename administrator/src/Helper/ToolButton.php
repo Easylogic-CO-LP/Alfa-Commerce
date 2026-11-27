@@ -24,7 +24,8 @@ use Joomla\CMS\Session\Session;
  * request (toolaction.run); one that changes state is sent as a POST carrying a one-time key, which the endpoint
  * demands of it. The owner travels in the address as a hint only: the server asks that provider whether it really
  * declares the action, enabled, before running it. The button names the element that shows its progress and its
- * outcome (data-progress-target, an id), so the script never guesses where that is.
+ * outcome (data-progress-target, an id), so the script never guesses where that is; that attribute is also how the
+ * script finds the buttons it drives, so a button's classes stay free for how it looks.
  *
  * @since  2.3.0
  */
