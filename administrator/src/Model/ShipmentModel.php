@@ -235,6 +235,12 @@ class ShipmentModel extends AlfaAdminModel
         $rawData = $input->post->get('jform', [], 'array');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
+        // A save that takes a published method out of the published state: the products it leaves with no published
+        // method on their list are counted before it, and said after it.
+        $leaving = \array_key_exists('state', $data) && (int) ($data['id'] ?? 0) > 0
+            ? $this->leavingPublished(ids: [(int) $data['id']], state: (int) $data['state'])
+            : ['ids' => [], 'count' => 0];
+
         // A new method that leaves a colour out takes the one its form offers: the edit form always posts
         // both, a REST create need not, and neither column has a default of its own.
         $data = $this->withFormDefaults(data: $data, fields: ['color', 'bg_color']);
@@ -380,7 +386,85 @@ class ShipmentModel extends AlfaAdminModel
             );
         }
 
+        $this->warnLeftWithout(leaving: $leaving);
+
         return true;
+    }
+
+    /**
+     * Method to change the published state of one or more records. Unpublishing, archiving and trashing a shipping
+     * method are allowed whatever the products' shipping lists say, and change no list: a product limited to methods
+     * that are all unpublished keeps its restriction, ships with none meanwhile, and ships again when one is
+     * published. The operator is told how many products the change leaves so, judged on the whole selection.
+     *
+     * @param array &$pks A list of the primary keys to change.
+     * @param int $value The value of the published state.
+     *
+     * @return bool True on success.
+     *
+     * @since  2.3.0
+     */
+    public function publish(&$pks, $value = 1)
+    {
+        $leaving = $this->leavingPublished(ids: array_map('intval', (array) $pks), state: (int) $value);
+        $result = parent::publish($pks, $value);
+
+        if ($result) {
+            $this->warnLeftWithout(leaving: $leaving);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The published methods among some that a change of state takes out of the published state, and the products
+     * the change leaves with no published method on a list of theirs. Two indexed statements, read before the change.
+     *
+     * @param int[] $ids The methods the change is asked for.
+     * @param int $state The state they are given.
+     *
+     * @return array{ids: int[], count: int}
+     *
+     * @since  2.3.0
+     */
+    private function leavingPublished(array $ids, int $state): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+
+        if ($state === 1 || $ids === []) {
+            return ['ids' => [], 'count' => 0];
+        }
+
+        $db = $this->getDatabase();
+        $published = array_map('intval', $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_shipments'))
+                ->whereIn($db->quoteName('id'), $ids)
+                ->where($db->quoteName('state') . ' = 1'),
+        )->loadColumn() ?: []);
+
+        return ['ids' => $published, 'count' => ItemShipments::countLeftWithoutPublished(db: $db, shipmentIds: $published)];
+    }
+
+    /**
+     * Tell the operator how many products a change of state left with no published method on their shipping list,
+     * with the link to them.
+     *
+     * @param array{ids: int[], count: int} $leaving What {@see self::leavingPublished()} read before the change.
+     *
+     * @since  2.3.0
+     */
+    private function warnLeftWithout(array $leaving): void
+    {
+        if ($leaving['count'] <= 0) {
+            return;
+        }
+
+        Factory::getApplication()->enqueueMessage(
+            Text::plural('COM_ALFA_SHIPMENT_UNPUBLISH_LEAVES_NONE', $leaving['count']) . ' ' . $this->productsLink(ids: $leaving['ids'], list: ItemShipments::LIST_NONE),
+            'warning',
+        );
     }
 
     /**
