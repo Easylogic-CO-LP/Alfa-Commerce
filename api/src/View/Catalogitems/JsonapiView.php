@@ -25,6 +25,9 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  * out_of_stock) and `cartState` the add-to-cart verdict. Both lists carry
  * the verdicts, which the site models have already computed per row.
  *
+ * `labels` is the list of labels the storefront shows on the product (the product page's for the item, the card's for
+ * the list), each {key, name, corner}, read only: the New label, the shop's labels the product ticks, its own label.
+ *
  * @since  2.0.0
  */
 class JsonApiView extends BaseApiView
@@ -63,6 +66,7 @@ class JsonApiView extends BaseApiView
         'quantity_step',
         'price',
         'discount_rules',
+        'labels',
         'categories',
         'manufacturers',
         'medias',
@@ -95,6 +99,7 @@ class JsonApiView extends BaseApiView
         'is_virtual',
         'price',
         'medias',
+        'labels',
         'variant',
         'cartState',
     ];
