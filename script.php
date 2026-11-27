@@ -217,6 +217,7 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_discount_items',
         '#__alfa_discount_excluded_items',
         '#__alfa_discount_excluded_categories',
+        '#__alfa_item_labels',
     ];
 
     /**
@@ -247,6 +248,7 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_discounts' => [
             'new_products' => ["tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 = reaches new products; 1 = leaves out products new within the shop''s days (Options > General > Products); 2 = leaves out products new within new_days'", 'apply_before_tax'],
             'new_days' => ["int(11) NOT NULL DEFAULT 0 COMMENT 'The rule''s own days a product counts as new for, when new_products is 2; else 0'", 'new_products'],
+            'tag_corner' => ["varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right'", 'tag_class'],
         ],
         '#__alfa_item_field_values' => [
             'code' => ["varchar(64) DEFAULT NULL COMMENT 'The value''s machine key, unique in its field (a to z, 0 to 9, - and _); NULL = none'", 'item_field_id'],

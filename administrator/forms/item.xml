@@ -429,6 +429,24 @@
                label="COM_ALFA_FORM_LBL_ITEM_RELATED" description="COM_ALFA_FORM_DESC_ITEM_RELATED"/>
     </fieldset>
 
+    <!-- The product's labels (ItemLabels): the New label and the shop's predefined labels it ticks, each in a corner of
+         its own when wanted, and a label of its own, shown between its dates. Its own tab (the edit template draws every
+         fieldset beyond the core ones as one). -->
+    <fieldset name="labels" label="COM_ALFA_TAB_ITEM_LABELS">
+        <field name="labels" type="itemlabels" filter="array"
+               label="COM_ALFA_FORM_LBL_ITEM_LABELS" description="COM_ALFA_FORM_DESC_ITEM_LABELS"/>
+
+        <field name="custom_label" type="subform" multiple="false"
+               formsource="administrator/components/com_alfa/forms/label.xml"
+               label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL"/>
+
+        <field name="custom_label_from" type="calendar" translateformat="true" showtime="true" filter="user_utc"
+               label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL_FROM" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL_FROM"/>
+
+        <field name="custom_label_to" type="calendar" translateformat="true" showtime="true" filter="user_utc"
+               label="COM_ALFA_FORM_LBL_ITEM_CUSTOM_LABEL_TO" description="COM_ALFA_FORM_DESC_ITEM_CUSTOM_LABEL_TO"/>
+    </fieldset>
+
     <!-- Layout overrides for THIS product; every key inherits category -> menu -> global when empty. -->
     <fields name="layouts">
         <fieldset name="layouts" label="COM_ALFA_MENU_LAYOUTS_OPTIONS">

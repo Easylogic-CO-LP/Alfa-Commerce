@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One of the shop's predefined labels (Options > Labels, Labels::predefined()): its key, which a product ticks it by
+     and the REST API names it by, then the look and places every label has (label.xml). The rows' order in the Options
+     is the order the labels stand in on a product. -->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <field name="key" type="text" maxlength="64" filter="cmd" required="true"
+           label="COM_ALFA_FORM_LBL_LABEL_KEY" description="COM_ALFA_FORM_DESC_LABEL_KEY"/>
+
+    <field name="name" type="MultilingualText" maxlength="100" filter="string" required="true"
+           label="COM_ALFA_FORM_LBL_LABEL_NAME" description="COM_ALFA_FORM_DESC_LABEL_NAME"/>
+
+    <field name="bg" type="color" format="hex" default=""
+           label="COM_ALFA_FORM_LBL_LABEL_BG" description="COM_ALFA_FORM_DESC_LABEL_BG"/>
+
+    <field name="color" type="color" format="hex" default=""
+           label="COM_ALFA_FORM_LBL_LABEL_COLOR" description="COM_ALFA_FORM_DESC_LABEL_COLOR"/>
+
+    <field name="class" type="text" maxlength="190" filter="string"
+           label="COM_ALFA_FORM_LBL_LABEL_CLASS" description="COM_ALFA_FORM_DESC_LABEL_CLASS"/>
+
+    <field name="list_show" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+           label="COM_ALFA_FORM_LBL_LABEL_LIST_SHOW" description="COM_ALFA_FORM_DESC_LABEL_LIST_SHOW">
+        <option value="0">JNO</option>
+        <option value="1">JYES</option>
+    </field>
+
+    <field name="list_slot" type="labelslot" context="list" default="image" showon="list_show:1"
+           label="COM_ALFA_FORM_LBL_LABEL_LIST_SLOT" description="COM_ALFA_FORM_DESC_LABEL_LIST_SLOT"/>
+
+    <field name="item_show" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+           label="COM_ALFA_FORM_LBL_LABEL_ITEM_SHOW" description="COM_ALFA_FORM_DESC_LABEL_ITEM_SHOW">
+        <option value="0">JNO</option>
+        <option value="1">JYES</option>
+    </field>
+
+    <field name="item_slot" type="labelslot" context="item" default="image" showon="item_show:1"
+           label="COM_ALFA_FORM_LBL_LABEL_ITEM_SLOT" description="COM_ALFA_FORM_DESC_LABEL_ITEM_SLOT"/>
+
+    <field name="corner" type="labelcorner" default="top-left"
+           label="COM_ALFA_FORM_LBL_LABEL_CORNER" description="COM_ALFA_FORM_DESC_LABEL_CORNER"/>
+</form>

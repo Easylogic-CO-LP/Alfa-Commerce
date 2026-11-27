@@ -97,16 +97,13 @@
 
     <field
             name="tag_list_slot"
-            type="list"
+            type="labelslot"
+            context="list"
             label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_LIST_SLOT"
             description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_LIST_SLOT"
             default="image"
             showon="tag_list_show:1"
-    >
-      <option value="image">COM_ALFA_DISCOUNT_TAG_SLOT_IMAGE</option>
-      <option value="title">COM_ALFA_DISCOUNT_TAG_SLOT_TITLE</option>
-      <option value="buy-form">COM_ALFA_DISCOUNT_TAG_SLOT_BUY_FORM</option>
-    </field>
+    />
 
     <field
             name="tag_item_show"
@@ -123,24 +120,19 @@
 
     <field
             name="tag_item_slot"
-            type="list"
+            type="labelslot"
+            context="item"
             label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_ITEM_SLOT"
             description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_ITEM_SLOT"
             default="image"
             showon="tag_item_show:1"
-    >
-      <option value="image">COM_ALFA_DISCOUNT_TAG_SLOT_IMAGE</option>
-      <option value="title">COM_ALFA_DISCOUNT_TAG_SLOT_TITLE</option>
-      <option value="short-description">COM_ALFA_DISCOUNT_TAG_SLOT_SHORT_DESC</option>
-      <option value="full-description">COM_ALFA_DISCOUNT_TAG_SLOT_FULL_DESC</option>
-      <option value="near-add-to-cart">COM_ALFA_DISCOUNT_TAG_SLOT_NEAR_CART</option>
-      <option value="specifications">COM_ALFA_DISCOUNT_TAG_SLOT_SPECS</option>
-    </field>
+    />
 
-    <!-- Badge appearance: shared across both contexts (one look per discount).
+    <!-- Badge appearance: shared across both contexts (one look per discount), the same fields a label has.
          Colours are optional: empty leaves the layout's own CSS (red badge, white
          text) in charge; setting both avoids white-on-white. tag_class appends
-         free-form classes so a merchant can theme a discount without a code override. -->
+         free-form classes so a merchant can theme a discount without a code override.
+         tag_corner is the badge's corner of the image when its position is the image. -->
     <field
             name="tag_bg"
             type="color"
@@ -165,6 +157,14 @@
             maxlength="190"
             label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_CLASS"
             description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_CLASS"
+    />
+
+    <field
+            name="tag_corner"
+            type="labelcorner"
+            default="top-left"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_CORNER"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_CORNER"
     />
 
     <field

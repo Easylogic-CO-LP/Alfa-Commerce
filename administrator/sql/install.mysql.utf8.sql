@@ -456,6 +456,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   `tag_bg` varchar(30) NOT NULL DEFAULT '' COMMENT 'Badge background colour (CSS colour); empty = layout default',
   `tag_color` varchar(30) NOT NULL DEFAULT '' COMMENT 'Badge text colour (CSS colour); empty = layout default',
   `tag_class` varchar(190) NOT NULL DEFAULT '' COMMENT 'Extra CSS class(es) appended to the badge element',
+  `tag_corner` varchar(12) NOT NULL DEFAULT 'top-left' COMMENT 'The corner of the image the badge sits in when its position is the image: top-left, top-right, bottom-left or bottom-right',
   PRIMARY KEY (`id`),
   KEY `idx_state` (`state`),
   KEY `idx_checked_out` (`checked_out`),
@@ -1289,6 +1290,25 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_link_values` (
   KEY `idx_value_id` (`value_id`),
   KEY `idx_linked_item_id` (`linked_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The values a link preselects on the linked product''s card, one per field';
+
+--
+-- Table structure for table `#__alfa_item_labels`
+--
+-- The labels a product shows (ItemLabels, Labels): a row per predefined label (Options > Labels) the product ticks on
+-- its Labels tab, with a corner of its own when one was chosen; one row for the automatic New label only when the
+-- product hides it or moves it to a corner of its own; one row for the product's own label, its settings as JSON. A
+-- product with no row shows the New label as the shop does and no other label. The item delete removes a deleted
+-- product's rows (ItemModel::delete()).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_item_labels` (
+  `item_id` int(11) UNSIGNED NOT NULL COMMENT 'The product',
+  `label_key` varchar(64) NOT NULL COMMENT 'new for the automatic New label, a predefined label''s key (Options > Labels), or custom for the product''s own label',
+  `shown` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = shown on this product; 0 = not shown although the shop would show it (the New label of a new product)',
+  `corner` varchar(12) DEFAULT NULL COMMENT 'The corner of the image this product shows the label in: top-left, top-right, bottom-left or bottom-right; NULL = the label''s own corner',
+  `custom` mediumtext DEFAULT NULL COMMENT 'JSON of the product''s own label (label_key custom): its name by language, colours, class, where it shows and its period; NULL on every other row',
+  PRIMARY KEY (`item_id`, `label_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The labels a product shows: the ones it ticks with their corners, and its own label';
 
 --
 -- Every SKU in use, once: a product's own SKU and each combination's, archived ones included. The key is the SKU,

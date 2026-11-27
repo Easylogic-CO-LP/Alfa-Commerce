@@ -53,6 +53,9 @@
        merchant who wants green sale tags should not have to restyle errors. */
     --alfa-sale-bg: #c0392b;
     --alfa-sale-color: #ffffff;
+    /* Every other label (New, the shop's labels, a product's own) without colours of its own. */
+    --alfa-label-bg: #111827;
+    --alfa-label-color: #ffffff;
     --alfa-hairline: #e2e2e2;
     /* Square by default, so nothing about the current look changes. A template
        sets this once and every storefront control follows it, instead of the
@@ -115,6 +118,8 @@
     --alfa-muted-color: #9ca3af;
     --alfa-selected: #93c5fd;
     --alfa-hairline: #374151;
+    --alfa-label-bg: #e5e7eb;
+    --alfa-label-color: #111827;
     --alfa-scheme: dark;
 }
 
@@ -135,6 +140,8 @@
         --alfa-muted-color: #9ca3af;
         --alfa-selected: #93c5fd;
         --alfa-hairline: #374151;
+        --alfa-label-bg: #e5e7eb;
+        --alfa-label-color: #111827;
         --alfa-scheme: dark;
     }
 }

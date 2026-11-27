@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryAncestry;
 use Alfa\Component\Alfa\Site\Helper\PriceUnits;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
+use Alfa\Component\Alfa\Site\Service\Catalog\Labels;
 use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
@@ -108,6 +109,10 @@ trait SanitisesCatalogPayload
                 $item->$methodSet,
             ));
         }
+
+        // The labels the storefront shows on the product in this context (Labels): key, name and corner each. A
+        // discount's sale tag is the discount's, stated in the price's breakdown with its tag fields.
+        $item->labels = Labels::forWire(labels: \is_array($item->labels ?? null) ? $item->labels : []);
 
         // The resolver's verdict, flattened to plain scalars/arrays.
         if (isset($item->variant) && \is_object($item->variant)) {

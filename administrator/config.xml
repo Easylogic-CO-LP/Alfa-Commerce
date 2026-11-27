@@ -179,6 +179,20 @@
                 <option value="created">COM_ALFA_CONFIG_NEW_PRODUCT_FROM_CREATED</option>
                 <option value="published">COM_ALFA_CONFIG_NEW_PRODUCT_FROM_PUBLISHED</option>
             </field>
+
+            <!-- The New label's look and places (Labels::newLabel()), drawn on a product while it is new; with no days
+                 above there is no label, so the fields show only then. A product hides it or moves it on its Labels
+                 tab. -->
+            <field
+                    name="new_label"
+                    type="subform"
+                    formsource="administrator/components/com_alfa/forms/label.xml"
+                    multiple="false"
+                    default='{"name":"New"}'
+                    label="COM_ALFA_CONFIG_NEW_LABEL"
+                    description="COM_ALFA_CONFIG_NEW_LABEL_DESC"
+                    showon="new_product_days!:0"
+            />
         </fieldset>
 
         <!-- Floor of the listing chain: category -> menu item -> here.
@@ -327,6 +341,25 @@
 
         </fieldset>
 
+    </fieldset>
+
+    <!-- Labels: the shop's predefined labels (Labels::predefined()), each ticked per product on its Labels tab; the
+         rows' order is the order the labels stand in on a product. -->
+    <fieldset
+            name="labels"
+            label="COM_ALFA_CONFIG_TAB_LABELS"
+            description="COM_ALFA_CONFIG_TAB_LABELS_DESC"
+    >
+        <field
+                name="labels"
+                type="subform"
+                formsource="administrator/components/com_alfa/forms/label_predefined.xml"
+                multiple="true"
+                buttons="add,remove,move"
+                layout="joomla.form.field.subform.repeatable"
+                label="COM_ALFA_CONFIG_LABELS"
+                description="COM_ALFA_CONFIG_LABELS_DESC"
+        />
     </fieldset>
 
     <fieldset name="cart" label="COM_ALFA_CONFIG_TAB_CART">

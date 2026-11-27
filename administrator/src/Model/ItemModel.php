@@ -32,6 +32,7 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CommerceChange;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemLabels;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemOptionService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
@@ -629,6 +630,13 @@ class ItemModel extends AlfaAdminModel
             // The related products, in their order, as the Related tab's rows.
             $item->related = RelatedItems::rows(db: $this->getDatabase(), itemId: (int) $item->id);
 
+            // The product's labels (ItemLabels): the Labels tab's ticks and corners, and its own label with its period.
+            $labelRows = ItemLabels::forItems(db: $this->getDatabase(), itemIds: [(int) $item->id])[(int) $item->id] ?? [];
+            $item->labels = ItemLabels::formValue(rows: $labelRows);
+            $item->custom_label = ItemLabels::customValue(rows: $labelRows);
+            $item->custom_label_from = (string) ($item->custom_label['publish_up'] ?? '');
+            $item->custom_label_to = (string) ($item->custom_label['publish_down'] ?? '');
+
             // get media origin (cat, man, item...)
             $item->medias = MediaHelper::getMediaData(
                 origin: $this->name,
@@ -923,6 +931,18 @@ class ItemModel extends AlfaAdminModel
             $this->setError(new RelatedLinksRefusedException(refusals: $relatedRefusals));
 
             return false;
+        }
+
+        // THE LABELS, judged before the transaction (ItemLabels::posted()): the labels the product ticks with their
+        // corners and its own label with its period; an own label whose period ends before it starts is refused and
+        // nothing is saved. A write that posts neither leaves the rows as they are.
+        $labelRows = \array_key_exists('labels', $data) || \array_key_exists('custom_label', $data)
+            ? ItemLabels::posted(labels: $data['labels'] ?? [], custom: $data['custom_label'] ?? [], from: $data['custom_label_from'] ?? '', to: $data['custom_label_to'] ?? '')
+            : null;
+        $labelRefusals = $labelRows === null ? [] : ItemLabels::refusals(rows: $labelRows);
+
+        if ($labelRefusals !== []) {
+            return $this->refuseSave(messages: $labelRefusals);
         }
 
         // A thumbnail the gallery names must be an image file of the media folders (MediaHelper::thumbnailRefusals()):
@@ -1251,6 +1271,11 @@ class ItemModel extends AlfaAdminModel
             // The related products, in the posted order: each written only while its product (and its combination)
             // exists, so one deleted since the check above leaves no link.
             RelatedItems::replace(db: $db, itemId: (int) $currentId, links: $relatedLinks);
+
+            // The labels, as the Labels tab posted them.
+            if ($labelRows !== null) {
+                ItemLabels::replace(db: $db, itemId: (int) $currentId, rows: $labelRows);
+            }
 
             // ITEM FIELDS: options and specifications are ADDED by their pickers (item.addOptions, item.addInfoValues),
             // combinations by the generator. The item save writes the LIST edits through the one way they are written
@@ -3749,6 +3774,7 @@ class ItemModel extends AlfaAdminModel
                 '#__alfa_items_shipments' => 'item_id',
                 '#__alfa_discount_items' => 'item_id',
                 '#__alfa_discount_excluded_items' => 'item_id',
+                ItemLabels::TABLE => 'item_id',
             ] as $table => $column) {
                 $db->setQuery(
                     $db->getQuery(true)

@@ -28,10 +28,10 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\ReadOnlyFields;
-use Alfa\Component\Alfa\Site\Helper\SaleTag;
 use Alfa\Component\Alfa\Site\Helper\ShopMode;
 use Alfa\Component\Alfa\Site\Helper\VariantHelper;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
+use Alfa\Component\Alfa\Site\Service\Catalog\Labels;
 use Alfa\Component\Alfa\Site\Service\FieldState\StateBagBuilder;
 use Alfa\Component\Alfa\Site\Service\Pricing;
 use Alfa\Component\Alfa\Site\Service\ShowOn\InitialState;
@@ -316,6 +316,10 @@ class ItemModel extends BaseItemModel
                 ]],
             );
 
+            // The labels the product page shows (Labels): the New label, the shop's labels ticked for it, its own
+            // label between its dates. Read whether or not the page draws them: the REST resource lists them.
+            $data->labels = Labels::of(item: $data, isListing: false);
+
             // Field display surfaces (selectors + cart slot). Opt-out via
             // setState('plugin.layouts', false) for data-only consumers (cart,
             // search autocomplete). Pricing/validation plugins are NOT gated here
@@ -458,10 +462,10 @@ class ItemModel extends BaseItemModel
         $displayEvent->harvestInto($slots);
         $item->surfaces = new SurfaceMap($slots);
 
-        // Sale-tag badges: a flagged discount's name onto the product-page slots.
+        // The labels and the sale tags onto the product-page slots (Labels), one stack per slot and corner.
         // Appended AFTER the surface reset above and once the price/discounts are
         // known (set by resolveAndPrice before this runs).
-        SaleTag::contribute($item, false);
+        Labels::contribute(item: $item, isListing: false);
 
         // Catalogue only, core's last word, after every pass that can change the buy area (the field events, the
         // feature plugins, the badges): the buy form's slots hold only plain read-only lists of the fields that drew a

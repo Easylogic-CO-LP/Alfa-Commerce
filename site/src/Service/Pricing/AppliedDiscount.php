@@ -33,6 +33,7 @@ class AppliedDiscount
     public string $tagBg;       // Badge background colour (CSS); '' = layout default
     public string $tagColor;    // Badge text colour (CSS); '' = layout default
     public string $tagClass;    // Extra CSS class(es) on the badge; shared both contexts
+    public string $tagCorner;   // The corner of the image slot the badge sits in (LabelCorner); shared both contexts
 
     /**
      * The rule's combination behaviour: 0 "only this", 1 Combined, 2 Sequential.
@@ -63,6 +64,7 @@ class AppliedDiscount
         string $tagBg = '',
         string $tagColor = '',
         string $tagClass = '',
+        string $tagCorner = 'top-left',
         int $behavior = 2,
     ) {
         $this->id = $id;
@@ -79,6 +81,7 @@ class AppliedDiscount
         $this->tagBg = $tagBg;
         $this->tagColor = $tagColor;
         $this->tagClass = $tagClass;
+        $this->tagCorner = $tagCorner;
         $this->behavior = $behavior;
     }
 
@@ -110,6 +113,7 @@ class AppliedDiscount
             'tag_bg' => $this->tagBg,
             'tag_color' => $this->tagColor,
             'tag_class' => $this->tagClass,
+            'tag_corner' => $this->tagCorner,
         ];
     }
 }
