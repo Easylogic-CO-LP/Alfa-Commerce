@@ -1082,6 +1082,7 @@ class CategoryModel extends AlfaAdminModel
                     '#__alfa_categories_usergroups' => 'category_id',
                     '#__alfa_categories_users' => 'category_id',
                     '#__alfa_discount_categories' => 'category_id',
+                    '#__alfa_discount_excluded_categories' => 'category_id',
                     '#__alfa_payment_categories' => 'category_id',
                     '#__alfa_shipment_categories' => 'category_id',
                     '#__alfa_shipment_excluded_categories' => 'category_id',

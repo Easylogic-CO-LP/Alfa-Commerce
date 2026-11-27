@@ -105,8 +105,20 @@
     // preview and are kept on the note; the server renders the first sentence the same way.
     const updateRulesNote = (row, net) => {
         const note = row.querySelector('[data-price-rules-note]');
+        const text = note?.querySelector('[data-price-rules-text]');
 
-        if (!note) {
+        if (!note || !text) {
+            return;
+        }
+
+        // The product's own switch: excluded from every discount rule, whatever the rules say.
+        const excluded = note.dataset.rulesExcluded === '1';
+        text.classList.toggle('text-warning', excluded);
+
+        if (excluded) {
+            text.textContent = Joomla.Text._('COM_ALFA_PRICES_RULES_EXCLUDED');
+            note.hidden = false;
+
             return;
         }
 
@@ -114,7 +126,7 @@
 
         if (names === '') {
             note.hidden = true;
-            note.textContent = '';
+            text.textContent = '';
 
             return;
         }
@@ -125,7 +137,7 @@
         const rowNet = net ?? parseFloat(row.querySelector('[data-price-value]')?.value);
         const replaced = rowMode(row) === 'price' && (type === 'start' || type === 'final') && !Number.isNaN(sale) && !Number.isNaN(rowNet);
 
-        note.textContent = replaced
+        text.textContent = replaced
             ? Joomla.Text._('COM_ALFA_PRICES_SALE_REPLACES_RULES')
                 .replace('%1$s', names)
                 .replace('%2$s', Math.max(0, (rowNet * c.a) + c.b).toFixed(c.dec))
@@ -399,11 +411,13 @@
             ...discounts.filter((d) => (d.timing || 'before_tax') === 'after_tax').map(discountChip),
         );
 
-        // The rules the sentence under the figure names, as the preview lists them now.
+        // The rules the sentence under the figure names, as the preview lists them now, and whether the product's own
+        // switch excludes it from them all.
         const note = row.querySelector('[data-price-rules-note]');
 
         if (note) {
             note.dataset.ruleNames = discounts.map(ruleLabel).join(', ');
+            note.dataset.rulesExcluded = preview.excluded ? '1' : '';
         }
 
         // Today's selling price (only meaningful while discounts run).
@@ -428,6 +442,10 @@
         'jform[categories][]': 'categories[]',
         'jform[manufacturers][]': 'manufacturers[]',
     };
+
+    // The product's own discount rules switch (a radio: the checked value, 1 when the form has none).
+    const SWITCH_FIELD = 'jform[discount_rules]';
+    const switchValue = (form) => form.querySelector('[name="' + SWITCH_FIELD + '"]:checked')?.value ?? '1';
 
     const itemIdOf = (root) => parseInt(root.dataset.itemId || '0', 10);
 
@@ -457,7 +475,8 @@
         const categories = idList([...contextValues(form, 'jform[categories][]'), ...contextValues(form, 'jform[id_category_default]')]);
 
         return categories !== root.dataset.itemCategories
-            || idList(contextValues(form, 'jform[manufacturers][]')) !== (root.dataset.itemManufacturers || '');
+            || idList(contextValues(form, 'jform[manufacturers][]')) !== (root.dataset.itemManufacturers || '')
+            || switchValue(form) !== (root.dataset.itemDiscountRules || '1');
     };
 
     // The item form's pricing context, as the save will read it.
@@ -470,6 +489,10 @@
 
         for (const [name, key] of Object.entries(CONTEXT_FIELDS)) {
             contextValues(form, name).forEach((value) => params.append(key, value));
+        }
+
+        if (form.querySelector('[name="' + SWITCH_FIELD + '"]')) {
+            params.set('discount_rules', switchValue(form));
         }
     };
 
@@ -489,7 +512,7 @@
     const shutFinal = (row, message) => {
         const final = row.querySelector('[data-price-final]');
 
-        applyPreview(row, { a: 1, b: 0, taxFactor: 1, decimals: row.dataset.decimals, baseNet: 0, baseSale: false, taxes: [], discounts: [] });
+        applyPreview(row, { a: 1, b: 0, taxFactor: 1, decimals: row.dataset.decimals, baseNet: 0, baseSale: false, taxes: [], discounts: [], excluded: false });
 
         if (final) {
             final.disabled = true;
@@ -606,7 +629,7 @@
         // The item form's own pricing context changed (the fancy selects announce it
         // with a change event): every row that follows it asks again, a saved
         // product's as before once its form holds its stored memberships again.
-        if (Object.hasOwn(CONTEXT_FIELDS, name)) {
+        if (Object.hasOwn(CONTEXT_FIELDS, name) || name === SWITCH_FIELD) {
             contextRows(event.target.closest('form') || document).forEach(([contextRow, contextRoot]) => refreshPreview(contextRow, contextRoot));
 
             return;

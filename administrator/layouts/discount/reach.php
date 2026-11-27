@@ -9,8 +9,9 @@
 
 /**
  * The Reach card of a saved discount rule: how many published products its categories and manufacturers take in
- * (the product list narrowed to them), the products of its manufacturers its categories leave out, and the rules it
- * stacks with on a product, each with the count. Read only; counted from the saved rule by DiscountReach.
+ * (the product list narrowed to them), the products of its manufacturers its categories leave out, the rules it
+ * stacks with on a product, each with the count, and the products of its scope it never reaches (excluded by the rule,
+ * or on their own). Read only; counted from the saved rule by DiscountReach.
  *
  * @var array $displayData
  *   - array $reach What DiscountReach::of() answered.
@@ -64,6 +65,11 @@ $products = Text::plural('COM_ALFA_DISCOUNT_REACH_PRODUCTS', (int) $reach['reach
 
         <?php if ((int) $reach['more'] > 0) : ?>
             <li class="mb-2 text-muted"><?php echo $e(Text::sprintf('COM_ALFA_DISCOUNT_REACH_MORE_RULES', (int) $reach['more'], (int) $reach['cap'])); ?></li>
+        <?php endif; ?>
+
+        <?php $exclusions = (array) ($reach['exclusions'] ?? []); ?>
+        <?php if ((int) ($exclusions['by_rule'] ?? 0) > 0 || (int) ($exclusions['own'] ?? 0) > 0) : ?>
+            <li class="mb-2" id="discount-exclusions"><?php echo $e(Text::sprintf('COM_ALFA_DISCOUNT_EXCLUSIONS_COUNTS', (int) $exclusions['by_rule'], (int) $exclusions['own'])); ?></li>
         <?php endif; ?>
 
         <li class="text-muted"><?php echo Text::_('COM_ALFA_DISCOUNT_REACH_NOTE'); ?></li>

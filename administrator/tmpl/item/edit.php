@@ -143,6 +143,7 @@
         <div class="col-12">
             <fieldset id="fieldset-pricedata" class="options-form">
                 <legend><?php echo Text::_('COM_ALFA_FORM_FIELDSET_PRICE'); ?></legend>
+                <?php echo $this->form->renderField('discount_rules'); ?>
                 <?php echo $this->form->renderField('prices'); ?>
             </fieldset>
         </div>

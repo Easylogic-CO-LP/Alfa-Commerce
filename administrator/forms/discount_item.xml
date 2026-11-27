@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One row of a discount rule's product list (DiscountItemsField): a product picked in the products modal. -->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <field name="item_id" type="Modal_Item" filter="integer"
+           select="true" new="false" edit="false" clear="false"
+           label="COM_ALFA_FORM_LBL_DISCOUNT_ITEM"/>
+</form>

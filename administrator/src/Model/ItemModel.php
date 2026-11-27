@@ -37,12 +37,14 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemSaveBusyException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteResult;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemWriteService;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PriceRowPlaces;
-use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesState;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\PricesStateChanged;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\ItemShipments;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\PublishPeriod;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedItems;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RelatedLinksRefusedException;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\ScopeDeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuIndex;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuInUseException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\SkuUnit;
@@ -3592,6 +3594,10 @@ class ItemModel extends AlfaAdminModel
             $db->transactionStart(true);
 
             try {
+                // A discount whose last named product is in the set would reach every product its other parts take
+                // in: the delete is refused, naming the rules.
+                RuleScopeGuard::assertScopesSurvive(db: $db, axis: RuleScopeGuard::AXIS_ITEM, ids: $existing);
+
                 foreach ($existing as $pk) {
                     $service->lockItemStock(itemId: $pk);
 
@@ -3683,6 +3689,11 @@ class ItemModel extends AlfaAdminModel
                 SkuIndex::forget(itemIds: array_map('intval', $deletePks));
 
                 TransactionState::commitLevel(db: $db);
+            } catch (ScopeDeleteRefusedException $refused) {
+                TransactionState::rollBackLevel(db: $db, failure: $refused);
+                $this->refuseDelete(sentence: $refused->getMessage(), escaped: true);
+
+                return false;
             } catch (InventoryUnitRetirementException $retirement) {
                 TransactionState::rollBackLevel(db: $db, failure: $retirement);
 
@@ -3736,6 +3747,8 @@ class ItemModel extends AlfaAdminModel
                 '#__alfa_items_usergroups' => 'item_id',
                 '#__alfa_items_users' => 'item_id',
                 '#__alfa_items_shipments' => 'item_id',
+                '#__alfa_discount_items' => 'item_id',
+                '#__alfa_discount_excluded_items' => 'item_id',
             ] as $table => $column) {
                 $db->setQuery(
                     $db->getQuery(true)
@@ -3986,6 +3999,11 @@ class ItemModel extends AlfaAdminModel
 
         if ($table->id == 0 && empty($table->created_by)) {
             $table->created_by = $user->id;
+        }
+
+        // When the product was made (NewProducts counts from it): kept from its first save, never changed.
+        if ($table->id == 0 && empty($table->created)) {
+            $table->created = Factory::getDate()->toSql();
         }
 
         $table->modified = Factory::getDate()->toSql();

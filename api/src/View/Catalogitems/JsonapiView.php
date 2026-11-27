@@ -62,6 +62,7 @@ class JsonApiView extends BaseApiView
         'quantity_max',
         'quantity_step',
         'price',
+        'discount_rules',
         'categories',
         'manufacturers',
         'medias',

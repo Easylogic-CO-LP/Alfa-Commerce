@@ -106,7 +106,7 @@ class AlfapricesField extends FormField
      *
      * @param int $itemId The saved item.
      *
-     * @return array{categories: string, manufacturers: string}
+     * @return array{categories: string, manufacturers: string, discount_rules: string}
      *
      * @since  2.1.0
      */
@@ -119,9 +119,19 @@ class AlfapricesField extends FormField
             return implode(',', $ids);
         };
 
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $rules = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('discount_rules'))
+                ->from($db->quoteName('#__alfa_items'))
+                ->where($db->quoteName('id') . ' = ' . $itemId),
+        )->loadResult();
+
         return [
             'categories' => $ids(AlfaHelper::getAssocsFromDb($itemId, '#__alfa_items_categories', 'item_id', 'category_id')),
             'manufacturers' => $ids(AlfaHelper::getAssocsFromDb($itemId, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id')),
+            // The product's own discount rules switch as stored, compared with the form's the same way.
+            'discount_rules' => $rules === null ? '1' : (string) (int) $rules,
         ];
     }
 
@@ -155,6 +165,7 @@ class AlfapricesField extends FormField
         Text::script('COM_ALFA_PRICES_SALE_PERCENT');
         Text::script('COM_ALFA_PRICES_RULES_APPLIED');
         Text::script('COM_ALFA_PRICES_SALE_REPLACES_RULES');
+        Text::script('COM_ALFA_PRICES_RULES_EXCLUDED');
 
         $layout = new FileLayout('prices.editor', JPATH_ADMINISTRATOR . '/components/com_alfa/layouts');
 
@@ -360,7 +371,7 @@ class AlfapricesField extends FormField
      * yet, or a form, that has no category is refused for the same reason: no
      * tax can be matched to it, and the item form cannot be saved without one.
      *
-     * @return array{a: float, b: float, taxFactor: float, decimals: int, taxes: array, discounts: array, baseNet: float, baseSale: bool}
+     * @return array{a: float, b: float, taxFactor: float, decimals: int, taxes: array, discounts: array, baseNet: float, baseSale: bool, excluded: bool}
      *
      * @throws RuntimeException When the row's currency, rules or base cannot be resolved, or the form's product has no category.
      * @throws InvalidArgumentException When $unsaved is another product than $itemId.
@@ -385,7 +396,7 @@ class AlfapricesField extends FormField
             $loader = PriceDataLoader::forUnsavedItem(item: $unsaved);
             $subject = $unsaved->cacheKey();
         } elseif ($itemId <= 0) {
-            return ['a' => 1.0, 'b' => 0.0, 'taxFactor' => 1.0, 'decimals' => 2, 'taxes' => [], 'discounts' => [], 'baseNet' => 0.0, 'baseSale' => false];
+            return ['a' => 1.0, 'b' => 0.0, 'taxFactor' => 1.0, 'decimals' => 2, 'taxes' => [], 'discounts' => [], 'baseNet' => 0.0, 'baseSale' => false, 'excluded' => false];
         }
 
         $quantity = self::previewQuantity(row: $row);
@@ -454,6 +465,8 @@ class AlfapricesField extends FormField
                 ],
                 $high->getDiscounts()->getApplied(),
             ),
+            // The product's own switch: excluded from every discount rule, so no rule is listed above.
+            'excluded' => !$collection->rulesApplyFor($itemId),
         ];
 
         // The base an adjust row applies its delta to, under this same context
