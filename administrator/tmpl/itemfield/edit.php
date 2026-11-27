@@ -12,6 +12,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 
 $wa = $this->document->getWebAssetManager();
@@ -135,5 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
     <?php echo $this->form->renderControlFields(); ?>
+    <?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
 </form>

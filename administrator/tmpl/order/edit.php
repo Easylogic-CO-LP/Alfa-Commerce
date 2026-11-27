@@ -198,6 +198,7 @@ foreach ($this->form->getFieldsets() as $fieldsetName => $fieldset) {
            value="<?php echo (int) $this->order->id_order_status; ?>" />
 	<?php endif; ?>
 	<?php echo HTMLHelper::_('form.token'); ?>
+	<?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
 </form>
 

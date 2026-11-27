@@ -4,6 +4,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
@@ -75,6 +76,7 @@ foreach ($this->form->getFieldsets() as $fieldset) {
     </div>
 
     <?php echo $this->form->renderControlFields(); ?>
+    <?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
 </form>
 

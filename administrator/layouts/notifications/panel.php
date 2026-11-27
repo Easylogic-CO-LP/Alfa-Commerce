@@ -19,6 +19,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -49,7 +50,8 @@ $canChange = !empty($displayData['can_change']);
             <?php
             $severity = \in_array($n->severity, ['success', 'info', 'warning', 'danger'], true) ? $n->severity : 'info';
             $unread   = empty($n->readed);
-            $safeUrl  = NotificationHelper::safeUrl((string) $n->url);
+            // A record the notification opens goes back to the page the bell is on.
+            $safeUrl  = AlfaHelper::withReturn(NotificationHelper::safeUrl((string) $n->url), (string) ($displayData['return'] ?? ''));
             $hasLink  = $safeUrl !== '' && NotificationHelper::canUseLink(notification: $n);
             // In the reader's language: the key, else the snapshot; literal text as written.
             $title    = NotificationText::title($n);

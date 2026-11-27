@@ -22,6 +22,7 @@ use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
 
@@ -1352,6 +1353,46 @@ class AlfaHelper
     public static function isRecordForm(string $view, string $layout): bool
     {
         return \in_array(strtolower(trim($view)), self::FORM_SCREENS, true) && self::recordLayout(layout: $layout) === 'edit';
+    }
+
+    /**
+     * The address a record's form goes back to on Close and Save & Close when the record is opened from this page: the
+     * page's own address, base64 encoded, as Joomla's form controller reads a return value. A record form is itself
+     * reached only through its edit task, so a form page gives its edit task's address
+     * (index.php?option=com_alfa&task=<view>.edit&id=<id>); every other page gives its request address as it is.
+     *
+     * @since  2.3.0
+     */
+    public static function returnPage(): string
+    {
+        $input = Factory::getApplication()->getInput();
+        $view = strtolower(RequestScalar::cmd($input, 'view'));
+        $id = $view === '' ? 0 : self::recordId(view: $view, input: $input);
+
+        if ($id > 0 && self::isRecordForm(view: $view, layout: RequestScalar::string($input, 'layout'))) {
+            return base64_encode('index.php?option=com_alfa&task=' . $view . '.edit&id=' . $id);
+        }
+
+        return base64_encode(Uri::getInstance()->toString());
+    }
+
+    /**
+     * A link that opens a record (task=<view>.edit) with the page to go back to on Close and Save & Close: this page
+     * when none is given. Any other link is given back as it is: a list keeps its own way back. Plugins build their
+     * links to a record the same way.
+     *
+     * @param string $url The link, before routing.
+     * @param string $return The return address, base64 encoded; '' for this page's ({@see self::returnPage()}).
+     *
+     * @since  2.3.0
+     */
+    public static function withReturn(string $url, string $return = ''): string
+    {
+        if (preg_match('/[?&]task=[a-z]+\.edit(&|$)/i', $url) !== 1) {
+            return $url;
+        }
+
+        return $url . '&return=' . rawurlencode($return !== '' ? $return : self::returnPage());
     }
 
     /**

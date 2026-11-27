@@ -15,6 +15,7 @@ use \Joomla\CMS\Factory;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Language\LanguageHelper;
 
 $wa = $this->document->getWebAssetManager();
@@ -165,6 +166,7 @@ foreach ($this->form->getFieldsets() as $fieldset) {
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
 	<?php echo $this->form->renderControlFields(); ?>
+	<?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
 </form>
 

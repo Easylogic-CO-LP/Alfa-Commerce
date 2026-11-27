@@ -214,6 +214,14 @@
      */
     function refresh() {
         var url = opts.panelUrl + '&' + SEL.openParam + '=' + (isOpen() ? 1 : 0) + '&' + opts.token + '=1';
+        // The page the bell is on, as the server rendered it (data-return): the refreshed panel's links to a record
+        // go back there.
+        var back = root ? root.getAttribute('data-return') : '';
+
+        if (back) {
+            url += '&return=' + encodeURIComponent(back);
+        }
+
 
         fetch(url, {
             credentials: 'same-origin',

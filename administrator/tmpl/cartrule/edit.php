@@ -21,6 +21,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 
 $wa = $this->getDocument()->getWebAssetManager();
@@ -120,4 +121,5 @@ foreach ($this->form->getFieldsets() as $fieldset) {
 
     <input type="hidden" name="task" value=""/>
 	<?php echo HTMLHelper::_('form.token'); ?>
+	<?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 </form>

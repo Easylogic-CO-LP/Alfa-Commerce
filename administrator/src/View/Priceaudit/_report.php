@@ -76,8 +76,9 @@ $detailValue = static function (string $name, $value) use ($date, $money): strin
     };
 };
 
-$itemUrl = static fn (int $id): string => Route::_(url: 'index.php?option=com_alfa&task=item.edit&id=' . $id);
-$ruleUrl = static fn (string $kind, int $id): string => Route::_(url: 'index.php?option=com_alfa&task=' . ($kind === RuleReach::TAX ? 'tax' : 'discount') . '.edit&id=' . $id);
+// Each record opens with this page as its way back on Close and Save & Close.
+$itemUrl = static fn (int $id): string => Route::_(url: AlfaHelper::withReturn('index.php?option=com_alfa&task=item.edit&id=' . $id));
+$ruleUrl = static fn (string $kind, int $id): string => Route::_(url: AlfaHelper::withReturn('index.php?option=com_alfa&task=' . ($kind === RuleReach::TAX ? 'tax' : 'discount') . '.edit&id=' . $id));
 ?>
 <div class="com-alfa-price-audit com-alfa-audit">
     <p class="text-muted">

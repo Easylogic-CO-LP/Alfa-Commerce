@@ -54,7 +54,7 @@ class HtmlView extends FormView
     }
 
     /**
-     * Prepare the view: add the 'task' and base64 'return' control fields to the form.
+     * Prepare the view: add the 'task' control field to the form; the form's layout carries the return address.
      *
      * @return void
      *
@@ -68,8 +68,7 @@ class HtmlView extends FormView
 
         // Add form control fields
         $this->form
-            ->addControlField('task', '')
-            ->addControlField('return', RequestScalar::read($input, 'return', '', 'base64'));
+            ->addControlField('task', '');
 
         // "Fields & combinations" popup data: category-scoped fields with pools,
         // this item's assignments/subsets. Availability follows the SAVED

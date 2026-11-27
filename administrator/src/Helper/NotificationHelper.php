@@ -1333,12 +1333,13 @@ class NotificationHelper
      * @param mixed $user The user the panel is for.
      * @param array<int, array{0: string|null, 1: string|null}>|null $pairs The rules the user may see ({@see self::visiblePairs()}).
      * @param int $total How many active notifications those rules show.
+     * @param string $return The page a record a notification opens goes back to, base64 encoded; '' for none.
      *
      * @return string The rendered `notifications.panel` layout.
      *
      * @since  2.1.0
      */
-    private static function renderPanel(bool $isOpen, $user, ?array $pairs, int $total): string
+    private static function renderPanel(bool $isOpen, $user, ?array $pairs, int $total, string $return): string
     {
         $items = [];
 
@@ -1361,7 +1362,7 @@ class NotificationHelper
 
         return LayoutHelper::render(
             'notifications.panel',
-            ['items' => $items, 'total' => $total, 'is_open' => $isOpen, 'can_change' => self::canChangeState(user: $user)],
+            ['items' => $items, 'total' => $total, 'is_open' => $isOpen, 'can_change' => self::canChangeState(user: $user), 'return' => $return],
             JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
         );
     }
@@ -1375,12 +1376,14 @@ class NotificationHelper
      * count.
      *
      * @param bool $isOpen Whether the panel should render open (preserved across refresh).
+     * @param string $return The page a record a notification opens goes back to, base64 encoded; '' for none. The
+     *                       page render gives its own address, the refresh gives the one the page handed it.
      *
      * @return string The rendered `notifications.badge` layout.
      *
      * @since  1.0.0
      */
-    public static function renderBadge(bool $isOpen = false): string
+    public static function renderBadge(bool $isOpen = false, string $return = ''): string
     {
         // No view permission, no bell; never an empty one.
         if (!self::canView()) {
@@ -1396,7 +1399,8 @@ class NotificationHelper
             [
                 'summary' => ['count' => $counts['unread'], 'severity' => $counts['severity']],
                 'is_open' => $isOpen,
-                'panel' => self::renderPanel(isOpen: $isOpen, user: $user, pairs: $pairs, total: $counts['total']),
+                'return' => $return,
+                'panel' => self::renderPanel(isOpen: $isOpen, user: $user, pairs: $pairs, total: $counts['total'], return: $return),
             ],
             JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
         );
@@ -1441,7 +1445,8 @@ class NotificationHelper
             'poll' => 0,
         ]);
 
-        $toolbar->appendButton('Custom', self::renderBadge(), 'alfa-notification-badge');
+        // A record a notification opens goes back to this page on Close and Save & Close.
+        $toolbar->appendButton('Custom', self::renderBadge(return: AlfaHelper::returnPage()), 'alfa-notification-badge');
     }
 
     /**

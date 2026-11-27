@@ -14,6 +14,7 @@ use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 
@@ -208,6 +209,7 @@ if ($linkedUser) {
     <input type="hidden" name="jform[id_user]" value="<?php echo (int) ($this->item->id_user ?? 0); ?>" />
     <input type="hidden" name="task" value="" />
     <?php echo HTMLHelper::_('form.token'); ?>
+    <?php echo LayoutHelper::render('form.return', [], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
 
 </form>
 

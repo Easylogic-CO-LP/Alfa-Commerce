@@ -44,6 +44,7 @@
  * @var \Alfa\Component\Alfa\Administrator\View\Inventoryaudit\HtmlView $this
  */
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Model\InventoryauditModel;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
@@ -421,7 +422,7 @@ $holdLines = static function (array $detail) use ($figure, $reference, $detailLa
                                     </form>
                                 <?php elseif ($action === 'tracking_hint' && $firstOfItem) : ?>
                                     <div class="small"><?php echo Text::_('COM_ALFA_INVENTORY_AUDIT_UNTRACKED_HINT'); ?></div>
-                                    <a class="small" href="<?php echo Route::_(url: 'index.php?option=com_alfa&task=item.edit&id=' . $itemId); ?>">
+                                    <a class="small" href="<?php echo Route::_(url: AlfaHelper::withReturn('index.php?option=com_alfa&task=item.edit&id=' . $itemId)); ?>">
                                         <?php echo Text::_('COM_ALFA_INVENTORY_AUDIT_HEADING_ITEM'); ?> <?php echo $reference($itemId); ?>
                                     </a>
                                 <?php elseif ($lineAction === 'resolve') : ?>
