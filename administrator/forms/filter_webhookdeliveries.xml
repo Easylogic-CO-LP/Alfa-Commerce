@@ -6,15 +6,16 @@
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fields name="filter">
         <field
-                name="state"
+                name="work"
                 type="list"
-                label="JSTATUS"
+                label="COM_ALFA_TASKS_COL_STATE"
                 onchange="this.form.submit();"
         >
-            <option value="">COM_ALFA_WEBHOOK_DELIVERIES_FILTER_STATE</option>
-            <option value="delivered">COM_ALFA_WEBHOOK_DELIVERIES_FILTER_DELIVERED</option>
-            <option value="failed">COM_ALFA_WEBHOOK_DELIVERIES_FILTER_FAILED</option>
-            <option value="pending">COM_ALFA_WEBHOOK_DELIVERIES_FILTER_PENDING</option>
+            <option value="">COM_ALFA_TASKS_FILTER_WORK</option>
+            <option value="running">COM_ALFA_TASKS_WORK_RUNNING</option>
+            <option value="waiting">COM_ALFA_TASKS_WORK_WAITING</option>
+            <option value="attention">COM_ALFA_TASKS_WORK_ATTENTION</option>
+            <option value="finished">COM_ALFA_TASKS_WORK_FINISHED</option>
         </field>
     </fields>
 
@@ -24,11 +25,11 @@
                 type="list"
                 label="JGLOBAL_SORT_BY"
                 onchange="this.form.submit();"
-                default="a.id DESC"
+                default="d.id DESC"
                 validate="options"
         >
-            <option value="a.id DESC">COM_ALFA_WEBHOOK_DELIVERIES_SORT_NEWEST</option>
-            <option value="a.id ASC">COM_ALFA_WEBHOOK_DELIVERIES_SORT_OLDEST</option>
+            <option value="d.id DESC">COM_ALFA_WEBHOOK_DELIVERIES_SORT_NEWEST</option>
+            <option value="d.id ASC">COM_ALFA_WEBHOOK_DELIVERIES_SORT_OLDEST</option>
         </field>
 
         <field

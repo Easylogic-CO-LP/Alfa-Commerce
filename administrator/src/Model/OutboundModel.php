@@ -27,7 +27,7 @@ use Joomla\Database\QueryInterface;
  * extension that tells another system), each in one of four states of work: running now (its consumer's delivery job
  * is sending), waiting, needs attention (given up after the last retry) or finished (taken, discarded, or of a plugin
  * that takes none). Filters: a search (an id, a product or order, a consumer's name or an error), the state of work,
- * the consumer told and when the change was recorded.
+ * the destination's kind (a webhook address, an extension), the consumer told and when the change was recorded.
  *
  * @since  2.3.0
  */
@@ -139,6 +139,15 @@ class OutboundModel extends AlfaListModel
 
         if ($consumer > 0) {
             $query->where($db->quoteName('d.consumer_id') . ' = ' . $consumer);
+        }
+
+        // The destination's kind: a webhook address, or an extension that tells another system.
+        $type = (string) $this->getState('filter.type', '');
+
+        if (\in_array($type, [OutboundConsumers::KIND_WEBHOOK, OutboundConsumers::KIND_PLUGIN], true)) {
+            $query->where($db->quoteName('c.kind') . ' = :type')->bind(':type', $type);
+        } elseif ($type !== '') {
+            $query->where('1 = 0');
         }
 
         // The change is recorded as UTC; the state holds the shop's local bounds.

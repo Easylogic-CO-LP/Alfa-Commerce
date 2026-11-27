@@ -13,19 +13,16 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
-use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundDelivery;
-use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundFeed;
 use Joomla\CMS\Factory;
-use Joomla\Database\ParameterType;
 
 /**
- * One webhook's deliveries: each change the shop owed its address, newest first, by status (delivered, failed or
- * pending). The webhook is named by webhook_id in every request of the list, never kept as a filter, and only a
- * webhook's changes are listed: a plugin consumer's are not.
+ * One webhook's deliveries, the Deliveries tab of its form: the outgoing notifications' own reading
+ * ({@see OutboundModel}) pinned to that consumer, a webhook address, so the tab and the outgoing notifications screen
+ * never read the rows differently.
  *
  * @since  2.3.0
  */
-class WebhookdeliveriesModel extends AlfaListModel
+class WebhookdeliveriesModel extends OutboundModel
 {
     /**
      * The admin-contract entity of this screen.
@@ -35,84 +32,21 @@ class WebhookdeliveriesModel extends AlfaListModel
     protected string $alfaEntity = 'webhookdelivery';
 
     /**
-     * The status filter's values, and the delivery states each one covers.
-     *
-     * @var array<string, string[]>
-     *
-     * @since  2.3.0
-     */
-    public const STATUSES = [
-        'delivered' => [OutboundDelivery::STATE_SENT],
-        'failed' => [OutboundDelivery::STATE_DEAD, OutboundDelivery::STATE_DISCARDED],
-        'pending' => [OutboundDelivery::STATE_PENDING],
-    ];
-
-    /**
-     * @param array $config The configuration.
-     *
-     * @since  2.3.0
-     */
-    public function __construct($config = [])
-    {
-        if (empty($config['filter_fields'])) {
-            $config['filter_fields'] = ['id', 'a.id', 'state', 'a.state'];
-        }
-
-        parent::__construct($config);
-    }
-
-    /**
-     * The list's state: the webhook from the request, the rows newest first by default.
+     * The list's state: the webhook the form shows, newest first by default, and the reading pinned to that webhook
+     * whatever the request's filters name.
      *
      * @param string $ordering The default ordering.
      * @param string $direction The default direction.
      *
      * @since  2.3.0
      */
-    protected function populateState($ordering = 'a.id', $direction = 'DESC')
+    protected function populateState($ordering = 'd.id', $direction = 'DESC')
     {
-        $this->setState('webhook.id', RequestScalar::int(Factory::getApplication()->getInput(), 'webhook_id'));
-
         parent::populateState($ordering, $direction);
-    }
 
-    /**
-     * The webhook's deliveries, by status when one is chosen.
-     *
-     * @return \Joomla\Database\QueryInterface
-     *
-     * @since  2.3.0
-     */
-    protected function getListQuery()
-    {
-        $db = $this->getDatabase();
-        $webhook = (int) $this->getState('webhook.id', 0);
-        $kind = OutboundConsumers::KIND_WEBHOOK;
-        $query = $db->getQuery(true)
-            ->select($db->quoteName([
-                'a.id', 'a.topic', 'a.subject_id', 'a.unit_id', 'a.payload', 'a.state', 'a.attempts', 'a.next_attempt_at',
-                'a.last_error', 'a.created', 'a.sent_at', 'a.dead_at',
-            ]))
-            ->from($db->quoteName(OutboundFeed::DELIVERIES, 'a'))
-            ->join(
-                'INNER',
-                $db->quoteName(OutboundFeed::CONSUMERS, 'c'),
-                $db->quoteName('c.id') . ' = ' . $db->quoteName('a.consumer_id') . ' AND ' . $db->quoteName('c.kind') . ' = :kind',
-            )
-            ->where($db->quoteName('a.consumer_id') . ' = :webhook')
-            ->bind(':kind', $kind)
-            ->bind(':webhook', $webhook, ParameterType::INTEGER);
-
-        $states = self::STATUSES[(string) $this->getState('filter.state', '')] ?? [];
-
-        if ($states !== []) {
-            $query->whereIn($db->quoteName('a.state'), $states, ParameterType::STRING);
-        }
-
-        $query->order($db->escape((string) $this->getState('list.ordering', 'a.id')) . ' ' . $db->escape((string) $this->getState('list.direction', 'DESC')));
-
-        $this->orderByKeyLast($query, (string) $this->getState('list.ordering', 'a.id'), (string) $this->getState('list.direction', 'DESC'));
-
-        return $query;
+        $webhook = RequestScalar::int(Factory::getApplication()->getInput(), 'webhook_id');
+        $this->setState('webhook.id', $webhook);
+        $this->setState('filter.kind', $webhook);
+        $this->setState('filter.type', OutboundConsumers::KIND_WEBHOOK);
     }
 }

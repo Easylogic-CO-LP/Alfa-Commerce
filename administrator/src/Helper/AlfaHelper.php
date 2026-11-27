@@ -1103,7 +1103,7 @@ class AlfaHelper
      *
      * @since  2.0.0
      */
-    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'apiroutes', 'tasks', 'notifications', 'panel', 'action', 'inventoryaudit', 'priceaudit', 'resetdefaults', 'cleardata', 'extensions'];
+    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'apiroutes', 'tasks', 'outbound', 'notifications', 'panel', 'action', 'inventoryaudit', 'priceaudit', 'resetdefaults', 'cleardata', 'extensions'];
 
     /**
      * What each standard Joomla list and record task does, as a permission verb. Alfa's own tasks

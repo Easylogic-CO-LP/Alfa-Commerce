@@ -24,6 +24,17 @@
         </field>
 
         <field
+                name="type"
+                type="list"
+                label="COM_ALFA_OUTBOUND_FILTER_TYPE"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_OUTBOUND_FILTER_TYPE</option>
+            <option value="webhook">COM_ALFA_OUTBOUND_TYPE_WEBHOOK</option>
+            <option value="plugin">COM_ALFA_OUTBOUND_TYPE_PLUGIN</option>
+        </field>
+
+        <field
                 name="kind"
                 type="outboundconsumer"
                 label="COM_ALFA_OUTBOUND_COL_CONSUMER"

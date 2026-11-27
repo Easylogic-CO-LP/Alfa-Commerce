@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Tasks;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ErrorText;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
@@ -18,9 +19,7 @@ use Alfa\Component\Alfa\Administrator\Helper\ToolButton;
 use Alfa\Component\Alfa\Administrator\Helper\ToolRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Model\OutboundModel;
-use Alfa\Component\Alfa\Administrator\Model\TasksModel;
 use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
-use Alfa\Component\Alfa\Administrator\Service\Outbound\OutboundConsumers;
 use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
@@ -28,36 +27,22 @@ use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Throwable;
 
 /**
- * The Background screen: the shop's background work in two tabs, each a list with its own filters, order and pages.
- * The Work tab lists every task and job in its state of work (running now, waiting, needs attention, finished), with
- * what staff may do with each, and follows one job's progress when asked (&job=N). The Outgoing notifications tab
- * lists every change owed to a webhook or an extension, with the card of who is told. The toolbar runs the
- * background work's tools (the actions registered for the background surface) and deletes the finished entries
- * checked. One tab is listed at a time, the one the form's tab field names.
+ * The Background screen: the shop's background work as one list with its own filters, order and pages. Every task and
+ * job in its state of work (running now, waiting, needs attention, finished), with what staff may do with each; one
+ * job's progress followed when asked (&job=N). The toolbar runs the background work's tools (the actions registered
+ * for the background surface), deletes the finished entries checked, and leads to the outgoing notifications, which
+ * have a screen of their own.
  *
  * @since  2.3.0
  */
 class HtmlView extends BaseHtmlView
 {
-    /**
-     * The Work tab.
-     *
-     * @since  2.3.0
-     */
-    public const TAB_WORK = 'work';
-
-    /**
-     * The Outgoing notifications tab.
-     *
-     * @since  2.3.0
-     */
-    public const TAB_OUTBOUND = 'outbound';
-
     /**
      * The surface whose registered actions are the toolbar's tools.
      *
@@ -80,14 +65,7 @@ class HtmlView extends BaseHtmlView
     protected string $alfaEntity = 'task';
 
     /**
-     * The tab listed: self::TAB_WORK or self::TAB_OUTBOUND.
-     *
-     * @since  2.3.0
-     */
-    public string $tab = self::TAB_WORK;
-
-    /**
-     * The rows of the tab listed.
+     * The rows of the page.
      *
      * @var array
      *
@@ -174,16 +152,6 @@ class HtmlView extends BaseHtmlView
     public array $actions = [];
 
     /**
-     * The card of who is told of the shop's changes ({@see OutboundConsumers::cardRows()}), on the Outgoing
-     * notifications tab.
-     *
-     * @var array{rows: list<array<string, mixed>>, unreadable: bool}
-     *
-     * @since  2.3.0
-     */
-    public array $consumers = ['rows' => [], 'unreadable' => false];
-
-    /**
      * Display the screen.
      *
      * @param string|null $tpl The template.
@@ -200,27 +168,23 @@ class HtmlView extends BaseHtmlView
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        // A job to follow opens the Work tab, whatever tab was listed last.
-        $this->jobId = RequestScalar::int($app->getInput(), 'job');
-        $tab = (string) $app->getUserStateFromRequest('com_alfa.tasks.tab', 'tab', self::TAB_WORK, 'cmd');
-        $this->tab = $this->jobId > 0 || $tab !== self::TAB_OUTBOUND ? self::TAB_WORK : self::TAB_OUTBOUND;
-
-        if ($this->tab === self::TAB_OUTBOUND) {
-            // The tab's own model stands as the view's default, so nothing reads the Work tab's list for this request.
-            $model = $app->bootComponent('com_alfa')->getMVCFactory()->createModel('Outbound', 'Administrator');
-            $this->setModel($model, true);
-            $this->consumers = $this->consumers();
-        } else {
-            $model = $this->getModel();
-            $this->followJob();
+        // The outgoing notifications once were this screen's second tab: their old address leads to their own screen,
+        // with the filters the address carried.
+        if (RequestScalar::cmd($app->getInput(), 'tab') === 'outbound') {
+            $filters = array_filter((array) $app->getInput()->get('filter', [], 'array'), 'is_scalar');
+            $app->redirect(Route::_('index.php?option=com_alfa&view=outbound' . ($filters === [] ? '' : '&' . http_build_query(['filter' => $filters])), false));
         }
+
+        $this->jobId = RequestScalar::int($app->getInput(), 'job');
+        $model = $this->getModel();
+        $this->followJob();
 
         $this->items = $model->getItems();
         $this->pagination = $model->getPagination();
         $this->state = $model->getState();
         $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
-        $this->historyUsers = $model instanceof TasksModel ? $model->getHistoryUsers() : [];
+        $this->historyUsers = $model->getHistoryUsers();
         $this->actions = ToolRegistry::forSurface(self::SURFACE);
 
         $this->addToolbar();
@@ -251,25 +215,6 @@ class HtmlView extends BaseHtmlView
         }
 
         $this->jobMissing = $this->job === null;
-    }
-
-    /**
-     * The consumers of the shop's changes for the card of who is told; a table that cannot be read costs the card
-     * only.
-     *
-     * @return array{rows: list<array<string, mixed>>, unreadable: bool}
-     *
-     * @since  2.3.0
-     */
-    private function consumers(): array
-    {
-        try {
-            return ['rows' => OutboundConsumers::cardRows(), 'unreadable' => false];
-        } catch (Throwable $e) {
-            Tasks::log(entry: 'Background: the consumers of the shop\'s changes could not be read: ' . $e::class . ': ' . ErrorText::of($e), priority: Log::ERROR);
-
-            return ['rows' => [], 'unreadable' => true];
-        }
     }
 
     /**
@@ -347,9 +292,13 @@ class HtmlView extends BaseHtmlView
 
         $this->addRunButton($toolbar);
 
-        $toolbar->delete($this->tab === self::TAB_OUTBOUND ? 'outbound.delete' : 'tasks.delete')
+        $toolbar->delete('tasks.delete')
             ->message('COM_ALFA_TASKS_DELETE_CONFIRM')
             ->listCheck(true);
+
+        // The outgoing notifications, listed on their own screen; its way back is this page.
+        $toolbar->link(Text::_('COM_ALFA_OUTBOUND_CARD_TITLE'), AlfaHelper::withReturn('index.php?option=com_alfa&view=outbound'))
+            ->icon('icon-out-2');
 
         if ($user->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');

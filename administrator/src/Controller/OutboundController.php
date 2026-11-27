@@ -33,11 +33,11 @@ use Throwable;
 class OutboundController extends BaseController
 {
     /**
-     * Where every action returns to: the Background screen, its Outgoing notifications tab.
+     * Where every action returns to: the outgoing notifications screen.
      *
      * @since  2.3.0
      */
-    private const PAGE = 'index.php?option=com_alfa&view=tasks&tab=outbound';
+    private const PAGE = 'index.php?option=com_alfa&view=outbound';
 
     /**
      * Delete the finished deliveries checked in the list: taken, discarded, or of a plugin that takes none; a row in

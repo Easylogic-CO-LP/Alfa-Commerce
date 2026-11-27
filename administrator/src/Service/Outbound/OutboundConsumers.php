@@ -68,7 +68,7 @@ final class OutboundConsumers
      *
      * @since  2.3.0
      */
-    public const URL = 'index.php?option=com_alfa&view=tasks&tab=outbound';
+    public const URL = 'index.php?option=com_alfa&view=outbound';
 
     /**
      * The connection, as the driver whose transaction levels Alfa keeps.

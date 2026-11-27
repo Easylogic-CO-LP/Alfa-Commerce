@@ -35,7 +35,7 @@ $badges = [
     OutboundDelivery::STATE_DISCARDED => ['bg-secondary', 'COM_ALFA_WEBHOOK_DELIVERY_DISCARDED'],
 ];
 // The frame's links open in the admin itself, not inside the frame.
-$tools = '<a href="' . Route::_('index.php?option=com_alfa&view=tasks&tab=outbound') . '" target="_top">' . Text::_('COM_ALFA_WEBHOOK_DELIVERIES_TOOLS') . '</a>';
+$tools = '<a href="' . Route::_('index.php?option=com_alfa&view=outbound&filter[kind]=' . $this->webhookId) . '" target="_top">' . Text::_('COM_ALFA_WEBHOOK_DELIVERIES_TOOLS') . '</a>';
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=webhookdeliveries&webhook_id=' . $this->webhookId
@@ -63,7 +63,7 @@ $tools = '<a href="' . Route::_('index.php?option=com_alfa&view=tasks&tab=outbou
                         <th scope="col" class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_WEBHOOK_DELIVERIES_COL_TRIES'); ?></th>
                         <th scope="col" class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_WEBHOOK_DELIVERIES_COL_QUEUED'); ?></th>
                         <th scope="col" class="w-3 d-none d-lg-table-cell">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
+                            <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'd.id', $listDirn, $listOrder); ?>
                         </th>
                     </tr>
                     </thead>

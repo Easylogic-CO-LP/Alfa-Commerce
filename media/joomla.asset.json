@@ -715,18 +715,6 @@
       "attributes": {
         "defer": true
       }
-    },
-    {
-      "name": "com_alfa.admin.tasks",
-      "type": "script",
-      "uri": "com_alfa/admin/tasks.min.js",
-      "dependencies": [
-        "core",
-        "webcomponent.joomla-tab"
-      ],
-      "attributes": {
-        "defer": true
-      }
-    }
+        }
   ]
 }
