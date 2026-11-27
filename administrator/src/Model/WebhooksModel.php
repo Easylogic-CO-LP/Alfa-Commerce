@@ -101,6 +101,8 @@ class WebhooksModel extends AlfaListModel
 
         $query->order($db->escape((string) $this->getState('list.ordering', 'a.name')) . ' ' . $db->escape((string) $this->getState('list.direction', 'ASC')));
 
+        $this->orderByKeyLast($query, (string) $this->getState('list.ordering', 'a.name'), (string) $this->getState('list.direction', 'ASC'));
+
         return $query;
     }
 }

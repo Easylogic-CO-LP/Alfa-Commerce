@@ -177,6 +177,7 @@ class OutboundModel extends AlfaListModel
             'finished' => 'COALESCE(' . $db->quoteName('d.sent_at') . ', ' . $db->quoteName('d.dead_at') . ') ' . $direction,
             default => $db->quoteName($ordering) . ' ' . $direction,
         });
+        $this->orderByKeyLast($query, $ordering, $direction, 'd.id');
 
         return $query;
     }

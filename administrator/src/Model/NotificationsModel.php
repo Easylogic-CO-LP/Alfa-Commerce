@@ -215,6 +215,7 @@ class NotificationsModel extends AlfaListModel
 
         if ($orderCol !== '') {
             $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDir) === 'DESC' ? 'DESC' : 'ASC'));
+            $this->orderByKeyLast($query, (string) $orderCol, (string) $orderDir);
 
             return $query;
         }
