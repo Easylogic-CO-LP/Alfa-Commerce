@@ -305,6 +305,14 @@ class MultilingualHelper
             }
         }
 
+        // THE LANGUAGE KEYS THE FORM TRANSLATES, and no other. The per-language keys (name_en_gb) are the ones a form
+        // filter drops, so they are recovered here; the language schema then follows the keys saved
+        // ({@see self::ensureLangSchemaForData()}). A key of the same shape for a field the form does not translate
+        // (alias_en_gb on a discount, foo_en_gb from any client) would add that column to the record's language
+        // tables, so it is dropped here, silently, as the form filter drops every other undeclared field.
+        $translatable = $form === null ? null : self::translatableFieldsOf(form: $form);
+        $langCodes = $translatable === null ? [] : self::getLanguageTags();
+
         foreach ($raw as $key => $value) {
             // Keep every validated field; never resurrect a field the form unset.
             if (
@@ -315,10 +323,101 @@ class MultilingualHelper
                 continue;
             }
 
+            $field = self::languageField(key: (string) $key, langCodes: $langCodes);
+
+            if ($field !== null && !isset($translatable[$field])) {
+                continue;
+            }
+
             $validated[$key] = $value;
         }
 
         return $validated;
+    }
+
+    /**
+     * The fields a form translates, as a set: every field declared with multilingual_table, and the alias fields of
+     * those tables ({@see MultilingualAliasConfig::FIELDS}).
+     *
+     * @param Form $form The form.
+     *
+     * @return array<string, true>
+     *
+     * @since  2.3.0
+     */
+    private static function translatableFieldsOf(Form $form): array
+    {
+        $fields = [];
+
+        foreach ($form->getFieldset() as $field) {
+            $table = (string) $field->getAttribute('multilingual_table', '');
+            $name = (string) $field->getAttribute('name', '');
+
+            if ($table === '' || $name === '') {
+                continue;
+            }
+
+            $fields[$name] = true;
+
+            foreach (MultilingualAliasConfig::FIELDS[$table] ?? [] as $alias) {
+                $fields[$alias] = true;
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * The field a per-language key names (name_en_gb: name), or null for a key of another shape.
+     *
+     * @param string $key The key.
+     * @param string[] $langCodes The language codes, lower snake (en_gb).
+     *
+     * @since  2.3.0
+     */
+    private static function languageField(string $key, array $langCodes): ?string
+    {
+        foreach ($langCodes as $code) {
+            $suffix = '_' . $code;
+
+            if (str_ends_with($key, $suffix) && \strlen($key) > \strlen($suffix)) {
+                return substr($key, 0, -\strlen($suffix));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The translatable fields of a table: the fields the component's forms declare for it with multilingual_table
+     * (SyncHelper::languageSchema(), which also holds the two tables translated outside any form) and its alias
+     * fields (MultilingualAliasConfig, and those the caller names). They are the only columns a save may give the
+     * table's language tables. Null for a table the component does not declare (an extension's own table), whose keys
+     * are taken as given. Read once a process.
+     *
+     * @param string $tableName The base table (#__alfa_discounts).
+     * @param string[] $aliasFields The alias fields the caller names.
+     *
+     * @return string[]|null
+     *
+     * @since  2.3.0
+     */
+    public static function declaredFields(string $tableName, array $aliasFields = []): ?array
+    {
+        static $schema = null;
+
+        $schema ??= SyncHelper::languageSchema();
+
+        if (!isset($schema[$tableName])) {
+            return null;
+        }
+
+        return array_values(array_unique(array_merge(
+            (array) ($schema[$tableName]['fields'] ?? []),
+            (array) ($schema[$tableName]['aliasFields'] ?? []),
+            MultilingualAliasConfig::FIELDS[$tableName] ?? [],
+            $aliasFields,
+        )));
     }
 
     /**
@@ -403,9 +502,12 @@ class MultilingualHelper
             languages: LanguageHelper::getLanguages('lang_code'),
         );
 
+        // Only the fields the table translates, and the alias fields the caller names: a stray key of the language
+        // shape is written nowhere and asks for no column.
         $languageData = self::extractLanguageData(
             data:      $data,
             langCodes: $langCodes,
+            fields:    self::declaredFields(tableName: $tableName, aliasFields: $aliasFields),
         );
 
         if (empty($languageData)) {
@@ -2444,9 +2546,11 @@ class MultilingualHelper
 
         self::assertSafeIdentifier(name: $primaryColumnName, callerMethod: __METHOD__);
 
+        // Only the fields the table translates: a stray key of the language shape creates no column.
         $languageData = self::extractLanguageData(
             data:      $data,
             langCodes: self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code')),
+            fields:    self::declaredFields(tableName: $tableName),
         );
 
         if (empty($languageData)) {
@@ -2819,11 +2923,12 @@ class MultilingualHelper
      *
      * @param array $data Flat input (passed $data or jform POST).
      * @param string[] $langCodes Lower-snake codes  (e.g. ['en_gb', 'el_gr']).
+     * @param string[]|null $fields The fields kept; null keeps every field the keys name.
      *
      * @return array [ $langCode => [ $fieldName => $value ] ]
      * @since  1.0.0
      */
-    private static function extractLanguageData(array $data, array $langCodes): array
+    private static function extractLanguageData(array $data, array $langCodes, ?array $fields = null): array
     {
         $languageData = [];
 
@@ -2836,6 +2941,12 @@ class MultilingualHelper
                 }
 
                 $fieldName = substr($key, 0, -strlen($suffix));
+
+                // A field the table does not translate is dropped: it is written nowhere and makes no column.
+                if ($fields !== null && !\in_array($fieldName, $fields, true)) {
+                    break;
+                }
+
                 $languageData[$langCode][$fieldName] = $value;
 
                 break; // Each key can match only one language suffix.
