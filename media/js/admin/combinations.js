@@ -59,7 +59,16 @@
         const instance = window.Joomla && Joomla.editors && Joomla.editors.instances
             ? Joomla.editors.instances[textarea.id] : null;
 
-        return instance && typeof instance.getValue === 'function' ? String(instance.getValue()) : textarea.value;
+        if (!instance || typeof instance.getValue !== 'function') {
+            return textarea.value;
+        }
+
+        // An editor registered with Joomla may still be starting: its own reading throws until then.
+        try {
+            return String(instance.getValue());
+        } catch (error) {
+            return textarea.value;
+        }
     };
 
     const formState = () => {
@@ -145,9 +154,17 @@
                 waiting = true;
                 continue;
             }
+            let started;
+            try {
+                started = String(instance.getValue());
+            } catch (error) {
+                // Registered but still starting: asked again at the next poll.
+                waiting = true;
+                continue;
+            }
             element.dataset.editorBaseline = '1';
             if (!element.dataset.touched && formBaseline.has(element.name)) {
-                formBaseline.set(element.name, [String(instance.getValue())]);
+                formBaseline.set(element.name, [started]);
             }
         }
         return waiting;
