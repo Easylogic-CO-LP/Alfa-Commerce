@@ -18,7 +18,5 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 
 ?>
-<div class="com-alfa">
     <p class="cart-catalogue-only"><?php echo Text::_('COM_ALFA_CATALOGUE_ONLY_NOTICE'); ?></p>
     <a href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
-</div>

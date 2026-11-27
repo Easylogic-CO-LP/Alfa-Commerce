@@ -118,7 +118,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_14_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_14_DESC",
             "position": "top",
-            "target": "#combinations .alfa-prices",
+            "target": "#combinations .prices",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
         },

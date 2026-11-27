@@ -55,7 +55,7 @@ $tab = static fn (string $fieldset): string => Text::_((string) ($fieldsets[$fie
             <?php if (!$isNew && !empty($item->last_attempt_at)) : ?>
                 <p class="small mb-0">
                     <?php echo Text::_('COM_ALFA_WEBHOOK_LAST_DELIVERY'); ?>
-                    <span class="alfa-nowrap"><?php echo HTMLHelper::_('date', (string) $item->last_attempt_at, Text::_('DATE_FORMAT_LC6')); ?></span>,
+                    <span class="nowrap"><?php echo HTMLHelper::_('date', (string) $item->last_attempt_at, Text::_('DATE_FORMAT_LC6')); ?></span>,
                     <span class="badge <?php echo (int) $item->last_ok === 1 ? 'bg-success' : 'bg-warning text-dark'; ?>"><?php echo $this->escape(str_starts_with((string) $item->last_result, 'COM_ALFA_') ? Text::_((string) $item->last_result) : (string) $item->last_result); ?></span>
                 </p>
             <?php endif; ?>
@@ -97,7 +97,7 @@ $tab = static fn (string $fieldset): string => Text::_((string) ($fieldsets[$fie
         <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'deliveries', Text::_('COM_ALFA_WEBHOOK_TAB_DELIVERIES')); ?>
         <?php // Loaded when the tab is opened, not with the form. ?>
         <iframe src="<?php echo Route::_('index.php?option=com_alfa&view=webhookdeliveries&tmpl=component&modal=1&webhook_id=' . (int) $item->id); ?>"
-                title="<?php echo $this->escape(Text::_('COM_ALFA_WEBHOOK_TAB_DELIVERIES')); ?>" class="alfa-webhook-deliveries" loading="lazy"></iframe>
+                title="<?php echo $this->escape(Text::_('COM_ALFA_WEBHOOK_TAB_DELIVERIES')); ?>" class="webhook-deliveries" loading="lazy"></iframe>
         <?php echo HTMLHelper::_('uitab.endTab'); ?>
     <?php endif; ?>
 

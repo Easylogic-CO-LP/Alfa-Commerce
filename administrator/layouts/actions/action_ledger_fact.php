@@ -58,7 +58,7 @@ $typedOf = static fn (string $name): string => \is_array($typed ?? null) ? (stri
 $refusal = (string) ($refusal ?? '');
 ?>
 
-<div class="alfa-ledger-fact" data-ledger-fact>
+<div class="ledger-fact" data-ledger-fact>
 
     <p class="mb-3"><?php echo $intro; ?></p>
 
@@ -67,13 +67,13 @@ $refusal = (string) ($refusal ?? '');
     <?php endif; ?>
 
     <div class="mb-3">
-        <label class="form-label" for="alfa-ledger-fact-amount">
+        <label class="form-label" for="ledger-fact-amount">
             <?php echo Text::_('COM_ALFA_LEDGER_AMOUNT'); ?>
         </label>
         <?php // NO default value: the operator states the amount the provider reported; only a refused submission gives back what was typed. ?>
         <input type="number"
                class="form-control"
-               id="alfa-ledger-fact-amount"
+               id="ledger-fact-amount"
                name="amount"
                required
                step="<?php echo $escape($minorUnit); ?>"
@@ -85,30 +85,30 @@ $refusal = (string) ($refusal ?? '');
     </div>
 
     <div class="mb-3">
-        <label class="form-label" for="alfa-ledger-fact-reference">
+        <label class="form-label" for="ledger-fact-reference">
             <?php echo Text::_('COM_ALFA_LEDGER_REFERENCE'); ?>
         </label>
         <?php // No maxlength: the reference is stored whole. ?>
         <input type="text"
                class="form-control"
-               id="alfa-ledger-fact-reference"
+               id="ledger-fact-reference"
                name="reference"
                required
-               aria-describedby="alfa-ledger-fact-reference-desc"
+               aria-describedby="ledger-fact-reference-desc"
                <?php if ($typedOf('reference') !== '') : ?>value="<?php echo $escape($typedOf('reference')); ?>"<?php endif; ?>
                data-ledger-fact-field>
-        <small class="form-text text-muted" id="alfa-ledger-fact-reference-desc">
+        <small class="form-text text-muted" id="ledger-fact-reference-desc">
             <?php echo Text::_('COM_ALFA_LEDGER_REFERENCE_DESC'); ?>
         </small>
     </div>
 
     <div class="mb-3">
-        <label class="form-label" for="alfa-ledger-fact-reason">
+        <label class="form-label" for="ledger-fact-reason">
             <?php echo Text::_('COM_ALFA_LEDGER_REASON'); ?>
         </label>
         <input type="text"
                class="form-control"
-               id="alfa-ledger-fact-reason"
+               id="ledger-fact-reason"
                name="reason"
                maxlength="255"
                <?php if ($typedOf('reason') !== '') : ?>value="<?php echo $escape($typedOf('reason')); ?>"<?php endif; ?>

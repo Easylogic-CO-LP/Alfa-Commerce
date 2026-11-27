@@ -150,9 +150,9 @@
                                       // replaces the marker's text after a save. The row is a flex
                                       // container because the marker itself is a full-width flex
                                       // box; as a bare sibling the prefix would sit on its own line. ?>
-                                <div class="alfa-tree-row">
+                                <div class="tree-row">
                                     <?php if ((int) $item->depth > 0) : ?>
-                                        <span class="alfa-tree-prefix" aria-hidden="true"><?php echo str_repeat('- ', (int) $item->depth); ?></span>
+                                        <span class="tree-prefix" aria-hidden="true"><?php echo str_repeat('- ', (int) $item->depth); ?></span>
                                     <?php endif; ?>
                                 <?php echo LayoutHelper::render('inline.field', [
                                     'view'     => 'category',

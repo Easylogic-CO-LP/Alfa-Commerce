@@ -1,7 +1,7 @@
 /**
  * Alfa Commerce: the order-completed page and the order page of the customer's account
  *
- * The pages' own layout under their root (.com-alfa.order-completed): the order's facts,
+ * The pages' own layout under their root (.order-completed): the order's facts,
  * the parcels' tracking numbers, the sales documents, the lines, the addresses, the
  * customer's cancel and the actions. The lines and their totals are the cart's
  * (.cart-lines in cart.css; this page's table has three columns). The process page's answer
@@ -16,122 +16,122 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-.com-alfa.order-completed .order-facts,
-.com-alfa.order-completed .order-address dl {
+:where(#alfa-app).order-completed .order-facts,
+:where(#alfa-app).order-completed .order-address dl {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
     gap: 0.25rem 1rem;
     margin: 0 0 1rem;
 }
 
-.com-alfa.order-completed .order-facts > div,
-.com-alfa.order-completed .order-address dl > div {
+:where(#alfa-app).order-completed .order-facts > div,
+:where(#alfa-app).order-completed .order-address dl > div {
     display: contents;
 }
 
-.com-alfa.order-completed .order-facts dt,
-.com-alfa.order-completed .order-address dt {
+:where(#alfa-app).order-completed .order-facts dt,
+:where(#alfa-app).order-completed .order-address dt {
     font-weight: 700;
 }
 
-.com-alfa.order-completed .order-facts dd,
-.com-alfa.order-completed .order-address dd {
+:where(#alfa-app).order-completed .order-facts dd,
+:where(#alfa-app).order-completed .order-address dd {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
-.com-alfa.order-completed .order-items {
+:where(#alfa-app).order-completed .order-items {
     margin-block: 1rem;
 }
 
 /* A product name or an option value may hold a word longer than a phone's width: it wraps rather than widen the page. */
-.com-alfa.order-completed .order-item-name,
-.com-alfa.order-completed .order-item-options {
+:where(#alfa-app).order-completed .order-item-name,
+:where(#alfa-app).order-completed .order-item-options {
     overflow-wrap: anywhere;
 }
 
-.com-alfa.order-completed .order-item-options {
+:where(#alfa-app).order-completed .order-item-options {
     margin: 0.25rem 0 0;
     padding-inline-start: 1rem;
     color: var(--alfa-muted-color);
     font-size: 0.9em;
 }
 
-.com-alfa.order-completed.cart-wrapper .cart-lines {
+:where(#alfa-app).order-completed.cart-wrapper .cart-lines {
     --cart-lines-columns: 3;
 }
 
-.com-alfa.order-completed .order-addresses {
+:where(#alfa-app).order-completed .order-addresses {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
     gap: 1rem;
     margin-block: 1rem;
 }
 
-.com-alfa.order-completed .order-address {
+:where(#alfa-app).order-completed .order-address {
     padding: 0.75rem;
     border: 1px solid var(--alfa-hairline);
     background-color: var(--alfa-surface);
     color: var(--alfa-surface-color, inherit);
 }
 
-.com-alfa.order-completed .order-address h2 {
+:where(#alfa-app).order-completed .order-address h2 {
     margin-block: 0 0.5rem;
     font-size: 1.05em;
 }
 
 /* The order's page in the account, beside the number, for its customer logged in. */
-.com-alfa.order-completed .order-account-link {
+:where(#alfa-app).order-completed .order-account-link {
     margin-inline-start: 0.5rem;
 }
 
 /* The parcels' tracking numbers: carrier and number, as the facts read. */
-.com-alfa.order-completed .order-parcels {
+:where(#alfa-app).order-completed .order-parcels {
     margin-block: 1rem;
 }
 
-.com-alfa.order-completed .order-parcels h2 {
+:where(#alfa-app).order-completed .order-parcels h2 {
     margin-block: 0 0.5rem;
     font-size: 1.05em;
 }
 
-.com-alfa.order-completed .order-parcels dl {
+:where(#alfa-app).order-completed .order-parcels dl {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
     gap: 0.25rem 1rem;
     margin: 0;
 }
 
-.com-alfa.order-completed .order-parcels dl > div {
+:where(#alfa-app).order-completed .order-parcels dl > div {
     display: contents;
 }
 
-.com-alfa.order-completed .order-parcels dt {
+:where(#alfa-app).order-completed .order-parcels dt {
     font-weight: 700;
 }
 
-.com-alfa.order-completed .order-parcels dd {
+:where(#alfa-app).order-completed .order-parcels dd {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
 /* The order's sales documents: each a link to its PDF, its date beside it, a voided one marked. */
-.com-alfa.order-completed .order-documents {
+:where(#alfa-app).order-completed .order-documents {
     margin-block: 1rem;
 }
 
-.com-alfa.order-completed .order-documents h2 {
+:where(#alfa-app).order-completed .order-documents h2 {
     margin-block: 0 0.5rem;
     font-size: 1.05em;
 }
 
-.com-alfa.order-completed .order-documents ul {
+:where(#alfa-app).order-completed .order-documents ul {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.com-alfa.order-completed .order-documents li {
+:where(#alfa-app).order-completed .order-documents li {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 0.75rem;
@@ -139,29 +139,29 @@
     overflow-wrap: anywhere;
 }
 
-.com-alfa.order-completed .order-document-date {
+:where(#alfa-app).order-completed .order-document-date {
     color: var(--alfa-muted-color);
 }
 
-.com-alfa.order-completed .order-document-voided {
+:where(#alfa-app).order-completed .order-document-voided {
     color: var(--alfa-error-color);
     font-weight: 700;
 }
 
 /* The customer's cancel on their order page: a button that opens its confirmation in place, no script. */
-.com-alfa.order-completed .order-cancel {
+:where(#alfa-app).order-completed .order-cancel {
     margin-block: 1rem;
 }
 
-.com-alfa.order-completed .order-cancel-open {
+:where(#alfa-app).order-completed .order-cancel-open {
     list-style: none;
 }
 
-.com-alfa.order-completed .order-cancel-open::-webkit-details-marker {
+:where(#alfa-app).order-completed .order-cancel-open::-webkit-details-marker {
     display: none;
 }
 
-.com-alfa.order-completed .order-cancel form {
+:where(#alfa-app).order-completed .order-cancel form {
     margin-block-start: 0.75rem;
     padding: 0.75rem;
     border: 1px solid var(--alfa-hairline);
@@ -169,16 +169,16 @@
     color: var(--alfa-surface-color, inherit);
 }
 
-.com-alfa.order-completed .order-cancel-held {
+:where(#alfa-app).order-completed .order-cancel-held {
     color: var(--alfa-warning-color);
 }
 
 /* Order again: a form among the actions, its button one of them. */
-.com-alfa.order-completed .order-reorder {
+:where(#alfa-app).order-completed .order-reorder {
     margin: 0;
 }
 
-.com-alfa.order-completed .order-completed-actions {
+:where(#alfa-app).order-completed .order-completed-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
@@ -186,18 +186,18 @@
 }
 
 @media print {
-    .com-alfa.order-completed .order-completed-actions {
+    :where(#alfa-app).order-completed .order-completed-actions {
         display: none;
     }
 
-    .com-alfa.order-completed .order-cancel {
+    :where(#alfa-app).order-completed .order-cancel {
         display: none;
     }
 
-    .com-alfa.order-completed .order-items,
-    .com-alfa.order-completed .order-items *,
-    .com-alfa.order-completed .order-addresses,
-    .com-alfa.order-completed .order-addresses * {
+    :where(#alfa-app).order-completed .order-items,
+    :where(#alfa-app).order-completed .order-items *,
+    :where(#alfa-app).order-completed .order-addresses,
+    :where(#alfa-app).order-completed .order-addresses * {
         color: #000;
         background: #fff;
         border-color: #000;

@@ -71,7 +71,7 @@ final class Country extends FormFieldsPlugin
         FormHelper::addFieldPrefix('Alfa\\Plugin\\AlfaFormFields\\Country\\Field');
         $node->setAttribute('filter', 'integer');
         $node->setAttribute('validate', 'options');
-        $node->setAttribute('data-alfa-delivery-place', '1');
+        $node->setAttribute('data-delivery-place', '1');
 
         $placeholder = $node->ownerDocument->createElement('option');
         $placeholder->setAttribute('value', '');

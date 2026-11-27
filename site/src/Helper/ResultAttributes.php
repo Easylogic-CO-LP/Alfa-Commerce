@@ -32,14 +32,14 @@ final class ResultAttributes
      *
      * @since  2.2.0
      */
-    public const HANDLE = 'data-alfa-search-event';
+    public const HANDLE = 'data-search-enhance-event';
 
     /**
      * The shown order, on the results container: `relevance` or `sort:<key>:<direction>`.
      *
      * @since  2.2.0
      */
-    public const ORDER = 'data-alfa-search-order';
+    public const ORDER = 'data-search-enhance-order';
 
     /**
      * The global position of a result, from 1, on each result.

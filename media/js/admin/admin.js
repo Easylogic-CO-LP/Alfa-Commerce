@@ -35,12 +35,12 @@ window.Joomla = window.Joomla || {};
     document.addEventListener('input', function (event) {
         var input = event.target;
 
-        if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-alfa-location-stock')) {
+        if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-location-stock')) {
             return;
         }
 
-        var container = input.closest('[data-alfa-location-total]');
-        var output = container ? container.querySelector('[data-alfa-location-total-value]') : null;
+        var container = input.closest('[data-location-total]');
+        var output = container ? container.querySelector('[data-location-total-value]') : null;
 
         if (!output) {
             return;
@@ -48,7 +48,7 @@ window.Joomla = window.Joomla || {};
 
         var total = 0;
 
-        container.querySelectorAll('[data-alfa-location-stock]').forEach(function (field) {
+        container.querySelectorAll('[data-location-stock]').forEach(function (field) {
             total += parseFloat(field.value) || 0;
         });
 

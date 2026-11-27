@@ -46,7 +46,7 @@ class FiltersOpenerField extends FormField
             return '<p class="form-text">' . htmlspecialchars(Text::_('MOD_ALFAFILTERS_OPENER_UNSAVED'), ENT_QUOTES, 'UTF-8') . '</p>';
         }
 
-        $snippet = '<button type="button" data-alfa-filters-toggle="' . $id . '">'
+        $snippet = '<button type="button" data-filters-toggle="' . $id . '">'
             . Text::_('MOD_ALFAFILTERS_TOGGLE_BUTTON_TXT') . '</button>';
 
         return '<code class="d-block p-2 user-select-all" id="' . htmlspecialchars($this->id, ENT_QUOTES, 'UTF-8') . '">'

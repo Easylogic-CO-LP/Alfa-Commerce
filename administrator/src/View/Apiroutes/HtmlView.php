@@ -25,7 +25,7 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Throwable;
 

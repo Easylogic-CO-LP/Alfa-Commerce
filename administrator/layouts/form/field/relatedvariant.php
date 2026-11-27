@@ -30,16 +30,16 @@ $e = static fn (mixed $text): string => htmlspecialchars((string) $text, ENT_QUO
 $selected = static fn (bool $is): string => $is ? ' selected' : '';
 $hasChoices = $choices['combinations'] !== [] || $choices['options'] !== [];
 ?>
-<div class="alfa-related-variant" data-related-variant>
+<div class="related-variant" data-related-variant>
     <?php if ($itemId <= 0) : ?>
-        <p class="alfa-related-variant__hint"><?php echo Text::_('COM_ALFA_ITEM_RELATED_VARIANT_PICK_FIRST'); ?></p>
+        <p class="related-variant__hint"><?php echo Text::_('COM_ALFA_ITEM_RELATED_VARIANT_PICK_FIRST'); ?></p>
     <?php elseif (!$hasChoices) : ?>
-        <p class="alfa-related-variant__hint"><?php echo Text::_('COM_ALFA_ITEM_RELATED_VARIANT_NONE_TO_CHOOSE'); ?></p>
+        <p class="related-variant__hint"><?php echo Text::_('COM_ALFA_ITEM_RELATED_VARIANT_NONE_TO_CHOOSE'); ?></p>
     <?php else : ?>
         <?php if ($choices['combinations'] !== []) : ?>
-            <div class="alfa-related-variant__group">
+            <div class="related-variant__group">
                 <label for="<?php echo $e($id); ?>_combination"><?php echo Text::_('COM_ALFA_FORM_LBL_ITEM_RELATED_VARIANT'); ?></label>
-                <select id="<?php echo $e($id); ?>_combination" name="<?php echo $e($control); ?>[combination]" class="form-select alfa-related-variant__mode">
+                <select id="<?php echo $e($id); ?>_combination" name="<?php echo $e($control); ?>[combination]" class="form-select related-variant__mode">
                     <option value=""<?php echo $selected($choice === ''); ?>><?php echo Text::_('COM_ALFA_ITEM_RELATED_VARIANT_DEFAULT'); ?></option>
                     <?php foreach ($choices['combinations'] as $combination) : ?>
                         <option value="<?php echo (int) $combination['id']; ?>"<?php echo $selected($choice === (string) $combination['id']); ?>>
@@ -49,7 +49,7 @@ $hasChoices = $choices['combinations'] !== [] || $choices['options'] !== [];
                     <option value="<?php echo RelatedVariantField::CHOOSE; ?>"<?php echo $selected($choice === RelatedVariantField::CHOOSE); ?>><?php echo Text::_('COM_ALFA_ITEM_RELATED_VARIANT_CHOOSE'); ?></option>
                 </select>
             </div>
-            <div class="alfa-related-variant__group alfa-related-variant__dims">
+            <div class="related-variant__group related-variant__dims">
                 <?php foreach ($choices['dimensions'] as $field) : ?>
                     <label for="<?php echo $e($id); ?>_dim<?php echo (int) $field['id']; ?>"><?php echo $e($field['name']); ?></label>
                     <select id="<?php echo $e($id); ?>_dim<?php echo (int) $field['id']; ?>" name="<?php echo $e($control); ?>[dims][<?php echo (int) $field['id']; ?>]" class="form-select">
@@ -62,7 +62,7 @@ $hasChoices = $choices['combinations'] !== [] || $choices['options'] !== [];
             </div>
         <?php endif; ?>
         <?php if ($choices['options'] !== []) : ?>
-            <div class="alfa-related-variant__group">
+            <div class="related-variant__group">
                 <?php foreach ($choices['options'] as $field) : ?>
                     <label for="<?php echo $e($id); ?>_opt<?php echo (int) $field['id']; ?>"><?php echo $e($field['name']); ?></label>
                     <select id="<?php echo $e($id); ?>_opt<?php echo (int) $field['id']; ?>" name="<?php echo $e($control); ?>[options][<?php echo (int) $field['id']; ?>]" class="form-select">

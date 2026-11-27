@@ -30,11 +30,11 @@ window.Alfa = window.Alfa || {};
  * feedback before the page goes blank during the reload).
  */
 Alfa.showLoading = function() {
-    var ov = document.getElementById('alfa-loading-overlay');
+    var ov = document.getElementById('loading-overlay');
 
     if (!ov) {
         ov = document.createElement('div');
-        ov.id = 'alfa-loading-overlay';
+        ov.id = 'loading-overlay';
         ov.style.cssText =
             'position:fixed;top:0;left:0;width:100%;height:100%;'
             + 'background:rgba(0,0,0,.5);display:flex;align-items:center;'
@@ -50,7 +50,7 @@ Alfa.showLoading = function() {
  * Hide the full-page loading overlay.
  */
 Alfa.hideLoading = function() {
-    var ov = document.getElementById('alfa-loading-overlay');
+    var ov = document.getElementById('loading-overlay');
     if (ov) ov.style.display = 'none';
 };
 
@@ -60,7 +60,7 @@ Alfa.hideLoading = function() {
  * Initialize Bootstrap tooltips on [data-bs-toggle="tooltip"] elements.
  *
  * Called on DOMContentLoaded. Only needed in the edit view; the list
- * view uses its own alfa-tip / data-tip tooltip system.
+ * view uses its own tip / data-tip tooltip system.
  */
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
@@ -172,9 +172,9 @@ Alfa.dressActionFrame = function (frame) {
         return;
     }
 
-    doc.documentElement.setAttribute('data-alfa-frame', '1');
+    doc.documentElement.setAttribute('data-action-frame', '1');
 
-    if (doc.querySelector('link[data-alfa-frame-css]')) {
+    if (doc.querySelector('link[data-action-frame-css]')) {
         return;
     }
 
@@ -200,16 +200,16 @@ Alfa.dressActionFrame = function (frame) {
 
     link.rel = 'stylesheet';
     link.href = base + 'media/com_alfa/css/admin/frame' + form + '.css' + query;
-    link.setAttribute('data-alfa-frame-css', '1');
+    link.setAttribute('data-action-frame-css', '1');
     doc.head.appendChild(link);
 };
 
 Alfa.openActionFrame = function (url, title, fields) {
-    var modalEl = document.getElementById('alfa-action-frame-modal');
+    var modalEl = document.getElementById('action-frame-modal');
 
     if (!modalEl) {
         modalEl = document.createElement('div');
-        modalEl.id = 'alfa-action-frame-modal';
+        modalEl.id = 'action-frame-modal';
         modalEl.className = 'modal fade';
         modalEl.tabIndex = -1;
         modalEl.innerHTML =
@@ -220,9 +220,9 @@ Alfa.openActionFrame = function (url, title, fields) {
             +     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
             +   '</div>'
             +   '<div class="modal-body p-0" style="position:relative">'
-            +     '<alfa-core-loader class="alfa-action-frame-loader" inline size="140" hidden '
+            +     '<alfa-core-loader class="action-frame-loader" inline size="140" hidden '
             +            'style="position:absolute;inset:0;pointer-events:none"></alfa-core-loader>'
-            +     '<iframe class="alfa-action-frame" src="about:blank" title="" '
+            +     '<iframe class="action-frame" src="about:blank" title="" '
             +            'style="width:100%;height:72vh;border:0;display:block"></iframe>'
             +   '</div>'
             + '</div>'
@@ -232,17 +232,17 @@ Alfa.openActionFrame = function (url, title, fields) {
 
     modalEl.querySelector('.modal-title').textContent = title || '';
 
-    var frame = modalEl.querySelector('.alfa-action-frame');
-    frame.name = frame.name || 'alfa-action-frame';
+    var frame = modalEl.querySelector('.action-frame');
+    frame.name = frame.name || 'action-frame';
 
     // The modal opens instantly but the frame is still fetching; without this the
     // merchant stares at an empty white box and clicks again. Bound once; the POST
     // path blanks the frame first, and that about:blank load must NOT count as
     // arrival or the loader would vanish before the real page starts.
-    var frameLoader = modalEl.querySelector('.alfa-action-frame-loader');
+    var frameLoader = modalEl.querySelector('.action-frame-loader');
 
-    if (frameLoader && !frame.dataset.alfaLoaderBound) {
-        frame.dataset.alfaLoaderBound = '1';
+    if (frameLoader && !frame.dataset.loaderBound) {
+        frame.dataset.loaderBound = '1';
         frame.addEventListener('load', function () {
             var href = '';
 
@@ -260,8 +260,8 @@ Alfa.openActionFrame = function (url, title, fields) {
             // Options page back to the dashboard) is finished: the modal closes, as the customer
             // account popup closes, and the page behind refreshes what the frame may have changed.
             var form = /[?&](layout=edit|option=com_config)(&|$)/;
-            var finished = href !== 'about:blank' && form.test(frame.dataset.alfaLastHref || '') && !form.test(href);
-            frame.dataset.alfaLastHref = href;
+            var finished = href !== 'about:blank' && form.test(frame.dataset.lastHref || '') && !form.test(href);
+            frame.dataset.lastHref = href;
 
             if (finished) {
                 var opened = bootstrap.Modal.getInstance(modalEl);
@@ -344,7 +344,7 @@ Alfa.openActionFrame = function (url, title, fields) {
         return;
     }
 
-    frame.dataset.alfaLastHref = '';
+    frame.dataset.lastHref = '';
     frame.src = url;
 
     (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
@@ -354,7 +354,7 @@ Alfa.openActionFrame = function (url, title, fields) {
 // list swaps its rows in place; the item edit reloads its panel). Falls back
 // to a full reload.
 /**
- * Links marked `data-alfa-frame-link` open in the action frame instead of
+ * Links marked `data-action-frame-link` open in the action frame instead of
  * navigating.
  *
  * A product with no item fields has to send the merchant to the item fields to
@@ -364,7 +364,7 @@ Alfa.openActionFrame = function (url, title, fields) {
  * toolbar. Delegated, so it also covers markup swapped in later.
  */
 document.addEventListener('click', function (event) {
-    var link = event.target.closest ? event.target.closest('a[data-alfa-frame-link]') : null;
+    var link = event.target.closest ? event.target.closest('a[data-action-frame-link]') : null;
 
     if (!link || typeof Alfa.openActionFrame !== 'function') {
         return;                                   // no frame available: follow the href
@@ -390,7 +390,7 @@ window.addEventListener('message', function (event) {
     // The action page posts back when it is done (saved / cancelled).
     if (msg.messageType !== 'alfa:action-frame') { return; }
 
-    var modalEl = document.getElementById('alfa-action-frame-modal');
+    var modalEl = document.getElementById('action-frame-modal');
     if (modalEl) {
         var inst = bootstrap.Modal.getInstance(modalEl);
         if (inst) { inst.hide(); }

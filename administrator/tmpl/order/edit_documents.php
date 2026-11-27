@@ -191,7 +191,7 @@ $renderMap = [
             return $waiting;
         }
 
-        return $waiting . '<button type="submit" class="btn btn-sm btn-warning mt-1" form="alfa-order-credit-form" formnovalidate'
+        return $waiting . '<button type="submit" class="btn btn-sm btn-warning mt-1" form="order-credit-form" formnovalidate'
             . ' name="once" value="' . bin2hex(random_bytes(16)) . '" formaction="'
             . $escape(Route::_('index.php?option=com_alfa', false) . '&task=order.payInCreditNote&id_order=' . $orderId . '&id_document=' . (int) $doc->id)
             . '">' . Text::_('COM_ALFA_DOCUMENTS_ACTION_CREDIT_PAY_IN') . '</button>';
@@ -225,11 +225,11 @@ $escape = fn ($value): string => $this->escape((string) $value);
 <?php if (empty($documents)) : ?>
     <div class="alert alert-info"><?php echo Text::_('COM_ALFA_DOCUMENTS_NONE_YET'); ?></div>
 <?php else : ?>
-    <?php // Below 480 px a row folds (alfa-fold): its cells wrap, each named by its column, the actions on a
+    <?php // Below 480 px a row folds (fold): its cells wrap, each named by its column, the actions on a
           // line of their own. ?>
     <?php // Wider than the screen (from 480 px up, where it no longer folds), it scrolls in its own box. ?>
     <div class="table-responsive">
-    <table class="table table-striped table-bordered alfa-fold">
+    <table class="table table-striped table-bordered fold">
 
         <!-- Table header -->
         <!-- Auto-generated from order_documents.xml.               -->
@@ -281,7 +281,7 @@ $escape = fn ($value): string => $this->escape((string) $value);
                             : $escape($value);
                     };
                     ?>
-                    <td data-alfa-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
+                    <td data-cell-label="<?php echo $this->escape(Text::_((string) $field->getAttribute('label'))); ?>">
                         <?php echo $render($fieldName); ?>
                         <?php // Merged children render inside the parent's cell ?>
                         <?php foreach ($mergeMap[$fieldName] ?? [] as $child) : ?>
@@ -294,7 +294,7 @@ $escape = fn ($value): string => $this->escape((string) $value);
                 <?php endforeach; ?>
 
                 <!-- Actions cell -->
-                <td class="text-center alfa-fold-line">
+                <td class="text-center fold-line">
                     <?php if ($canRead) : ?>
                         <div class="btn-group me-1" role="group">
                             <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
@@ -349,7 +349,7 @@ $escape = fn ($value): string => $this->escape((string) $value);
                         <div class="btn-group me-1" role="group">
                             <a href="#<?php echo $replaceModalId; ?>" data-bs-toggle="modal"
                                class="btn btn-sm btn-outline-warning"
-                               data-alfa-replace="<?php echo (int) $doc->id; ?>"
+                               data-replaces-document="<?php echo (int) $doc->id; ?>"
                                title="<?php echo Text::_('COM_ALFA_REPLACEMENT_ACTION'); ?>">
                                 <span class="icon-refresh" aria-hidden="true"></span>
                             </a>

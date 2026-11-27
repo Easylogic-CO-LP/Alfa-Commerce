@@ -33,20 +33,20 @@ $paths = [
 
 $tag = $url !== '' ? 'a' : 'span';
 ?>
-<<?php echo $tag; ?> class="alfa-card-metric"<?php if ($url !== '') : ?> href="<?php echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
-    <span class="alfa-card-head">
+<<?php echo $tag; ?> class="dash-card-metric"<?php if ($url !== '') : ?> href="<?php echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
+    <span class="dash-card-head">
         <?php if (isset($paths[$icon])) : ?>
-            <span class="alfa-card-icon">
+            <span class="dash-card-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $paths[$icon]; ?></svg>
             </span>
         <?php endif; ?>
-        <span class="alfa-card-title"><?php echo Text::_($displayData['title']); ?></span>
+        <span class="dash-card-title"><?php echo Text::_($displayData['title']); ?></span>
     </span>
 
-    <strong class="alfa-card-value"><?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?></strong>
+    <strong class="dash-card-value"><?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?></strong>
 
     <?php if (($displayData['subtitle'] ?? '') !== '') : ?>
-        <span class="alfa-card-sub"><?php echo Text::_($displayData['subtitle']); ?></span>
+        <span class="dash-card-sub"><?php echo Text::_($displayData['subtitle']); ?></span>
     <?php endif; ?>
 </<?php echo $tag; ?>>

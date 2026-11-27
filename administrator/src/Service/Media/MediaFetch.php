@@ -112,7 +112,7 @@ final class MediaFetch
         }
 
         $deadline = microtime(true) + (int) $this->seconds;
-        $file = (string) tempnam((string) Factory::getApplication()->get('tmp_path', sys_get_temp_dir()), 'alfa-fetch-');
+        $file = (string) tempnam((string) Factory::getApplication()->get('tmp_path', sys_get_temp_dir()), 'fetch-');
         $current = $url;
 
         try {

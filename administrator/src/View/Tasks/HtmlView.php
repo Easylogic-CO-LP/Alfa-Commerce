@@ -70,7 +70,7 @@ class HtmlView extends BaseHtmlView
      *
      * @since  2.3.0
      */
-    public const PROGRESS_ID = 'alfa-background-progress';
+    public const PROGRESS_ID = 'background-progress';
 
     /**
      * The admin-contract entity of this screen.
@@ -296,7 +296,7 @@ class HtmlView extends BaseHtmlView
             return;
         }
 
-        $group = $toolbar->dropdownButton('alfa-run-group')->toggleSplit(true)->toggleButtonClass('btn ' . $actions['tasks.pending']->class);
+        $group = $toolbar->dropdownButton('run-group')->toggleSplit(true)->toggleButtonClass('btn ' . $actions['tasks.pending']->class);
         $bar = $group->getChildToolbar();
         $button = function (PluginAction $action, string $label, string $confirm = '') use ($bar): void {
             $attributes = ToolButton::attributes(action: $action, progress: self::PROGRESS_ID);
@@ -305,9 +305,9 @@ class HtmlView extends BaseHtmlView
                 $attributes['data-confirm-message'] = Text::_($confirm);
             }
 
-            $bar->basicButton('alfa-tool-' . str_replace('.', '-', $action->id), $label)
+            $bar->basicButton('tool-' . str_replace('.', '-', $action->id), $label)
                 ->icon('icon-' . $action->icon)
-                ->buttonClass('btn ' . $action->class . ' alfa-tool-btn')
+                ->buttonClass('btn ' . $action->class . ' tool-btn')
                 ->attributes($attributes);
         };
 
@@ -328,7 +328,7 @@ class HtmlView extends BaseHtmlView
         }
 
         if (isset($actions['tasks.prune'])) {
-            $bar->separatorButton('alfa-run-divider');
+            $bar->separatorButton('run-divider');
             $button($actions['tasks.prune'], Text::_('COM_ALFA_TASKS_CLEANUP'), 'COM_ALFA_TASKS_CLEANUP_CONFIRM');
         }
     }

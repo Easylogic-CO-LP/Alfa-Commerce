@@ -95,9 +95,9 @@ final class TourHelper
 
         // Joomla's own HelpButton recipe (btn-info + icon-question) minus its popup:
         // the core `button-start-guidedtour` contract starts our tour instead.
-        $toolbar->basicButton('alfa-tour-help', 'COM_ALFA_TOOLBAR_TOUR_HELP')
+        $toolbar->basicButton('tour-help', 'COM_ALFA_TOOLBAR_TOUR_HELP')
             ->icon('icon-question')
-            ->buttonClass('btn btn-info alfa-tour-help button-start-guidedtour')
+            ->buttonClass('btn btn-info tour-help button-start-guidedtour')
             ->attributes(['data-gt-uid' => $uid]);
     }
 

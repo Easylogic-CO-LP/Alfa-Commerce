@@ -188,7 +188,7 @@ $notLoaded = array_map(
                         'form'           => $this->checkoutForm,
                         'invoiceDiffers' => !$customer->sameAddress,
                         'toggleName'     => 'invoice_differs',
-                        'toggleId'       => 'alfa-checkout-invoice-differs',
+                        'toggleId'       => 'checkout-invoice-differs',
                     ],
                     null,
                     ['component' => 'com_alfa', 'client' => 1],
@@ -205,10 +205,10 @@ $notLoaded = array_map(
                       // being acceptable between here and the commit is still
                       // policed there. ?>
                 <div class="col-md-5">
-                    <label class="form-label" for="alfa-checkout-status">
+                    <label class="form-label" for="checkout-status">
                         <?php echo Text::_('COM_ALFA_CART_BUILDER_PLACE_STATUS'); ?>
                     </label>
-                    <select class="form-select" name="order_status" id="alfa-checkout-status">
+                    <select class="form-select" name="order_status" id="checkout-status">
                         <?php foreach ($this->placementStatuses as $status) : ?>
                             <option value="<?php echo (int) $status->id; ?>"
                                     <?php echo (int) $status->is_initial === 1 ? 'selected' : ''; ?>>
@@ -223,8 +223,8 @@ $notLoaded = array_map(
                     <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="1"
-                                   name="use_credit" id="alfa-checkout-credit">
-                            <label class="form-check-label" for="alfa-checkout-credit">
+                                   name="use_credit" id="checkout-credit">
+                            <label class="form-check-label" for="checkout-credit">
                                 <?php echo Text::sprintf(
                                     'COM_ALFA_CART_CHECKOUT_USE_CREDIT',
                                     $this->escape((string) $customer->credit),
@@ -248,9 +248,9 @@ $notLoaded = array_map(
                             <p class="mb-2"><?php echo Text::_('COM_ALFA_CART_SHOPPER_CART_NOTICE'); ?></p>
                             <p class="fw-semibold"><?php echo Text::_('COM_ALFA_CART_PLACE_SHOPPER_CONFIRM'); ?></p>
                             <div class="form-check mb-0">
-                                <input type="checkbox" class="form-check-input" id="alfa-place-shopper-ack"
+                                <input type="checkbox" class="form-check-input" id="place-shopper-ack"
                                        name="place_shopper_ack" value="1" required>
-                                <label class="form-check-label" for="alfa-place-shopper-ack">
+                                <label class="form-check-label" for="place-shopper-ack">
                                     <?php echo Text::_('COM_ALFA_CART_PLACE_SHOPPER_ACK'); ?>
                                 </label>
                             </div>
@@ -259,13 +259,13 @@ $notLoaded = array_map(
                 <?php endif; ?>
 
                 <div class="col-md-3 text-end">
-                    <button type="submit" class="btn btn-lg <?php echo $this->isShopperCart ? 'btn-danger' : 'btn-primary'; ?>" data-alfa-place-once<?php
-                        echo $notLoaded === [] ? '' : ' disabled aria-describedby="alfa-place-not-loaded"'; ?>>
+                    <button type="submit" class="btn btn-lg <?php echo $this->isShopperCart ? 'btn-danger' : 'btn-primary'; ?>" data-place-once<?php
+                        echo $notLoaded === [] ? '' : ' disabled aria-describedby="place-not-loaded"'; ?>>
                         <span class="icon-checkbox" aria-hidden="true"></span>
                         <?php echo Text::_($this->isShopperCart ? 'COM_ALFA_CART_PLACE_SHOPPER_SUBMIT' : 'COM_ALFA_CART_CHECKOUT_PLACE'); ?>
                     </button>
                     <?php if ($notLoaded !== []) : ?>
-                        <div class="small text-danger text-start mt-2" id="alfa-place-not-loaded">
+                        <div class="small text-danger text-start mt-2" id="place-not-loaded">
                             <?php foreach ($notLoaded as $reason) : ?>
                                 <p class="mb-1"><?php echo $this->escape($reason); ?></p>
                             <?php endforeach; ?>
@@ -296,7 +296,7 @@ $notLoaded = array_map(
         }
 
         form.addEventListener('submit', function () {
-            var button = form.querySelector('[data-alfa-place-once]');
+            var button = form.querySelector('[data-place-once]');
 
             if (button) {
                 window.setTimeout(function () { button.disabled = true; }, 0);

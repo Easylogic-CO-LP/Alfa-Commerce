@@ -1,7 +1,7 @@
 /**
  * alfa-form-fields/tel: client-side glue.
  *
- * 1. Boots intlTelInput on every <input data-alfa-tel>.
+ * 1. Boots intlTelInput on every <input data-tel-input>.
  * 2. Registers `alfatel` with document.formvalidator; mirrors the server-side
  *    AlfatelRule so invalid numbers are blocked the same way both sides.
  * 3. Shows the matching <small data-err="..."> rendered by tmpl/layouts/tel.php
@@ -39,7 +39,7 @@
             // names for delivery and invoice, and resolving by name alone would
             // answer for the wrong copy.
             var box = surface || form.querySelector('[data-showon-name="' + name + '"]');
-            var i = box ? box.querySelector('input[data-alfa-tel]') : null;
+            var i = box ? box.querySelector('input[data-tel-input]') : null;
             var iti = i && i.__iti;
 
             return iti ? iti.getNumber() : (i ? i.value : null);
@@ -47,7 +47,7 @@
     });
 
     function wrapFor(input) {
-        return input.closest('.alfa-tel') || input.parentNode;
+        return input.closest('.tel') || input.parentNode;
     }
 
     function hideAllHints(input) {
@@ -224,7 +224,7 @@
     }
 
     function init() {
-        document.querySelectorAll('input[data-alfa-tel]').forEach(boot);
+        document.querySelectorAll('input[data-tel-input]').forEach(boot);
         registerValidator();
     }
 

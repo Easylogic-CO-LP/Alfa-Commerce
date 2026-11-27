@@ -97,7 +97,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 				$seriesLabel = $series === null ? '' : (string) $series->code
 					. ((string) $series->title !== '' ? ' (' . $series->title . ')' : '');
 				?>
-                <p data-alfa-correction-type="<?php echo $this->escape($issuedAs); ?>">
+                <p data-correction-type="<?php echo $this->escape($issuedAs); ?>">
 					<?php echo Text::sprintf(
 						'COM_ALFA_CORRECTION_ISSUED_AS',
 						'<strong>' . $this->escape(DocumentHelper::typeLabel($issuedAs)) . '</strong>',
@@ -105,7 +105,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 					); ?>
                 </p>
 
-                <table class="table table-striped table-bordered alfa-fold">
+                <table class="table table-striped table-bordered fold">
                     <thead>
                     <tr>
                         <th><?php echo Text::_('COM_ALFA_DOCUMENTS_MODAL_PRODUCT'); ?></th>
@@ -119,10 +119,10 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 					<?php foreach ($preview->lines as $line) : ?>
                         <tr>
                             <td><?php echo $this->escape((string) $line->name); ?></td>
-                            <td class="text-center" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_DOCUMENTS_MODAL_QTY')); ?>"><?php echo $this->escape((string) $line->quantity); ?></td>
-                            <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_COST_TAX_EXCL')); ?>"><?php echo $money($line->total_tax_excl); ?></td>
-                            <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_TAX_AMOUNT')); ?>"><?php echo $money($line->tax_amount); ?></td>
-                            <td class="text-end" data-alfa-label="<?php echo $this->escape(Text::_('COM_ALFA_COST_TAX_INCL')); ?>"><?php echo $money($line->total_tax_incl); ?></td>
+                            <td class="text-center" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_DOCUMENTS_MODAL_QTY')); ?>"><?php echo $this->escape((string) $line->quantity); ?></td>
+                            <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_COST_TAX_EXCL')); ?>"><?php echo $money($line->total_tax_excl); ?></td>
+                            <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_TAX_AMOUNT')); ?>"><?php echo $money($line->tax_amount); ?></td>
+                            <td class="text-end" data-cell-label="<?php echo $this->escape(Text::_('COM_ALFA_COST_TAX_INCL')); ?>"><?php echo $money($line->total_tax_incl); ?></td>
                         </tr>
 					<?php endforeach; ?>
                     </tbody>
@@ -176,7 +176,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 				], static fn (string $value): bool => $value !== '');
 				?>
                 <h4 class="h6 mt-3"><?php echo Text::_('COM_ALFA_CORRECTION_BUYER_HEADING'); ?></h4>
-                <dl class="row small mb-1" data-alfa-correction-buyer>
+                <dl class="row small mb-1" data-correction-buyer>
 					<?php foreach ($buyerRows as $label => $value) : ?>
                         <dt class="col-sm-3"><?php echo Text::_($label); ?></dt>
                         <dd class="col-sm-9"><?php echo $this->escape($value); ?></dd>
@@ -199,7 +199,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 				<?php // Every strategy for this document, available or not, and
 				      // why; the operator is never left to wonder where one went. ?>
                 <h4 class="h6 mt-4"><?php echo Text::_('COM_ALFA_CORRECTION_STRATEGIES_HEADING'); ?></h4>
-                <table class="table table-sm w-auto" data-alfa-strategies>
+                <table class="table table-sm w-auto" data-strategies>
                     <tbody>
 					<?php foreach ([
 						CorrectionStrategies::INCREMENTAL      => 'COM_ALFA_STRATEGY_INCREMENTAL',
@@ -207,7 +207,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 						CorrectionStrategies::VOID             => 'COM_ALFA_STRATEGY_VOID',
 					] as $strategyKey => $strategyLabel) : ?>
 						<?php $verdict = $this->strategies[$strategyKey]; ?>
-                        <tr data-alfa-strategy="<?php echo $strategyKey; ?>">
+                        <tr data-strategy="<?php echo $strategyKey; ?>">
                             <td><?php echo Text::_($strategyLabel); ?></td>
                             <td>
 								<?php if ($verdict->available) : ?>
@@ -217,7 +217,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 									<?php // Its sentence speaks of the credit notes named below it,
 									      // so they are named: voiding them is the way out. ?>
 									<?php if (\in_array($verdict->reason, [CorrectionStrategies::REASON_CREDIT_UNAVAILABLE, CorrectionStrategies::REASON_CREDIT_STILL_ACCOUNTS, CorrectionStrategies::REASON_REPLACEMENT_UNAVAILABLE], true)) : ?>
-                                        <div class="small text-muted mt-1" data-alfa-strategy-notes><?php echo $this->escape($verdict->detail); ?></div>
+                                        <div class="small text-muted mt-1" data-strategy-notes><?php echo $this->escape($verdict->detail); ?></div>
 									<?php endif; ?>
 								<?php endif; ?>
                             </td>
@@ -249,7 +249,7 @@ $money = static fn ($value): string => number_format((float) $value, (int) $prev
 			<?php // A discount that drifted in a way no amount corrects on its
 			      // own is named with its cause, never corrected with money. ?>
 			<?php if (!empty($proposal->blocked_discounts)) : ?>
-                <p class="small text-warning" data-alfa-correction-blocked-discounts>
+                <p class="small text-warning" data-correction-blocked-discounts>
 					<?php echo Text::sprintf('COM_ALFA_CORRECTION_BLOCKED_DISCOUNTS', implode(', ', array_map(
 						fn (object $discount): string => $this->escape($discount->label) . ' - '
 							. Text::_('COM_ALFA_CORRECTION_DISCOUNT_' . strtoupper($discount->reason)),

@@ -32,7 +32,7 @@ if ($this->relatedCards === []) {
 $this->getDocument()->getWebAssetManager()->useStyle('com_alfa.list');
 $headingId = 'item-related-heading-' . (int) $this->item->id;
 ?>
-<section class="com-alfa item-related" aria-labelledby="<?php echo $headingId; ?>">
+<section class="item-related" aria-labelledby="<?php echo $headingId; ?>">
     <h2 class="item-related-heading" id="<?php echo $headingId; ?>"><?php echo Text::_('COM_ALFA_ITEM_RELATED_HEADING'); ?></h2>
     <div class="list-container item-related-list">
         <?php echo implode("\n", $this->relatedCards); ?>

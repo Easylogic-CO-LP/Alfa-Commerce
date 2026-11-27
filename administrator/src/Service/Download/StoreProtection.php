@@ -377,7 +377,7 @@ class StoreProtection
         }
 
         $name = self::PROBE_PREFIX . bin2hex(random_bytes(16));
-        $canary = 'alfa-download-store-probe ' . bin2hex(random_bytes(32));
+        $canary = 'download-store-probe ' . bin2hex(random_bytes(32));
         $path = $result->root . '/' . $name;
         $result->url = $site . $this->urlPath(relative: $relative . '/' . $name);
 

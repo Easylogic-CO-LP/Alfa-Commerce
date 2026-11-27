@@ -20,15 +20,15 @@
 
     ready(function () {
         var sidebarmenu = document.getElementById('sidebarmenu');
-        var alfaWrap    = document.querySelector('[data-alfa-sidebar]');
+        var alfaWrap    = document.querySelector('[data-sidebar-menu]');
 
         if (!sidebarmenu || !alfaWrap) {
             return;
         }
 
-        var alfaNav = alfaWrap.querySelector('ul.alfa-nav');
-        var cmsNav  = sidebarmenu.querySelector('ul.main-nav:not(.alfa-nav)')
-            || sidebarmenu.querySelector('ul:not(.alfa-nav)');
+        var alfaNav = alfaWrap.querySelector('ul.app-nav');
+        var cmsNav  = sidebarmenu.querySelector('ul.main-nav:not(.app-nav)')
+            || sidebarmenu.querySelector('ul:not(.app-nav)');
 
         if (!alfaNav) {
             return;
@@ -56,7 +56,7 @@
 
         // Pin a "jump back into Alfa" entry to the TOP of the CMS menu, so it is the first
         // thing you see when you switch to Joomla's menu.
-        var backWrap = document.querySelector('[data-alfa-back]');
+        var backWrap = document.querySelector('[data-back-link]');
 
         if (backWrap) {
             var jump = backWrap.querySelector('li');
@@ -64,7 +64,7 @@
             if (jump && cmsNav) {
                 cmsNav.insertBefore(jump, cmsNav.firstChild);
 
-                var toApp = jump.querySelector('[data-alfa-to-app]');
+                var toApp = jump.querySelector('[data-to-app]');
 
                 if (toApp) {
                     toApp.addEventListener('click', function (event) {
@@ -78,7 +78,7 @@
         }
 
         // The Back arrow inside the Alfa menu returns to the CMS menu.
-        var toJoomla = alfaNav.querySelector('[data-alfa-to-joomla]');
+        var toJoomla = alfaNav.querySelector('[data-to-joomla]');
 
         if (toJoomla) {
             toJoomla.addEventListener('click', function (event) {

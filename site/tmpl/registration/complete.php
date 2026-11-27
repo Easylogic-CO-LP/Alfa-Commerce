@@ -15,7 +15,6 @@ use Joomla\CMS\Router\Route;
 Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_alfa.general');
 ?>
 
-<div class="com-alfa com-alfa-registration-complete">
 
     <h2><?php echo Text::_('COM_ALFA_REGISTRATION_COMPLETE_HEADING'); ?></h2>
 
@@ -24,5 +23,3 @@ Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_al
     <a href="<?php echo Route::_('index.php?option=com_users&view=login'); ?>" class="action primary">
         <?php echo Text::_('COM_ALFA_REGISTRATION_COMPLETE_LOGIN_BUTTON'); ?>
     </a>
-
-</div>

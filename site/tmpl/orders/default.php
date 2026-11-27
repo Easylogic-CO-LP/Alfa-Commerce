@@ -35,7 +35,6 @@ $columns = [
 ];
 
 ?>
-<div class="com-alfa orders">
     <h1 class="orders-heading"><?php echo $this->escape($this->heading); ?></h1>
 
     <?php if ($this->items === []) : ?>
@@ -70,4 +69,3 @@ $columns = [
     </nav>
     <?php endif; ?>
     <?php endif; ?>
-</div>

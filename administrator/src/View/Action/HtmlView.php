@@ -18,7 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\RequestScalar;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use RuntimeException;
 
 /**

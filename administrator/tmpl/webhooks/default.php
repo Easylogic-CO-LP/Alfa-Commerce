@@ -102,7 +102,7 @@ $said = static fn (string $result): string => str_starts_with($result, 'COM_ALFA
                             </td>
                             <td class="d-none d-md-table-cell small">
                                 <?php if (!empty($item->last_attempt_at)) : ?>
-                                    <span class="alfa-nowrap"><?php echo HTMLHelper::_('date', (string) $item->last_attempt_at, Text::_('DATE_FORMAT_LC6')); ?></span>
+                                    <span class="nowrap"><?php echo HTMLHelper::_('date', (string) $item->last_attempt_at, Text::_('DATE_FORMAT_LC6')); ?></span>
                                     <div class="<?php echo (int) $item->last_ok === 1 ? 'text-success' : 'text-danger'; ?> text-break"><?php echo $this->escape($said((string) $item->last_result)); ?></div>
                                 <?php else : ?>
                                     <?php echo Text::_('COM_ALFA_WEBHOOK_NEVER'); ?>

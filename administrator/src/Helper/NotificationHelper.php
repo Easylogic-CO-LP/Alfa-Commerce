@@ -1446,7 +1446,7 @@ class NotificationHelper
         ]);
 
         // A record a notification opens goes back to this page on Close and Save & Close.
-        $toolbar->appendButton('Custom', self::renderBadge(return: AlfaHelper::returnPage()), 'alfa-notification-badge');
+        $toolbar->appendButton('Custom', self::renderBadge(return: AlfaHelper::returnPage()), 'notification-badge');
     }
 
     /**

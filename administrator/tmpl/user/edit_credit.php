@@ -13,7 +13,7 @@
  * Rows are never edited or deleted; corrections are counter-entries, so
  * this panel is read-only apart from the two guarded actions.
  *
- * The fields and buttons belong to a SIBLING form (#alfa-credit-form,
+ * The fields and buttons belong to a SIBLING form (#credit-form,
  * rendered after adminForm in edit.php) via the HTML5 `form` attribute:
  * nested <form>s are invalid, and repointing adminForm itself does NOT work:
  * its hidden `task` field posts empty and beats the formaction query string,
@@ -96,12 +96,12 @@ $walletStep = number_format(10 ** -$wallet->getDecimalPlaces(), $wallet->getDeci
             <div class="card-body">
                 <div class="mb-2">
                     <label class="form-label" for="credit_amount"><?php echo Text::_('COM_ALFA_USER_CREDIT_AMOUNT'); ?></label>
-                    <input type="number" step="<?php echo $walletStep; ?>" min="<?php echo $walletStep; ?>" class="form-control" id="credit_amount" name="credit_amount" value="" form="alfa-credit-form"/>
+                    <input type="number" step="<?php echo $walletStep; ?>" min="<?php echo $walletStep; ?>" class="form-control" id="credit_amount" name="credit_amount" value="" form="credit-form"/>
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="credit_reason"><?php echo Text::_('COM_ALFA_USER_CREDIT_REASON'); ?> *</label>
                     <input type="text" class="form-control" id="credit_reason" name="credit_reason" value=""
-                           list="credit_reason_presets" maxlength="500" form="alfa-credit-form"/>
+                           list="credit_reason_presets" maxlength="500" form="credit-form"/>
                     <datalist id="credit_reason_presets">
                         <option value="<?php echo Text::_('COM_ALFA_USER_CREDIT_PRESET_GOODWILL'); ?>"></option>
                         <option value="<?php echo Text::_('COM_ALFA_USER_CREDIT_PRESET_COMPLAINT'); ?>"></option>
@@ -110,11 +110,11 @@ $walletStep = number_format(10 ** -$wallet->getDecimalPlaces(), $wallet->getDeci
                     </datalist>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success btn-sm" form="alfa-credit-form"
+                    <button type="submit" class="btn btn-success btn-sm" form="credit-form"
                             formaction="<?php echo $taskUrl; ?>&task=user.addCredit&id=<?php echo (int) $this->item->id; ?>">
                         <?php echo Text::_('COM_ALFA_USER_CREDIT_ADD'); ?>
                     </button>
-                    <button type="submit" class="btn btn-outline-danger btn-sm" form="alfa-credit-form"
+                    <button type="submit" class="btn btn-outline-danger btn-sm" form="credit-form"
                             formaction="<?php echo $taskUrl; ?>&task=user.deductCredit&id=<?php echo (int) $this->item->id; ?>">
                         <?php echo Text::_('COM_ALFA_USER_CREDIT_DEDUCT'); ?>
                     </button>

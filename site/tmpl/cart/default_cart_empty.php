@@ -16,7 +16,6 @@ use Joomla\CMS\Uri\Uri;
 ?>
 
 <?php // Alfa's root: the page renders this layout alone, and the notice's rule (cart.css) is scoped under it. ?>
-<div class="com-alfa">
 
     <?php echo Text::_('COM_ALFA_CART_EMPTY_MESSAGE'); ?><br>
     <a href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
@@ -30,5 +29,3 @@ use Joomla\CMS\Uri\Uri;
         <?php echo Text::_('COM_ALFA_CART_CHANGED_ELSEWHERE'); ?>
         <a href="<?php echo Route::_('index.php?option=com_alfa&view=cart'); ?>"><?php echo Text::_('COM_ALFA_CART_CHANGED_RELOAD'); ?></a>
     </div>
-
-</div>

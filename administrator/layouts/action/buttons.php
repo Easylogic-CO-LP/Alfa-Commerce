@@ -16,9 +16,9 @@ use Joomla\CMS\Language\Text;
 /**
  * Footer buttons for an action popup, declared on the event via addButton().
  * Each button maps to an AlfaAction behaviour via data-attributes:
- *   - has 'action' -> data-alfa-run  (load that action in THIS popup)
- *   - 'reload'     -> data-alfa-reload (close + refresh)
- *   - otherwise    -> data-alfa-close  (just close)
+ *   - has 'action' -> data-action-run  (load that action in THIS popup)
+ *   - 'reload'     -> data-action-reload (close + refresh)
+ *   - otherwise    -> data-action-close  (just close)
  *
  * @var array $displayData ['buttons' => array]
  */
@@ -33,7 +33,7 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 // The footer's own stylesheet (media/css/admin/action-page.css): pinned at the bottom of the popup.
 Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_alfa.action-page');
 ?>
-<div class="alfa-action-buttons">
+<div class="action-buttons">
     <?php foreach ($buttons as $btn) : ?>
         <?php
         $label = (string) ($btn['label'] ?? Text::_('JCLOSE'));
@@ -41,12 +41,12 @@ Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_al
         $action = $btn['action'] ?? null;
 
         if ($action) {
-            $hook = 'data-alfa-run="' . $esc($action) . '"'
-                . ' data-alfa-data="' . $esc(json_encode((object) ($btn['data'] ?? []))) . '"';
+            $hook = 'data-action-run="' . $esc($action) . '"'
+                . ' data-action-data="' . $esc(json_encode((object) ($btn['data'] ?? []))) . '"';
         } elseif (!empty($btn['reload'])) {
-            $hook = 'data-alfa-reload';
+            $hook = 'data-action-reload';
         } else {
-            $hook = 'data-alfa-close';
+            $hook = 'data-action-close';
         }
         ?>
         <button type="button" class="btn <?php echo $esc($class); ?>" <?php echo $hook; ?>>

@@ -22,7 +22,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_2_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_2_DESC",
             "position": "bottom",
-            "target": "joomla-tab#alfaTools, .com-alfa-tools",
+            "target": "joomla-tab#alfaTools, .tools-page",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=tools"
@@ -31,7 +31,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_3_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_3_DESC",
             "position": "bottom",
-            "target": ".alfa-tool-btn, .com-alfa-tools .card",
+            "target": ".tool-btn, .tools-page .card",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=tools"

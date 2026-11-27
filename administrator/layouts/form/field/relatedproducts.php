@@ -27,6 +27,6 @@ $assets->getRegistry()->addExtensionRegistryFile('com_alfa');
 $assets->useStyle('com_alfa.admin.related-products')
     ->useScript('com_alfa.admin.related-products');
 ?>
-<div class="alfa-related-products" data-variant-url="<?php echo htmlspecialchars((string) $displayData['variantUrl'], ENT_QUOTES, 'UTF-8'); ?>">
+<div class="related-products" data-variant-url="<?php echo htmlspecialchars((string) $displayData['variantUrl'], ENT_QUOTES, 'UTF-8'); ?>">
     <?php echo LayoutHelper::render('joomla.form.field.subform.repeatable-table', $displayData); ?>
 </div>

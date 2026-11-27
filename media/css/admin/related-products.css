@@ -3,27 +3,27 @@
  *
  * The dimensions' selects belong to Choose values: they show only while the row's Variant select holds it.
  */
-.alfa-related-variant {
+:where(#alfa-app) .related-variant {
   display: grid;
   gap: 0.5rem;
 }
 
-.alfa-related-variant__group {
+:where(#alfa-app) .related-variant__group {
   display: grid;
   grid-template-columns: max-content minmax(10rem, 1fr);
   gap: 0.25rem 0.75rem;
   align-items: center;
 }
 
-.alfa-related-variant__dims {
+:where(#alfa-app) .related-variant__dims {
   display: none;
 }
 
-.alfa-related-variant:has(.alfa-related-variant__mode option[value="choose"]:checked) .alfa-related-variant__dims {
+:where(#alfa-app) .related-variant:has(.related-variant__mode option[value="choose"]:checked) .related-variant__dims {
   display: grid;
 }
 
-.alfa-related-variant__hint {
+:where(#alfa-app) .related-variant__hint {
   margin: 0;
   color: var(--template-text-light, inherit);
 }

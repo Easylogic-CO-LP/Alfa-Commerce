@@ -284,9 +284,9 @@ class Dispatcher extends AbstractModuleDispatcher
         $offsetH = $offsetHorizontal . $offsetHorizontalUnit;
 
         $loadingAnimation = match ((string) $params->get('loadingAnimation', 'spinner')) {
-            'spinner' => 'alfa-filters-spinner 0.8s linear infinite',
+            'spinner' => 'filters-spinner 0.8s linear infinite',
             'none' => '',
-            default => 'alfa-filters-pulsate 0.7s ease-in-out infinite',
+            default => 'filters-pulsate 0.7s ease-in-out infinite',
         };
 
         // CSS custom properties scoped to this module instance
@@ -325,13 +325,13 @@ class Dispatcher extends AbstractModuleDispatcher
                     @media (min-width: {$responsiveChange}px) {
 
                         /* Remove overlay backdrop */
-                        {$instanceClass} .alfa-filters-offcanvas-wrapper.alfa-filters-offcanvas {
+                        {$instanceClass} .filters-offcanvas-wrapper.filters-offcanvas {
                             position: unset;
                             background: unset;
                         }
 
                         /* Hide the mobile header */
-                        {$instanceClass} .alfa-filters-offcanvas .alfa-filters-header {
+                        {$instanceClass} .filters-offcanvas .filters-header {
                             display: none;
                         }
 
@@ -343,14 +343,14 @@ class Dispatcher extends AbstractModuleDispatcher
                            Inline only. The bar is 0px tall until the button inside it is
                            revealed, and block padding would open a gap above the first
                            section. */
-                        {$instanceClass} .alfa-filters-offcanvas .alfa-filters-actions {
+                        {$instanceClass} .filters-offcanvas .filters-actions {
                             display: flex;
                             justify-content: flex-end;
                             padding-inline: var(--alfa-filters-panel-padding-inline);
                         }
 
                         /* Hide the open/close toggle */
-                        {$instanceClass} .alfa-filters-offcanvas-toggler {
+                        {$instanceClass} .filters-offcanvas-toggler {
                             display: none;
                         }
 
@@ -364,10 +364,10 @@ class Dispatcher extends AbstractModuleDispatcher
                         }
 
                         /* Reset all slide-in transforms so the panel renders inline */
-                        {$instanceClass} .alfa-filters-offcanvas.fromLeft  .alfa-filters-wrapper-inner,
-                        {$instanceClass} .alfa-filters-offcanvas.zoomIn    .alfa-filters-wrapper-inner,
-                        {$instanceClass} .alfa-filters-offcanvas.fromRight .alfa-filters-wrapper-inner,
-                        {$instanceClass} .alfa-filters-offcanvas.fromTop   .alfa-filters-wrapper-inner {
+                        {$instanceClass} .filters-offcanvas.fromLeft  .filters-wrapper-inner,
+                        {$instanceClass} .filters-offcanvas.zoomIn    .filters-wrapper-inner,
+                        {$instanceClass} .filters-offcanvas.fromRight .filters-wrapper-inner,
+                        {$instanceClass} .filters-offcanvas.fromTop   .filters-wrapper-inner {
                             width:       100%;
                             height:      100%;
                             background:  var(--alfa-filters-surface);
@@ -381,10 +381,10 @@ class Dispatcher extends AbstractModuleDispatcher
                         }
 
                         /* Clear the visible-state transform override */
-                        {$instanceClass} .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromLeft  .alfa-filters-wrapper-inner,
-                        {$instanceClass} .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.zoomIn    .alfa-filters-wrapper-inner,
-                        {$instanceClass} .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromRight .alfa-filters-wrapper-inner,
-                        {$instanceClass} .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop   .alfa-filters-wrapper-inner {
+                        {$instanceClass} .filters-offcanvas.filters-offcanvas--visible-inner.fromLeft  .filters-wrapper-inner,
+                        {$instanceClass} .filters-offcanvas.filters-offcanvas--visible-inner.zoomIn    .filters-wrapper-inner,
+                        {$instanceClass} .filters-offcanvas.filters-offcanvas--visible-inner.fromRight .filters-wrapper-inner,
+                        {$instanceClass} .filters-offcanvas.filters-offcanvas--visible-inner.fromTop   .filters-wrapper-inner {
                             transform: unset;
                         }
 
@@ -394,7 +394,7 @@ class Dispatcher extends AbstractModuleDispatcher
                         }
 
                         /* Remove the overlay pseudo-element */
-                        {$instanceClass} .alfa-filters-offcanvas::after {
+                        {$instanceClass} .filters-offcanvas::after {
                             display: none !important;
                         }
                     }

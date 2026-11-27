@@ -46,14 +46,14 @@ if (!$canEdit) {
     return;
 }
 ?>
-<span class="alfa-editable"
+<span class="editable"
       data-view="<?php echo htmlspecialchars($view, ENT_QUOTES, 'UTF-8'); ?>"
       data-element="<?php echo htmlspecialchars($element, ENT_QUOTES, 'UTF-8'); ?>"
       data-id="<?php echo $id; ?>"
       data-type="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>">
     <?php if ($editHref !== '') : ?>
-        <a class="alfa-editable-display" href="<?php echo htmlspecialchars($editHref, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($shown, ENT_QUOTES, 'UTF-8'); ?></a>
+        <a class="editable-display" href="<?php echo htmlspecialchars($editHref, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($shown, ENT_QUOTES, 'UTF-8'); ?></a>
     <?php else : ?>
-        <span class="alfa-editable-display"><?php echo htmlspecialchars($shown, ENT_QUOTES, 'UTF-8'); ?></span>
+        <span class="editable-display"><?php echo htmlspecialchars($shown, ENT_QUOTES, 'UTF-8'); ?></span>
     <?php endif; ?>
 </span>

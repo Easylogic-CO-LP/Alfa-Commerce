@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Stats\DashboardPeriod;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**

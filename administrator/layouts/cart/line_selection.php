@@ -35,7 +35,7 @@ if (!$selections) {
     return;
 }
 ?>
-<ul class="list-unstyled small text-muted mb-0 mt-1 alfa-line-selection">
+<ul class="list-unstyled small text-muted mb-0 mt-1 line-selection">
     <?php foreach ($selections as $selection) : ?>
         <li>
             <?php echo Text::sprintf(

@@ -49,7 +49,7 @@ if (trim($customerHtml) === '' && trim($billingHtml) === '') {
     return;
 }
 ?>
-<div class="alfa-checkout-details">
+<div class="checkout-details">
     <?php if (trim($customerHtml) !== '') : ?>
         <fieldset class="adminform">
             <legend><?php echo Text::_('COM_ALFA_FIELDSET_USER_DETAILS'); ?></legend>

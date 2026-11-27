@@ -1,6 +1,6 @@
 /* Custom CSS only: no Bootstrap dependency. BEM-ish naming. */
 
-.alfa-choice-wrap {
+:where(#alfa-app) .choice-wrap {
     --ac-gap: 8px;
     --ac-radius: 6px;
     --ac-fg: #1f2937;
@@ -14,23 +14,23 @@
     display: block;
 }
 
-.alfa-choice {
+:where(#alfa-app) .choice {
     display: flex;
     flex-wrap: wrap;
     gap: var(--ac-gap);
     font-family: inherit;
 }
 
-.alfa-choice--vertical   { flex-direction: column; align-items: flex-start; }
-.alfa-choice--horizontal { flex-direction: row; }
-.alfa-choice--grid {
+:where(#alfa-app) .choice--vertical   { flex-direction: column; align-items: flex-start; }
+:where(#alfa-app) .choice--horizontal { flex-direction: row; }
+:where(#alfa-app) .choice--grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 
 /* Visually hide the input, used by button + chip variants.
    Kept focusable for keyboard accessibility. */
-.alfa-choice--button .alfa-choice__input{
+:where(#alfa-app) .choice--button .choice__input{
     position: absolute;
     width: 1px;
     height: 1px;
@@ -43,8 +43,8 @@
 }
 
 /* radio / checkbox: keep native input visible */
-.alfa-choice--radio .alfa-choice__label,
-.alfa-choice--checkbox .alfa-choice__label {
+:where(#alfa-app) .choice--radio .choice__label,
+:where(#alfa-app) .choice--checkbox .choice__label {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -54,14 +54,14 @@
     user-select: none;
 }
 
-.alfa-choice--radio .alfa-choice__input,
-.alfa-choice--checkbox .alfa-choice__input {
+:where(#alfa-app) .choice--radio .choice__input,
+:where(#alfa-app) .choice--checkbox .choice__input {
     margin: 0;
     accent-color: var(--ac-active-bg);
 }
 
 /* button variant */
-.alfa-choice--button .alfa-choice__label {
+:where(#alfa-app) .choice--button .choice__label {
     display: inline-flex;
     align-items: center;
     cursor: pointer;
@@ -75,23 +75,23 @@
     transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
-.alfa-choice--button .alfa-choice__label:hover {
+:where(#alfa-app) .choice--button .choice__label:hover {
     border-color: var(--ac-active-border);
     color: var(--ac-active-bg);
 }
 
-.alfa-choice--button .alfa-choice__input:checked + .alfa-choice__label {
+:where(#alfa-app) .choice--button .choice__input:checked + .choice__label {
     background: var(--ac-active-bg);
     color: var(--ac-active-fg);
     border-color: var(--ac-active-border);
 }
 
-.alfa-choice--button .alfa-choice__input:focus-visible + .alfa-choice__label {
+:where(#alfa-app) .choice--button .choice__input:focus-visible + .choice__label {
     box-shadow: 0 0 0 3px var(--ac-focus-ring);
 }
 
 /* native select */
-.alfa-choice__select {
+:where(#alfa-app) .choice__select {
     padding: 8px 32px 8px 10px;
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius);
@@ -110,37 +110,37 @@
     background-repeat: no-repeat;
 }
 
-.alfa-choice__select[multiple] {
+:where(#alfa-app) .choice__select[multiple] {
     background-image: none;
     padding-right: 10px;
     min-height: 120px;
 }
 
-.alfa-choice__select:focus-visible {
+:where(#alfa-app) .choice__select:focus-visible {
     outline: none;
     border-color: var(--ac-active-border);
     box-shadow: 0 0 0 3px var(--ac-focus-ring);
 }
 
 /* hint text under the field (min/max counter) */
-.alfa-choice__hint {
+:where(#alfa-app) .choice__hint {
     display: block;
     margin-top: 6px;
     font-size: 0.8125rem;
     color: var(--ac-fg-muted);
 }
 
-.alfa-choice__hint--error {
+:where(#alfa-app) .choice__hint--error {
     color: #dc2626;
 }
 
 /* frontend display */
-.alfa-choice__display {
+:where(#alfa-app) .choice__display {
     color: var(--ac-fg);
 }
 
 /* the group's name for assistive technology; the caption beside the group shows it */
-.alfa-choice__legend {
+:where(#alfa-app) .choice__legend {
     position: absolute;
     width: 1px;
     height: 1px;

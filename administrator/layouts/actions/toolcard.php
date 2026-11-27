@@ -36,7 +36,7 @@ if (!$action || !$action->isValid()) {
 $e = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 // The card's own progress element, which its button names; the attributes the Tools script reads are the one set
 // every tool button carries ({@see ToolButton::attributes()}).
-$progressId = 'alfa-tool-progress-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($action->id));
+$progressId = 'tool-progress-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($action->id));
 $attrs = ToolButton::html(ToolButton::attributes(action: $action, progress: $progressId));
 
 $description = (string) ($action->metadata['description'] ?? '');
@@ -62,12 +62,12 @@ $buttonLabel = ToolButton::label($action);
                 <?php echo Text::_($notice); ?></div>
         <?php endif; ?>
 
-        <button class="btn <?php echo $e($action->class); ?> alfa-tool-btn"<?php echo $attrs; ?>>
+        <button class="btn <?php echo $e($action->class); ?> tool-btn"<?php echo $attrs; ?>>
             <span class="icon-<?php echo $e($action->icon); ?>" aria-hidden="true"></span>
             <?php echo $buttonLabel; ?>
         </button>
 
-        <div class="alfa-progress mt-3" id="<?php echo $e($progressId); ?>" style="display:none;">
+        <div class="tool-progress mt-3" id="<?php echo $e($progressId); ?>" style="display:none;">
             <div class="progress" style="height:1.5rem;">
                 <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
                      style="width:0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>

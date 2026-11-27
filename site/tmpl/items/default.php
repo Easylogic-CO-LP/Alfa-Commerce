@@ -32,7 +32,7 @@ if (\is_object($firstCard) ? (bool) ($firstCard->sellsOnline ?? true) : \Alfa\Co
 }
 
 // NO search assets load here, on purpose. The enhancement widget loads in the
-// `list.filter_form` layout, beside the input that declares `data-alfa-search`. A consumer
+// `list.filter_form` layout, beside the input that declares `data-search-enhance`. A consumer
 // of the attribution belongs to the engine that issued the handle, which loads it from its
 // own media when the view announces the result set (onAlfaResultSetRender). This template
 // only DECLARES the attribution, through the view's two calls; declaring is data-only and
@@ -47,9 +47,6 @@ $priceSettings = $this->priceSettings;
 // One h1 per page: the page heading when it shows, the category title then an h2; else the title is the h1.
 $titleTag = $this->showPageHeading ? 'h2' : 'h1';
 ?>
-<?php // The listing's root, as every storefront page has one (com-alfa): a template's own rules for Alfa Commerce's
-      // pages reach the listing through it. ?>
-<div class="com-alfa items-list-page">
 
 <?php if ($this->showPageHeading) : ?>
 <div class="page-header">
@@ -84,9 +81,9 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
       // (alfa:results:updated) and on a page the view marks (data-results-reveal: a later page, a submitted filter),
       // and focuses it on such a page. Named by the results counter, so the focus announces how many products show;
       // after its swap a filters module's status line says the same name, the focus staying on the shopper's control. ?>
-<section data-results tabindex="-1"<?php echo $this->resultsCounter !== '' ? ' aria-labelledby="alfa-results-counter"' : ''; ?><?php echo $this->revealResults ? ' data-results-reveal' : ''; ?>>
+<section data-results tabindex="-1"<?php echo $this->resultsCounter !== '' ? ' aria-labelledby="results-counter"' : ''; ?><?php echo $this->revealResults ? ' data-results-reveal' : ''; ?>>
     <?php if ($this->resultsCounter !== '') : ?>
-    <span id="alfa-results-counter" hidden><?php echo $this->escape($this->resultsCounter); ?></span>
+    <span id="results-counter" hidden><?php echo $this->escape($this->resultsCounter); ?></span>
     <?php endif; ?>
     <?php echo $this->pagination->getListFooter(); ?>
     <?php
@@ -110,5 +107,3 @@ $titleTag = $this->showPageHeading ? 'h2' : 'h1';
     </div>
     <?php echo $this->pagination->getListFooter(); ?>
 </section>
-
-</div>

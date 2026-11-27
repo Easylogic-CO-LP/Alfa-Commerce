@@ -51,7 +51,7 @@ foreach ($choiceFields as $choiceField) {
     $renderFields[] = [$choiceField, $lockedOut];
 }
 ?>
-<div class="alfa-combi-tools">
+<div class="combi-tools">
     <div data-generator data-item-id="<?php echo $itemId; ?>"
          data-locked="<?php echo $comboFieldIds ? '1' : '0'; ?>">
         <?php // The popup teaches the concept before the mechanics: a merchant who
